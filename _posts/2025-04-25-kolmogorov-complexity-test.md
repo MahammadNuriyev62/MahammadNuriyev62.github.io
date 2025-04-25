@@ -35,22 +35,22 @@ You quickly spot the pattern _01_ repeating. You could write a tiny program:
 for i = 1 to 10: print "01"
 ```
 
-The program is far shorter than 20 symbols. Kolmogorov Complexity formalises this: for a string \(s\),
+The program is far shorter than 20 symbols. Kolmogorov Complexity formalises this: for a string $s$,
 
-\[ K(s) = \min\_{p:\;U(p)=s} |p| \]
+$$ K(s) = \min\_{p:\;U(p)=s} |p| $$
 
-where **U** is a fixed universal Turing machine (think: a reference computer), **p** is a program that outputs \(s\), and \(|p|\) counts its bits.  
+where **U** is a fixed universal Turing machine (think: a reference computer), **p** is a program that outputs $s$, and $|p|$ counts its bits.  
 The shorter the best **p**, the simpler the data.
 
 ---
 
 ## 3 Toy examples
 
-| Data         | Naïve length (bits/characters) | Intuitive description          | \(K(s)\) (qualitative) |
-| ------------ | ------------------------------ | ------------------------------ | ---------------------- |
-| `0000000000` | 10                             | “ten zeros”                    | very small             |
-| `0101010101` | 10                             | “alternate 0 and 1, ten times” | small                  |
-| `1100100001` | 10                             | no obvious pattern             | close to 10            |
+| Data         | Naïve length (bits/characters) | Intuitive description          | $K(s)$ (qualitative) |
+| ------------ | ------------------------------ | ------------------------------ | -------------------- |
+| `0000000000` | 10                             | “ten zeros”                    | very small           |
+| `0101010101` | 10                             | “alternate 0 and 1, ten times” | small                |
+| `1100100001` | 10                             | no obvious pattern             | close to 10          |
 
 The last line _looks random_; any program that prints it verbatim is already 10 symbols long.
 
@@ -71,9 +71,9 @@ There is no algorithm that takes a string and returns its exact Kolmogorov Compl
 
 ---
 
-## 6 Approximating \(K(s)\) in practice
+## 6 Approximating $K(s)$ in practice
 
-A handy rule of thumb: `good compressor size` \(\approx K(s)+c\).  
+A handy rule of thumb: `good compressor size` $\approx K(s)+c$.  
 Try it yourself:
 
 ```python
