@@ -115,7 +115,7 @@ print(X.shape, y.shape)              # (20640, 8) (20640,)
 
 ```python
 print(housing.feature_names)               # ['MedInc', 'HouseAge', ...]
-print(housing.DESCR.split('\n')[:8])       # brief provenance peek
+print(housing.DESCR[:400])       # brief provenance peek
 ```
 
 ---
@@ -215,3 +215,8 @@ MDL applies <a href="https://simple.wikipedia.org/wiki/Occam%27s_razor#:~:text=O
 ## 7 Take-away
 
 Model selection through **Minimum-Description-Length** rewards exactly the trade-off we want: _good predictions with as little complexity as possible_. Whenever classic metrics give you a headache, count the bits—and remember Alice and Bob’s lightweight email.
+
+---
+
+If you enjoyed this post, please drop your "clap" bombs here 😛👇<br>
+https://medium.com/@maganuriyev/can-your-zip-file-predict-house-prices-2e38a8526f12
