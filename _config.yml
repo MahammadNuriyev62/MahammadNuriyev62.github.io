@@ -1,3 +1,18 @@
 markdown: kramdown
 kramdown:
-  math_engine: katex
+  input: GFM
+  hard_wrap: false
+  syntax_highlighter: rouge
+  syntax_highlighter_opts:
+    guess_lang: false
+    block:
+      line_numbers: true
+      wrap: none
+    inline:
+      wrap: none
+  math_engine: mathjax
+  math_engine_opts:
+    mathjax_options:
+      tex:
+        inlineMath: [["$", "$"], ['\\(', '\\)']]
+        displayMath: [["$$", "$$"], ['\\[', '\\]']]
