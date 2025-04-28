@@ -1,18 +1,19 @@
 markdown: kramdown
 kramdown:
   input: GFM
-  hard_wrap: false
   syntax_highlighter: rouge
-  syntax_highlighter_opts:
-    guess_lang: false
-    block:
-      line_numbers: true
-      wrap: none
-    inline:
-      wrap: none
+  hard_wrap: false
+  parse_block_html: true
+  parse_span_html: true
   math_engine: mathjax
-  math_engine_opts:
-    mathjax_options:
-      tex:
-        inlineMath: [["$", "$"], ['\\(', '\\)']]
-        displayMath: [["$$", "$$"], ['\\[', '\\]']]
+  math_engine_kramdown:
+    math_engine: mathjax
+    math_engine_kramdown:
+      mathjax:
+        engine: MathJax
+        options:
+          display_indent: 0
+          display_align: left
+          inline_math: [["$", "$"], ["\\(", "\\)"]]
+          block_math: [["$$", "$$"], ["\\[", "\\]"]]
+          preview: true
