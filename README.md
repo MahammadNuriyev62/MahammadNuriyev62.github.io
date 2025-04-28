@@ -1,1 +1,0 @@
-# MahammadNuriyev62.github.io
