@@ -69,11 +69,6 @@ K(y\mid X)\;\le\;\underbrace{K(h)}_{\text{model bits}}\;+
 \underbrace{K\bigl(y\mid h,X\bigr)}_{\text{residual bits}}.
 $$
 
-<!-- _Reading this like the café story._
-
-- **$K(h)$** – the email size of Bob’s coefficients.
-- **$K(y\mid h,X)$** – any leftover “patch file” Alice needs to fix the predictions. -->
-
 | **Term**       | **Bob and Alice definition**                                  | **Formal definition**      |
 | -------------- | ------------------------------------------------------------- | -------------------------- |
 | $K(h)$         | The email size of Bob’s coefficients.                         | The size of the model.     |
