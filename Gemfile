@@ -1,2 +1,4 @@
-gem 'jekyll', '~> 4.3'
-gem 'jekyll-katex'      # server-side math renderer
+source "https://rubygems.org"
+
+gem "jekyll", "~> 4.3"
+gem "jekyll-katex", group: :jekyll_plugins
