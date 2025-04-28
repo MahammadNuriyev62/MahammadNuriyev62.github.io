@@ -1,22 +1,16 @@
-<script type="text/javascript">
-  window.MathJax = {
-    tex: {
-      inlineMath: [
-        ["$", "$"],
-        ["\\(", "\\)"],
-      ],
+<script type="text/x-mathjax-config">
+  MathJax.Hub.Config({
+    tex2jax: {
+      skipTags: ['script', 'noscript', 'style', 'textarea', 'pre'],
+      inlineMath: [['$','$']],
       displayMath: [
-        ["$$", "$$"],
-        ["\\[", "\\]"],
-      ],
-    },
-    options: {
-      skipHtmlTags: ["script", "noscript", "style", "textarea", "pre"],
-    },
-  };
+      ["$$", "$$"],
+      ["\\[", "\\]"],
+    ],
+    }
+  });
 </script>
 <script
+  src="https://cdn.mathjax.org/mathjax/latest/MathJax.js?config=TeX-AMS-MML_HTMLorMML"
   type="text/javascript"
-  async
-  src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"
 ></script>
