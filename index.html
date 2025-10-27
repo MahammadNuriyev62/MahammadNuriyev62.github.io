@@ -751,21 +751,143 @@
     </footer>
 
     <script>
-        // Interactive 3D Cube
+        // Interactive 3D Cube with Quaternion-based rotation
         const cubeContainer = document.querySelector('.cube-container');
         const cube = document.querySelector('.cube');
+
+        // Quaternion class for accurate 3D rotation
+        class Quaternion {
+            constructor(w = 1, x = 0, y = 0, z = 0) {
+                this.w = w;
+                this.x = x;
+                this.y = y;
+                this.z = z;
+            }
+
+            // Create quaternion from axis-angle
+            static fromAxisAngle(axis, angle) {
+                const halfAngle = angle / 2;
+                const s = Math.sin(halfAngle);
+                return new Quaternion(
+                    Math.cos(halfAngle),
+                    axis.x * s,
+                    axis.y * s,
+                    axis.z * s
+                );
+            }
+
+            // Multiply quaternions (compose rotations)
+            multiply(q) {
+                return new Quaternion(
+                    this.w * q.w - this.x * q.x - this.y * q.y - this.z * q.z,
+                    this.w * q.x + this.x * q.w + this.y * q.z - this.z * q.y,
+                    this.w * q.y - this.x * q.z + this.y * q.w + this.z * q.x,
+                    this.w * q.z + this.x * q.y - this.y * q.x + this.z * q.w
+                );
+            }
+
+            // Normalize quaternion
+            normalize() {
+                const len = Math.sqrt(this.w * this.w + this.x * this.x + this.y * this.y + this.z * this.z);
+                if (len > 0) {
+                    this.w /= len;
+                    this.x /= len;
+                    this.y /= len;
+                    this.z /= len;
+                }
+                return this;
+            }
+
+            // Convert to rotation matrix
+            toMatrix() {
+                const xx = this.x * this.x;
+                const xy = this.x * this.y;
+                const xz = this.x * this.z;
+                const xw = this.x * this.w;
+                const yy = this.y * this.y;
+                const yz = this.y * this.z;
+                const yw = this.y * this.w;
+                const zz = this.z * this.z;
+                const zw = this.z * this.w;
+
+                return [
+                    1 - 2 * (yy + zz), 2 * (xy - zw), 2 * (xz + yw), 0,
+                    2 * (xy + zw), 1 - 2 * (xx + zz), 2 * (yz - xw), 0,
+                    2 * (xz - yw), 2 * (yz + xw), 1 - 2 * (xx + yy), 0,
+                    0, 0, 0, 1
+                ];
+            }
+
+            // Convert to CSS matrix3d string
+            toCSSMatrix() {
+                return `matrix3d(${this.toMatrix().join(',')})`;
+            }
+
+            // Interpolate between quaternions (for momentum)
+            slerp(q, t) {
+                let dot = this.w * q.w + this.x * q.x + this.y * q.y + this.z * q.z;
+
+                // Ensure shortest path
+                if (dot < 0) {
+                    q = new Quaternion(-q.w, -q.x, -q.y, -q.z);
+                    dot = -dot;
+                }
+
+                if (dot > 0.9995) {
+                    // Linear interpolation for very close quaternions
+                    return new Quaternion(
+                        this.w + t * (q.w - this.w),
+                        this.x + t * (q.x - this.x),
+                        this.y + t * (q.y - this.y),
+                        this.z + t * (q.z - this.z)
+                    ).normalize();
+                }
+
+                const theta = Math.acos(dot);
+                const sinTheta = Math.sin(theta);
+                const w1 = Math.sin((1 - t) * theta) / sinTheta;
+                const w2 = Math.sin(t * theta) / sinTheta;
+
+                return new Quaternion(
+                    this.w * w1 + q.w * w2,
+                    this.x * w1 + q.x * w2,
+                    this.y * w1 + q.y * w2,
+                    this.z * w1 + q.z * w2
+                );
+            }
+        }
 
         let isDragging = false;
         let previousMouseX = 0;
         let previousMouseY = 0;
-        let rotationX = 0;
-        let rotationY = 0;
-        let velocityX = 0;
-        let velocityY = 0;
+        let currentRotation = new Quaternion(); // Identity quaternion
+        let rotationVelocity = new Quaternion(); // Velocity as quaternion
         let autoRotateTimeout;
 
         function updateCubeRotation() {
-            cube.style.transform = `rotateX(${rotationX}deg) rotateY(${rotationY}deg)`;
+            cube.style.transform = currentRotation.toCSSMatrix();
+        }
+
+        function getRotationFromDrag(deltaX, deltaY, sensitivity = 0.5) {
+            // Calculate rotation axis perpendicular to drag direction
+            // Drag right -> rotate around Y axis (up)
+            // Drag down -> rotate around X axis (right)
+
+            const dragDistance = Math.sqrt(deltaX * deltaX + deltaY * deltaY);
+            if (dragDistance < 0.1) return new Quaternion(); // Identity
+
+            // Create rotation axis in screen space
+            // For intuitive rotation: drag direction determines axis perpendicular to it
+            const axis = {
+                x: -deltaY / dragDistance, // Drag down -> rotate right
+                y: deltaX / dragDistance,  // Drag right -> rotate up
+                z: 0
+            };
+
+            // Rotation angle proportional to drag distance
+            const angle = (dragDistance * sensitivity * Math.PI) / 180;
+
+            return Quaternion.fromAxisAngle(axis, angle);
         }
 
         cubeContainer.addEventListener('mousedown', (e) => {
@@ -774,8 +896,7 @@
             cube.classList.remove('auto-rotate');
             previousMouseX = e.clientX;
             previousMouseY = e.clientY;
-            velocityX = 0;
-            velocityY = 0;
+            rotationVelocity = new Quaternion(); // Reset velocity
 
             // Clear any pending auto-rotate
             if (autoRotateTimeout) {
@@ -789,11 +910,14 @@
             const deltaX = e.clientX - previousMouseX;
             const deltaY = e.clientY - previousMouseY;
 
-            velocityX = deltaY * 0.5;
-            velocityY = deltaX * 0.5;
+            // Create rotation quaternion from drag
+            const dragRotation = getRotationFromDrag(deltaX, deltaY, 1.0);
 
-            rotationX += velocityX;
-            rotationY += velocityY;
+            // Store velocity for momentum
+            rotationVelocity = dragRotation;
+
+            // Compose with current rotation
+            currentRotation = dragRotation.multiply(currentRotation).normalize();
 
             updateCubeRotation();
 
@@ -806,21 +930,17 @@
             isDragging = false;
             cube.classList.remove('dragging');
 
-            // Apply momentum
-            let momentum = 30; // frames of momentum
+            // Apply momentum with quaternion
+            let momentum = 30;
+            let currentVelocity = rotationVelocity;
+
             const applyMomentum = () => {
                 if (momentum <= 0) {
                     // Resume auto-rotation after 3 seconds of inactivity
                     autoRotateTimeout = setTimeout(() => {
-                        // Calculate current rotation modulo 360
-                        rotationX = rotationX % 360;
-                        rotationY = rotationY % 360;
-
-                        // Smoothly transition to auto-rotate from current position
                         cube.style.animation = 'none';
-                        cube.style.transform = `rotateX(${rotationX}deg) rotateY(${rotationY}deg)`;
+                        cube.style.transform = currentRotation.toCSSMatrix();
 
-                        // Small delay to ensure transform is applied
                         setTimeout(() => {
                             cube.classList.add('auto-rotate');
                         }, 50);
@@ -828,11 +948,11 @@
                     return;
                 }
 
-                velocityX *= 0.95;
-                velocityY *= 0.95;
+                // Decay velocity towards identity (no rotation)
+                currentVelocity = currentVelocity.slerp(new Quaternion(), 0.05);
 
-                rotationX += velocityX;
-                rotationY += velocityY;
+                // Apply velocity to current rotation
+                currentRotation = currentVelocity.multiply(currentRotation).normalize();
 
                 updateCubeRotation();
 
@@ -851,8 +971,7 @@
             const touch = e.touches[0];
             previousMouseX = touch.clientX;
             previousMouseY = touch.clientY;
-            velocityX = 0;
-            velocityY = 0;
+            rotationVelocity = new Quaternion();
 
             if (autoRotateTimeout) {
                 clearTimeout(autoRotateTimeout);
@@ -867,11 +986,9 @@
             const deltaX = touch.clientX - previousMouseX;
             const deltaY = touch.clientY - previousMouseY;
 
-            velocityX = deltaY * 0.5;
-            velocityY = deltaX * 0.5;
-
-            rotationX += velocityX;
-            rotationY += velocityY;
+            const dragRotation = getRotationFromDrag(deltaX, deltaY, 1.0);
+            rotationVelocity = dragRotation;
+            currentRotation = dragRotation.multiply(currentRotation).normalize();
 
             updateCubeRotation();
 
@@ -884,16 +1001,14 @@
             isDragging = false;
             cube.classList.remove('dragging');
 
-            // Apply momentum (same as mouse)
             let momentum = 30;
+            let currentVelocity = rotationVelocity;
+
             const applyMomentum = () => {
                 if (momentum <= 0) {
                     autoRotateTimeout = setTimeout(() => {
-                        rotationX = rotationX % 360;
-                        rotationY = rotationY % 360;
-
                         cube.style.animation = 'none';
-                        cube.style.transform = `rotateX(${rotationX}deg) rotateY(${rotationY}deg)`;
+                        cube.style.transform = currentRotation.toCSSMatrix();
 
                         setTimeout(() => {
                             cube.classList.add('auto-rotate');
@@ -902,11 +1017,8 @@
                     return;
                 }
 
-                velocityX *= 0.95;
-                velocityY *= 0.95;
-
-                rotationX += velocityX;
-                rotationY += velocityY;
+                currentVelocity = currentVelocity.slerp(new Quaternion(), 0.05);
+                currentRotation = currentVelocity.multiply(currentRotation).normalize();
 
                 updateCubeRotation();
 
