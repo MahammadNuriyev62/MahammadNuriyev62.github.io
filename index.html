@@ -3,7 +3,10 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Mahammad Nuriyev - Computational Research & Development</title>
+    <title>Mahammad Nuriyev | Computational Research</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@300;400;600;700&family=Inter:wght@300;400;600;700;900&display=swap" rel="stylesheet">
     <style>
         * {
             margin: 0;
@@ -12,129 +15,126 @@
         }
 
         :root {
-            --matrix-green: #00ff41;
-            --cyber-cyan: #00d9ff;
-            --electric-blue: #0096ff;
-            --dark-bg: #0a0e27;
-            --darker-bg: #050814;
-            --terminal-green: #33ff33;
-            --code-purple: #c792ea;
-            --warning-orange: #ff9800;
+            --primary: #00ff88;
+            --primary-dim: #00cc6e;
+            --secondary: #00d4ff;
+            --accent: #ff0080;
+            --bg-dark: #0a0e1a;
+            --bg-darker: #050810;
+            --bg-card: rgba(15, 23, 42, 0.8);
+            --text-primary: #e2e8f0;
+            --text-secondary: #94a3b8;
+            --text-dim: #64748b;
+            --border: rgba(0, 255, 136, 0.2);
+            --glow: rgba(0, 255, 136, 0.4);
         }
 
         body {
-            font-family: 'Courier New', 'Monaco', 'Consolas', monospace;
-            background: var(--darker-bg);
-            color: var(--matrix-green);
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+            background: var(--bg-darker);
+            color: var(--text-primary);
+            line-height: 1.7;
             overflow-x: hidden;
-            line-height: 1.6;
+            -webkit-font-smoothing: antialiased;
         }
 
-        /* Matrix Rain Background */
-        #matrix-canvas {
+        /* Background Effects */
+        .bg-canvas {
             position: fixed;
             top: 0;
             left: 0;
             width: 100%;
             height: 100%;
             z-index: 0;
-            opacity: 0.15;
-        }
-
-        /* Neural Network Canvas */
-        #neural-canvas {
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            z-index: 1;
-            opacity: 0.08;
+            opacity: 0.12;
             pointer-events: none;
         }
 
-        /* Binary Background */
-        .binary-bg {
+        .bg-gradient {
             position: fixed;
             top: 0;
             left: 0;
             width: 100%;
             height: 100%;
             z-index: 0;
-            opacity: 0.03;
-            font-size: 12px;
-            line-height: 1.5;
-            color: var(--cyber-cyan);
+            background: radial-gradient(circle at 20% 50%, rgba(0, 255, 136, 0.08) 0%, transparent 50%),
+                        radial-gradient(circle at 80% 80%, rgba(0, 212, 255, 0.08) 0%, transparent 50%);
             pointer-events: none;
-            word-break: break-all;
         }
 
         /* Main Container */
         .container {
             position: relative;
             z-index: 10;
-            max-width: 1400px;
+            max-width: 1280px;
             margin: 0 auto;
-            padding: 2rem;
+            padding: 0 2rem;
         }
 
-        /* Terminal Header */
-        .terminal-header {
-            background: rgba(10, 14, 39, 0.9);
-            border: 2px solid var(--matrix-green);
-            border-radius: 8px;
-            padding: 1.5rem;
-            margin-bottom: 2rem;
-            box-shadow: 0 0 30px rgba(0, 255, 65, 0.3),
-                        inset 0 0 20px rgba(0, 255, 65, 0.05);
-            font-family: 'Courier New', monospace;
-            animation: terminalBoot 2s ease;
+        /* Header */
+        header {
+            padding: 2rem 0;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-bottom: 1px solid var(--border);
         }
 
-        @keyframes terminalBoot {
-            0% { opacity: 0; transform: translateY(-20px); }
-            100% { opacity: 1; transform: translateY(0); }
+        .logo {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 1.2rem;
+            font-weight: 700;
+            color: var(--primary);
+            text-decoration: none;
+            letter-spacing: -0.02em;
         }
 
-        .terminal-prompt {
-            color: var(--terminal-green);
-            margin-bottom: 0.5rem;
+        .logo::before {
+            content: '{ ';
+            color: var(--secondary);
         }
 
-        .terminal-prompt::before {
-            content: '> ';
-            color: var(--cyber-cyan);
-            animation: blink 1.5s infinite;
+        .logo::after {
+            content: ' }';
+            color: var(--secondary);
         }
 
-        @keyframes blink {
-            0%, 49% { opacity: 1; }
-            50%, 100% { opacity: 0; }
+        nav a {
+            font-family: 'JetBrains Mono', monospace;
+            color: var(--text-secondary);
+            text-decoration: none;
+            font-size: 0.9rem;
+            margin-left: 2rem;
+            transition: color 0.3s ease;
+        }
+
+        nav a:hover {
+            color: var(--primary);
         }
 
         /* Hero Section */
         .hero {
-            min-height: 80vh;
+            min-height: 85vh;
             display: flex;
             flex-direction: column;
             align-items: center;
             justify-content: center;
             text-align: center;
-            position: relative;
             padding: 4rem 2rem;
-        }
-
-        /* 3D Rotating Cube */
-        .cube-container {
-            perspective: 1000px;
-            width: 200px;
-            height: 200px;
-            margin: 2rem auto;
             position: relative;
-            cursor: grab;
         }
 
-        .cube-container:active {
+        /* 3D Cube */
+        .cube-scene {
+            perspective: 1200px;
+            width: 240px;
+            height: 240px;
+            margin: 0 auto 3rem;
+            cursor: grab;
+            position: relative;
+        }
+
+        .cube-scene:active {
             cursor: grabbing;
         }
 
@@ -143,8 +143,8 @@
             height: 100%;
             position: relative;
             transform-style: preserve-3d;
-            transition: transform 0.1s ease-out;
-            animation: rotateCube 20s infinite linear;
+            transition: transform 0.1s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+            animation: floatCube 20s infinite linear;
         }
 
         .cube.dragging {
@@ -153,606 +153,621 @@
         }
 
         .cube.auto-rotate {
-            animation: rotateCube 20s infinite linear;
+            animation: floatCube 20s infinite linear;
         }
 
-        @keyframes rotateCube {
+        @keyframes floatCube {
             0% { transform: rotateX(0deg) rotateY(0deg); }
             100% { transform: rotateX(360deg) rotateY(360deg); }
         }
 
         .cube-face {
             position: absolute;
-            width: 200px;
-            height: 200px;
-            border: 2px solid var(--cyber-cyan);
-            background: rgba(0, 217, 255, 0.1);
-            backdrop-filter: blur(10px);
+            width: 240px;
+            height: 240px;
+            background: linear-gradient(135deg, rgba(0, 255, 136, 0.05) 0%, rgba(0, 212, 255, 0.05) 100%);
+            border: 2px solid var(--border);
+            backdrop-filter: blur(20px);
             display: flex;
             align-items: center;
             justify-content: center;
-            font-size: 2rem;
-            color: var(--cyber-cyan);
-        }
-
-        .cube-face.front  { transform: translateZ(100px); }
-        .cube-face.back   { transform: translateZ(-100px) rotateY(180deg); }
-        .cube-face.right  { transform: rotateY(90deg) translateZ(100px); }
-        .cube-face.left   { transform: rotateY(-90deg) translateZ(100px); }
-        .cube-face.top    { transform: rotateX(90deg) translateZ(100px); }
-        .cube-face.bottom { transform: rotateX(-90deg) translateZ(100px); }
-
-        h1 {
-            font-size: clamp(2rem, 6vw, 5rem);
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 3rem;
             font-weight: 700;
-            margin: 2rem 0 1rem;
-            color: var(--matrix-green);
-            text-shadow: 0 0 20px var(--matrix-green),
-                         0 0 40px var(--matrix-green);
-            letter-spacing: 3px;
-            animation: glitchText 3s infinite;
+            color: var(--primary);
+            text-shadow: 0 0 30px var(--glow);
         }
 
-        @keyframes glitchText {
-            0%, 90%, 100% { text-shadow: 0 0 20px var(--matrix-green), 0 0 40px var(--matrix-green); }
-            92% { text-shadow: 3px 0 20px var(--cyber-cyan), -3px 0 40px var(--electric-blue); }
-            94% { text-shadow: -3px 0 20px var(--electric-blue), 3px 0 40px var(--cyber-cyan); }
+        .cube-face.front  { transform: translateZ(120px); }
+        .cube-face.back   { transform: translateZ(-120px) rotateY(180deg); }
+        .cube-face.right  { transform: rotateY(90deg) translateZ(120px); }
+        .cube-face.left   { transform: rotateY(-90deg) translateZ(120px); }
+        .cube-face.top    { transform: rotateX(90deg) translateZ(120px); }
+        .cube-face.bottom { transform: rotateX(-90deg) translateZ(120px); }
+
+        .hero h1 {
+            font-size: clamp(2.5rem, 8vw, 6rem);
+            font-weight: 900;
+            margin-bottom: 1.5rem;
+            background: linear-gradient(135deg, var(--primary) 0%, var(--secondary) 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            letter-spacing: -0.03em;
+            line-height: 1.1;
         }
 
-        .terminal-subtitle {
+        .hero .subtitle {
+            font-family: 'JetBrains Mono', monospace;
             font-size: clamp(1rem, 2vw, 1.3rem);
-            color: var(--cyber-cyan);
-            margin-bottom: 2rem;
-            font-family: 'Courier New', monospace;
+            color: var(--text-secondary);
+            margin-bottom: 3rem;
+            font-weight: 400;
         }
 
-        .terminal-subtitle::before {
-            content: '$ ';
-            color: var(--warning-orange);
+        .cta-group {
+            display: flex;
+            gap: 1rem;
+            flex-wrap: wrap;
+            justify-content: center;
         }
 
-        /* Command Buttons */
-        .command-btn {
-            display: inline-block;
-            padding: 1rem 2.5rem;
-            margin: 0.5rem;
-            background: transparent;
-            border: 2px solid var(--matrix-green);
-            color: var(--matrix-green);
-            text-decoration: none;
-            font-family: 'Courier New', monospace;
+        .btn {
+            padding: 1rem 2rem;
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.95rem;
             font-weight: 600;
-            font-size: 1rem;
+            border: 2px solid var(--primary);
+            background: transparent;
+            color: var(--primary);
+            cursor: pointer;
+            text-decoration: none;
+            transition: all 0.3s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+            position: relative;
+            overflow: hidden;
+            display: inline-block;
+        }
+
+        .btn::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -100%;
+            width: 100%;
+            height: 100%;
+            background: var(--primary);
+            transition: left 0.3s ease;
+            z-index: -1;
+        }
+
+        .btn:hover {
+            color: var(--bg-darker);
+            box-shadow: 0 0 40px var(--glow);
+        }
+
+        .btn:hover::before {
+            left: 0;
+        }
+
+        .btn.secondary {
+            border-color: var(--secondary);
+            color: var(--secondary);
+        }
+
+        .btn.secondary::before {
+            background: var(--secondary);
+        }
+
+        /* Warning Box */
+        .warning {
+            max-width: 900px;
+            margin: 4rem auto;
+            padding: 2rem;
+            background: rgba(255, 180, 0, 0.05);
+            border: 2px solid rgba(255, 180, 0, 0.3);
+            border-left: 5px solid #ffb400;
+            backdrop-filter: blur(10px);
+            position: relative;
+        }
+
+        .warning::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 1px;
+            background: linear-gradient(90deg, transparent, #ffb400, transparent);
+            animation: warningGlow 2s ease-in-out infinite;
+        }
+
+        @keyframes warningGlow {
+            0%, 100% { opacity: 0.3; }
+            50% { opacity: 1; }
+        }
+
+        .warning-header {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+            margin-bottom: 1rem;
+        }
+
+        .warning-icon {
+            font-size: 2rem;
+            animation: pulse 2s ease-in-out infinite;
+        }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 1; transform: scale(1); }
+            50% { opacity: 0.6; transform: scale(1.1); }
+        }
+
+        .warning-title {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 1.1rem;
+            font-weight: 700;
+            color: #ffb400;
+            letter-spacing: 0.05em;
+        }
+
+        .warning-content {
+            color: var(--text-secondary);
+            line-height: 1.8;
+        }
+
+        .warning-content strong {
+            color: #ffb400;
+        }
+
+        /* Section */
+        section {
+            padding: 6rem 0;
+        }
+
+        .section-header {
+            text-align: center;
+            margin-bottom: 4rem;
+        }
+
+        .section-title {
+            font-size: clamp(2rem, 5vw, 3.5rem);
+            font-weight: 800;
+            margin-bottom: 1rem;
+            background: linear-gradient(135deg, var(--primary) 0%, var(--secondary) 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            letter-spacing: -0.02em;
+        }
+
+        .section-subtitle {
+            font-size: 1.2rem;
+            color: var(--text-secondary);
+            max-width: 700px;
+            margin: 0 auto;
+        }
+
+        /* Stats Grid */
+        .stats {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 2rem;
+            margin: 4rem 0;
+        }
+
+        .stat-card {
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            padding: 2rem;
+            text-align: center;
+            backdrop-filter: blur(20px);
             transition: all 0.3s ease;
             position: relative;
             overflow: hidden;
         }
 
-        .command-btn::before {
-            content: '> ';
+        .stat-card::before {
+            content: '';
             position: absolute;
-            left: 10px;
-            opacity: 0;
-            transition: all 0.3s ease;
+            top: 0;
+            left: -100%;
+            width: 100%;
+            height: 2px;
+            background: linear-gradient(90deg, transparent, var(--primary), transparent);
+            animation: scan 3s linear infinite;
         }
 
-        .command-btn:hover {
-            background: var(--matrix-green);
-            color: var(--darker-bg);
-            box-shadow: 0 0 30px var(--matrix-green);
-            padding-left: 3rem;
+        @keyframes scan {
+            0% { left: -100%; }
+            100% { left: 100%; }
         }
 
-        .command-btn:hover::before {
-            opacity: 1;
-            left: 15px;
+        .stat-card:hover {
+            border-color: var(--primary);
+            transform: translateY(-5px);
+            box-shadow: 0 10px 40px rgba(0, 255, 136, 0.2);
         }
 
-        /* Code Window */
-        .code-window {
-            background: rgba(10, 14, 39, 0.95);
-            border: 2px solid var(--cyber-cyan);
-            border-radius: 8px;
-            margin: 2rem 0;
-            overflow: hidden;
-            box-shadow: 0 0 40px rgba(0, 217, 255, 0.2);
+        .stat-number {
+            font-size: 3rem;
+            font-weight: 700;
+            color: var(--primary);
+            margin-bottom: 0.5rem;
+            font-family: 'JetBrains Mono', monospace;
         }
 
-        .code-window-header {
-            background: rgba(0, 217, 255, 0.1);
-            padding: 0.8rem 1.5rem;
-            border-bottom: 1px solid var(--cyber-cyan);
-            display: flex;
-            align-items: center;
-            gap: 0.5rem;
+        .stat-label {
+            font-size: 0.9rem;
+            color: var(--text-dim);
+            text-transform: uppercase;
+            letter-spacing: 0.1em;
+            font-weight: 600;
         }
 
-        .window-dot {
-            width: 12px;
-            height: 12px;
-            border-radius: 50%;
-            background: var(--matrix-green);
-            box-shadow: 0 0 10px var(--matrix-green);
+        /* Content Card */
+        .content-card {
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            padding: 3rem;
+            margin: 3rem 0;
+            backdrop-filter: blur(20px);
+            transition: border-color 0.3s ease;
         }
 
-        .window-dot:nth-child(2) { background: var(--warning-orange); box-shadow: 0 0 10px var(--warning-orange); }
-        .window-dot:nth-child(3) { background: var(--cyber-cyan); box-shadow: 0 0 10px var(--cyber-cyan); }
-
-        .code-content {
-            padding: 2rem;
-            color: var(--matrix-green);
-            line-height: 1.8;
+        .content-card:hover {
+            border-color: var(--primary);
         }
 
-        .code-content h2 {
-            color: var(--cyber-cyan);
+        .card-title {
             font-size: 1.8rem;
-            margin-bottom: 1rem;
-            text-shadow: 0 0 10px var(--cyber-cyan);
+            font-weight: 700;
+            margin-bottom: 1.5rem;
+            color: var(--primary);
+            font-family: 'JetBrains Mono', monospace;
         }
 
-        .code-content h2::before {
+        .card-title::before {
             content: '// ';
-            color: var(--code-purple);
+            color: var(--text-dim);
         }
 
-        /* Blog Cards Grid */
+        /* Blog Grid */
         .blog-grid {
             display: grid;
             grid-template-columns: repeat(auto-fit, minmax(350px, 1fr));
             gap: 2rem;
-            margin: 2rem 0;
         }
 
-        .blog-card {
-            background: rgba(10, 14, 39, 0.9);
-            border: 2px solid var(--electric-blue);
-            border-radius: 8px;
-            padding: 2rem;
-            transition: all 0.3s ease;
+        .article-card {
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            padding: 2.5rem;
+            backdrop-filter: blur(20px);
+            transition: all 0.3s cubic-bezier(0.25, 0.46, 0.45, 0.94);
             position: relative;
             overflow: hidden;
         }
 
-        .blog-card::before {
-            content: '';
-            position: absolute;
-            top: -2px;
-            left: -2px;
-            right: -2px;
-            bottom: -2px;
-            background: linear-gradient(45deg, var(--matrix-green), var(--cyber-cyan), var(--electric-blue), var(--code-purple));
-            z-index: -1;
-            opacity: 0;
-            transition: opacity 0.3s ease;
-            border-radius: 8px;
-            animation: borderRotate 3s linear infinite;
-        }
-
-        @keyframes borderRotate {
-            0% { background-position: 0% 50%; }
-            50% { background-position: 100% 50%; }
-            100% { background-position: 0% 50%; }
-        }
-
-        .blog-card:hover {
-            transform: translateY(-10px);
-            box-shadow: 0 10px 50px rgba(0, 217, 255, 0.4);
-        }
-
-        .blog-card:hover::before {
-            opacity: 1;
-        }
-
-        .blog-card .date {
-            color: var(--warning-orange);
-            font-size: 0.9rem;
-            font-weight: 600;
-            margin-bottom: 1rem;
-            display: block;
-        }
-
-        .blog-card .date::before {
-            content: '[';
-            color: var(--cyber-cyan);
-        }
-
-        .blog-card .date::after {
-            content: ']';
-            color: var(--cyber-cyan);
-        }
-
-        .blog-card h3 {
-            color: var(--matrix-green);
-            font-size: 1.4rem;
-            margin-bottom: 1rem;
-            text-shadow: 0 0 10px rgba(0, 255, 65, 0.5);
-        }
-
-        .blog-card p {
-            color: var(--cyber-cyan);
-            line-height: 1.6;
-            margin-bottom: 1.5rem;
-            opacity: 0.9;
-        }
-
-        .blog-card a {
-            color: var(--electric-blue);
-            text-decoration: none;
-            font-weight: 600;
-            display: inline-flex;
-            align-items: center;
-            transition: all 0.3s ease;
-        }
-
-        .blog-card a::before {
-            content: '>';
-            margin-right: 0.5rem;
-            transition: transform 0.3s ease;
-        }
-
-        .blog-card a:hover {
-            color: var(--matrix-green);
-            text-shadow: 0 0 10px var(--matrix-green);
-        }
-
-        .blog-card a:hover::before {
-            transform: translateX(5px);
-        }
-
-        /* Data Visualization */
-        .data-viz {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-            gap: 1.5rem;
-            margin: 2rem 0;
-        }
-
-        .stat-box {
-            background: rgba(10, 14, 39, 0.9);
-            border: 2px solid var(--matrix-green);
-            border-radius: 8px;
-            padding: 1.5rem;
-            text-align: center;
-            position: relative;
-            overflow: hidden;
-        }
-
-        .stat-box::before {
+        .article-card::after {
             content: '';
             position: absolute;
             top: 0;
             left: 0;
-            width: 100%;
+            right: 0;
             height: 3px;
-            background: linear-gradient(90deg, transparent, var(--matrix-green), transparent);
-            animation: scanLine 2s linear infinite;
+            background: linear-gradient(90deg, var(--primary), var(--secondary), var(--accent));
+            transform: scaleX(0);
+            transform-origin: left;
+            transition: transform 0.3s ease;
         }
 
-        @keyframes scanLine {
-            0% { transform: translateX(-100%); }
-            100% { transform: translateX(100%); }
+        .article-card:hover {
+            transform: translateY(-10px);
+            border-color: var(--primary);
+            box-shadow: 0 20px 60px rgba(0, 255, 136, 0.15);
         }
 
-        .stat-number {
-            font-size: 2.5rem;
-            color: var(--cyber-cyan);
-            font-weight: 700;
-            text-shadow: 0 0 20px var(--cyber-cyan);
+        .article-card:hover::after {
+            transform: scaleX(1);
         }
 
-        .stat-label {
-            color: var(--matrix-green);
-            font-size: 0.9rem;
-            margin-top: 0.5rem;
-            opacity: 0.8;
-        }
-
-        /* ASCII Art Section */
-        .ascii-art {
-            font-size: 0.7rem;
-            line-height: 1;
-            color: var(--matrix-green);
-            text-align: center;
-            margin: 2rem 0;
-            white-space: pre;
-            font-family: monospace;
-            opacity: 0.6;
-        }
-
-        /* Network Graph Container */
-        .network-graph {
-            height: 300px;
-            margin: 2rem 0;
-            position: relative;
-            border: 2px solid var(--electric-blue);
-            border-radius: 8px;
-            background: rgba(10, 14, 39, 0.5);
-            overflow: hidden;
-        }
-
-        /* Footer Terminal */
-        footer {
-            background: rgba(10, 14, 39, 0.95);
-            border-top: 2px solid var(--matrix-green);
-            padding: 2rem;
-            margin-top: 4rem;
-            text-align: center;
-            color: var(--cyber-cyan);
-        }
-
-        footer::before {
-            content: '>>> END OF TRANSMISSION <<<';
-            display: block;
-            color: var(--warning-orange);
+        .article-date {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.85rem;
+            color: var(--accent);
+            font-weight: 600;
             margin-bottom: 1rem;
-            animation: blink 2s infinite;
+            display: inline-block;
+        }
+
+        .article-date::before {
+            content: '[';
+            color: var(--text-dim);
+        }
+
+        .article-date::after {
+            content: ']';
+            color: var(--text-dim);
+        }
+
+        .article-title {
+            font-size: 1.5rem;
+            font-weight: 700;
+            margin-bottom: 1rem;
+            color: var(--text-primary);
+            line-height: 1.3;
+        }
+
+        .article-excerpt {
+            color: var(--text-secondary);
+            line-height: 1.7;
+            margin-bottom: 1.5rem;
+        }
+
+        .article-link {
+            font-family: 'JetBrains Mono', monospace;
+            color: var(--primary);
+            text-decoration: none;
+            font-weight: 600;
+            font-size: 0.9rem;
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+            transition: gap 0.3s ease;
+        }
+
+        .article-link::after {
+            content: '→';
+            transition: transform 0.3s ease;
+        }
+
+        .article-link:hover {
+            gap: 1rem;
+        }
+
+        .article-link:hover::after {
+            transform: translateX(5px);
+        }
+
+        /* Footer */
+        footer {
+            border-top: 1px solid var(--border);
+            padding: 3rem 0;
+            text-align: center;
+            margin-top: 6rem;
+        }
+
+        .footer-content {
+            color: var(--text-dim);
+            font-size: 0.9rem;
+        }
+
+        .footer-status {
+            font-family: 'JetBrains Mono', monospace;
+            color: var(--text-secondary);
+            margin-top: 1rem;
+            font-size: 0.85rem;
+        }
+
+        .status-dot {
+            display: inline-block;
+            width: 8px;
+            height: 8px;
+            background: var(--primary);
+            border-radius: 50%;
+            margin-right: 0.5rem;
+            box-shadow: 0 0 10px var(--glow);
+            animation: pulse 2s ease-in-out infinite;
         }
 
         /* Responsive */
         @media (max-width: 768px) {
+            .hero {
+                min-height: auto;
+                padding: 3rem 1rem;
+            }
+
+            .cube-scene {
+                width: 180px;
+                height: 180px;
+            }
+
+            .cube-face {
+                width: 180px;
+                height: 180px;
+                font-size: 2rem;
+            }
+
+            .cube-face.front,
+            .cube-face.back,
+            .cube-face.right,
+            .cube-face.left,
+            .cube-face.top,
+            .cube-face.bottom {
+                transform: none;
+            }
+
+            .cube-face.front  { transform: translateZ(90px); }
+            .cube-face.back   { transform: translateZ(-90px) rotateY(180deg); }
+            .cube-face.right  { transform: rotateY(90deg) translateZ(90px); }
+            .cube-face.left   { transform: rotateY(-90deg) translateZ(90px); }
+            .cube-face.top    { transform: rotateX(90deg) translateZ(90px); }
+            .cube-face.bottom { transform: rotateX(-90deg) translateZ(90px); }
+
+            nav {
+                display: none;
+            }
+
             .blog-grid {
                 grid-template-columns: 1fr;
             }
 
-            .cube-container {
-                width: 150px;
-                height: 150px;
+            .cta-group {
+                flex-direction: column;
             }
 
-            .cube-face {
-                width: 150px;
-                height: 150px;
-            }
-
-            h1 {
-                font-size: 2rem;
+            section {
+                padding: 4rem 0;
             }
         }
 
-        /* Loading Bar */
-        .loading-bar {
-            width: 100%;
-            height: 4px;
-            background: rgba(0, 217, 255, 0.2);
-            position: fixed;
-            top: 0;
-            left: 0;
-            z-index: 1000;
+        /* Smooth Scrolling */
+        html {
+            scroll-behavior: smooth;
         }
 
-        .loading-progress {
-            height: 100%;
-            background: linear-gradient(90deg, var(--matrix-green), var(--cyber-cyan), var(--electric-blue));
-            width: 0;
-            animation: loading 3s ease-in-out infinite;
-        }
-
-        @keyframes loading {
-            0% { width: 0%; }
-            50% { width: 70%; }
-            100% { width: 100%; }
-        }
-
-        /* Glowing Line Effect */
-        .glow-line {
-            height: 1px;
-            background: linear-gradient(90deg, transparent, var(--cyber-cyan), transparent);
-            margin: 2rem 0;
-            box-shadow: 0 0 20px var(--cyber-cyan);
-        }
-
-        /* Warning Box */
-        .warning-box {
-            background: rgba(255, 152, 0, 0.1);
-            border: 2px solid var(--warning-orange);
-            border-left: 5px solid var(--warning-orange);
-            border-radius: 8px;
-            padding: 1.5rem;
-            margin: 2rem 0;
-            box-shadow: 0 0 30px rgba(255, 152, 0, 0.2),
-                        inset 0 0 20px rgba(255, 152, 0, 0.05);
-            animation: warningPulse 2s ease-in-out infinite;
-        }
-
-        @keyframes warningPulse {
-            0%, 100% { box-shadow: 0 0 30px rgba(255, 152, 0, 0.2), inset 0 0 20px rgba(255, 152, 0, 0.05); }
-            50% { box-shadow: 0 0 40px rgba(255, 152, 0, 0.4), inset 0 0 30px rgba(255, 152, 0, 0.1); }
-        }
-
-        .warning-box .warning-icon {
-            color: var(--warning-orange);
-            font-size: 1.5rem;
-            margin-right: 1rem;
-            display: inline-block;
-            animation: warningBlink 1.5s infinite;
-        }
-
-        @keyframes warningBlink {
-            0%, 49%, 100% { opacity: 1; }
-            50%, 99% { opacity: 0.3; }
-        }
-
-        .warning-box .warning-title {
-            color: var(--warning-orange);
-            font-weight: 700;
-            font-size: 1.2rem;
-            margin-bottom: 0.5rem;
-            text-shadow: 0 0 10px var(--warning-orange);
-        }
-
-        .warning-box .warning-title::before {
-            content: '[!] ';
-        }
-
-        .warning-box .warning-text {
-            color: var(--cyber-cyan);
-            line-height: 1.6;
-            opacity: 0.9;
+        /* Selection */
+        ::selection {
+            background: var(--primary);
+            color: var(--bg-darker);
         }
     </style>
 </head>
 <body>
-    <!-- Loading Bar -->
-    <div class="loading-bar">
-        <div class="loading-progress"></div>
+    <!-- Background Effects -->
+    <div class="bg-gradient"></div>
+    <canvas class="bg-canvas" id="matrix-canvas"></canvas>
+    <canvas class="bg-canvas" id="neural-canvas"></canvas>
+
+    <!-- Header -->
+    <div class="container">
+        <header>
+            <a href="#" class="logo">MN</a>
+            <nav>
+                <a href="#research">Research</a>
+                <a href="#publications">Publications</a>
+            </nav>
+        </header>
     </div>
 
-    <!-- Matrix Rain Canvas -->
-    <canvas id="matrix-canvas"></canvas>
+    <!-- Hero -->
+    <section class="hero">
+        <div class="cube-scene">
+            <div class="cube">
+                <div class="cube-face front">ML</div>
+                <div class="cube-face back">AI</div>
+                <div class="cube-face right">CS</div>
+                <div class="cube-face left">∇</div>
+                <div class="cube-face top">Σ</div>
+                <div class="cube-face bottom">∫</div>
+            </div>
+        </div>
 
-    <!-- Neural Network Canvas -->
-    <canvas id="neural-canvas"></canvas>
+        <h1>Mahammad Nuriyev</h1>
+        <p class="subtitle">Exploring Computational Complexity & Information Theory</p>
 
-    <!-- Main Container -->
+        <div class="cta-group">
+            <a href="#publications" class="btn">View Research</a>
+            <a href="#research" class="btn secondary">About</a>
+        </div>
+    </section>
+
+    <!-- Warning -->
     <div class="container">
-        <!-- Terminal Header -->
-        <div class="terminal-header">
-            <div class="terminal-prompt">Initializing system...</div>
-            <div class="terminal-prompt">Loading computational_research_portfolio.exe</div>
-            <div class="terminal-prompt">Status: <span style="color: var(--matrix-green);">ONLINE</span></div>
-        </div>
-
-        <!-- Warning Box -->
-        <div class="warning-box">
-            <div class="warning-title">
-                <span class="warning-icon">⚠</span>
-                ACCURACY DISCLAIMER
+        <div class="warning">
+            <div class="warning-header">
+                <span class="warning-icon">⚠️</span>
+                <h3 class="warning-title">DISCLAIMER</h3>
             </div>
-            <div class="warning-text">
-                <strong>WARNING:</strong> The content and information presented on this website may contain inaccuracies,
-                errors, or outdated information. Articles are generated for educational and exploratory purposes.
-                Always verify critical information from authoritative academic sources before relying on it for
-                research, implementation, or decision-making purposes.
+            <div class="warning-content">
+                <strong>Important Notice:</strong> The content and information presented on this website may contain inaccuracies, errors, or outdated information. Articles are generated for educational and exploratory purposes. Always verify critical information from authoritative academic sources before relying on it for research, implementation, or decision-making.
             </div>
         </div>
+    </div>
 
-        <!-- Hero Section -->
-        <section class="hero">
-            <!-- 3D Rotating Cube -->
-            <div class="cube-container">
-                <div class="cube">
-                    <div class="cube-face front">ML</div>
-                    <div class="cube-face back">AI</div>
-                    <div class="cube-face right">CS</div>
-                    <div class="cube-face left">∇</div>
-                    <div class="cube-face top">∑</div>
-                    <div class="cube-face bottom">∫</div>
-                </div>
+    <!-- Stats -->
+    <div class="container">
+        <div class="stats">
+            <div class="stat-card">
+                <div class="stat-number">∞</div>
+                <div class="stat-label">Computational Depth</div>
             </div>
+            <div class="stat-card">
+                <div class="stat-number">3</div>
+                <div class="stat-label">Research Articles</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-number">λ</div>
+                <div class="stat-label">Complexity Theory</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-number">Σ</div>
+                <div class="stat-label">Information Theory</div>
+            </div>
+        </div>
+    </div>
 
-            <h1>MAHAMMAD_NURIYEV</h1>
-            <p class="terminal-subtitle">computational_researcher --mode=theoretical --output=innovative</p>
-
-            <div>
-                <a href="#research" class="command-btn">./view_research</a>
-                <a href="#publications" class="command-btn">./read_papers</a>
+    <!-- About -->
+    <div class="container">
+        <section id="research">
+            <div class="content-card">
+                <h2 class="card-title">Research Focus</h2>
+                <p style="color: var(--text-secondary); font-size: 1.1rem; line-height: 1.8; margin-bottom: 1.5rem;">
+                    Investigating the theoretical foundations of computation, algorithmic complexity, and information theory. My work explores the boundaries between computable and incomputable, efficient and intractable, pattern and randomness.
+                </p>
+                <p style="color: var(--text-dim); font-size: 1rem; line-height: 1.8;">
+                    <strong style="color: var(--primary);">Core Areas:</strong> Kolmogorov Complexity • Turing Machines • Shannon Entropy • P vs NP • Computational Complexity • Algorithmic Information Theory
+                </p>
             </div>
         </section>
+    </div>
 
-        <div class="glow-line"></div>
+    <!-- Publications -->
+    <div class="container">
+        <section id="publications">
+            <div class="section-header">
+                <h2 class="section-title">Latest Publications</h2>
+                <p class="section-subtitle">Deep dives into computational theory and information science</p>
+            </div>
 
-        <!-- Stats Dashboard -->
-        <div class="data-viz">
-            <div class="stat-box">
-                <div class="stat-number">∞</div>
-                <div class="stat-label">COMPUTATIONAL_DEPTH</div>
-            </div>
-            <div class="stat-box">
-                <div class="stat-number">3</div>
-                <div class="stat-label">RESEARCH_PAPERS</div>
-            </div>
-            <div class="stat-box">
-                <div class="stat-number">λ</div>
-                <div class="stat-label">COMPLEXITY_THEORY</div>
-            </div>
-            <div class="stat-box">
-                <div class="stat-number">Σ</div>
-                <div class="stat-label">INFORMATION_THEORY</div>
-            </div>
-        </div>
+            <div class="blog-grid">
+                <article class="article-card">
+                    <span class="article-date">2025.10.25</span>
+                    <h3 class="article-title">The Million-Dollar Question: Why P vs NP Matters</h3>
+                    <p class="article-excerpt">
+                        Comprehensive analysis of the most famous unsolved problem in computer science. Explores implications for cryptography, optimization, and the fundamental nature of computational difficulty.
+                    </p>
+                    <a href="/2025/10/25/p-vs-np-million-dollar-question.html" class="article-link">Read Article</a>
+                </article>
 
-        <div class="glow-line"></div>
+                <article class="article-card">
+                    <span class="article-date">2025.10.20</span>
+                    <h3 class="article-title">Shannon's Information Theory Revolution</h3>
+                    <p class="article-excerpt">
+                        Deep dive into Claude Shannon's 1948 masterpiece that transformed communication, compression, and our understanding of information as a fundamental physical quantity.
+                    </p>
+                    <a href="/2025/10/20/shannon-information-theory.html" class="article-link">Read Article</a>
+                </article>
 
-        <!-- About Section -->
-        <div class="code-window">
-            <div class="code-window-header">
-                <span class="window-dot"></span>
-                <span class="window-dot"></span>
-                <span class="window-dot"></span>
-                <span style="color: var(--cyber-cyan); margin-left: 1rem;">system_overview.md</span>
+                <article class="article-card">
+                    <span class="article-date">2025.10.15</span>
+                    <h3 class="article-title">The Elegant Universe of Turing Machines</h3>
+                    <p class="article-excerpt">
+                        From simple rules to infinite possibilities—exploring how Turing machines define the boundaries of computation and what it fundamentally means to compute.
+                    </p>
+                    <a href="/2025/10/15/turing-machines-elegance.html" class="article-link">Read Article</a>
+                </article>
             </div>
-            <div class="code-content">
-                <h2>RESEARCH FOCUS</h2>
-                <p style="color: var(--matrix-green);">
-                    Exploring the theoretical foundations of computation, algorithmic complexity,
-                    and information theory. Investigating the boundaries between computable and
-                    incomputable, efficient and intractable, pattern and randomness.
-                </p>
-                <br>
-                <p style="color: var(--cyber-cyan);">
-                    <strong>Core Areas:</strong> Kolmogorov Complexity • Turing Machines •
-                    Shannon Entropy • P vs NP • Computational Complexity • Information Theory
-                </p>
-            </div>
-        </div>
-
-        <!-- Publications Section -->
-        <div class="code-window" id="publications">
-            <div class="code-window-header">
-                <span class="window-dot"></span>
-                <span class="window-dot"></span>
-                <span class="window-dot"></span>
-                <span style="color: var(--cyber-cyan); margin-left: 1rem;">research_papers.log</span>
-            </div>
-            <div class="code-content" id="research">
-                <h2>LATEST PUBLICATIONS</h2>
-                <div class="blog-grid">
-                    <div class="blog-card">
-                        <span class="date">2025.10.25</span>
-                        <h3>The Million-Dollar Question: P vs NP</h3>
-                        <p>Comprehensive analysis of the most famous unsolved problem in computer science. Explores implications for cryptography, optimization, and the nature of computational difficulty.</p>
-                        <a href="/2025/10/25/p-vs-np-million-dollar-question.html">execute_read()</a>
-                    </div>
-                    <div class="blog-card">
-                        <span class="date">2025.10.20</span>
-                        <h3>Shannon's Information Theory Revolution</h3>
-                        <p>Deep dive into Claude Shannon's 1948 masterpiece that transformed communication, compression, and our understanding of information as a fundamental quantity.</p>
-                        <a href="/2025/10/20/shannon-information-theory.html">execute_read()</a>
-                    </div>
-                    <div class="blog-card">
-                        <span class="date">2025.10.15</span>
-                        <h3>The Elegant Universe of Turing Machines</h3>
-                        <p>From simple rules to infinite possibilities—exploring how Turing machines define the boundaries of computation and what it fundamentally means to compute.</p>
-                        <a href="/2025/10/15/turing-machines-elegance.html">execute_read()</a>
-                    </div>
-                </div>
-            </div>
-        </div>
-
-        <!-- ASCII Art -->
-        <div class="ascii-art">
-    ╔═══════════════════════════════════════════════════════╗
-    ║  "Information is the resolution of uncertainty"       ║
-    ║                    - Claude Shannon                   ║
-    ╚═══════════════════════════════════════════════════════╝
-        </div>
-
-        <!-- Network Visualization Container -->
-        <div class="network-graph" id="network-container"></div>
+        </section>
     </div>
 
     <!-- Footer -->
-    <footer>
-        <p>© 2025 MAHAMMAD_NURIYEV :: Computational Research Division</p>
-        <p style="color: var(--matrix-green); margin-top: 0.5rem;">
-            [SYSTEM_STATUS: OPERATIONAL] [UPTIME: ∞] [ERRORS: NULL]
-        </p>
-    </footer>
+    <div class="container">
+        <footer>
+            <div class="footer-content">
+                © 2025 Mahammad Nuriyev. All rights reserved.
+            </div>
+            <div class="footer-status">
+                <span class="status-dot"></span>
+                System Online • Uptime: ∞ • Errors: 0
+            </div>
+        </footer>
+    </div>
 
     <script>
         // Interactive 3D Cube with Quaternion-based rotation
-        const cubeContainer = document.querySelector('.cube-container');
+        const cubeScene = document.querySelector('.cube-scene');
         const cube = document.querySelector('.cube');
 
         // Quaternion class for accurate 3D rotation
@@ -764,7 +779,6 @@
                 this.z = z;
             }
 
-            // Create quaternion from axis-angle
             static fromAxisAngle(axis, angle) {
                 const halfAngle = angle / 2;
                 const s = Math.sin(halfAngle);
@@ -776,7 +790,6 @@
                 );
             }
 
-            // Multiply quaternions (compose rotations)
             multiply(q) {
                 return new Quaternion(
                     this.w * q.w - this.x * q.x - this.y * q.y - this.z * q.z,
@@ -786,7 +799,6 @@
                 );
             }
 
-            // Normalize quaternion
             normalize() {
                 const len = Math.sqrt(this.w * this.w + this.x * this.x + this.y * this.y + this.z * this.z);
                 if (len > 0) {
@@ -798,7 +810,6 @@
                 return this;
             }
 
-            // Convert to rotation matrix
             toMatrix() {
                 const xx = this.x * this.x;
                 const xy = this.x * this.y;
@@ -818,23 +829,19 @@
                 ];
             }
 
-            // Convert to CSS matrix3d string
             toCSSMatrix() {
                 return `matrix3d(${this.toMatrix().join(',')})`;
             }
 
-            // Interpolate between quaternions (for momentum)
             slerp(q, t) {
                 let dot = this.w * q.w + this.x * q.x + this.y * q.y + this.z * q.z;
 
-                // Ensure shortest path
                 if (dot < 0) {
                     q = new Quaternion(-q.w, -q.x, -q.y, -q.z);
                     dot = -dot;
                 }
 
                 if (dot > 0.9995) {
-                    // Linear interpolation for very close quaternions
                     return new Quaternion(
                         this.w + t * (q.w - this.w),
                         this.x + t * (q.x - this.x),
@@ -860,8 +867,8 @@
         let isDragging = false;
         let previousMouseX = 0;
         let previousMouseY = 0;
-        let currentRotation = new Quaternion(); // Identity quaternion
-        let rotationVelocity = new Quaternion(); // Velocity as quaternion
+        let currentRotation = new Quaternion();
+        let rotationVelocity = new Quaternion();
         let autoRotateTimeout;
 
         function updateCubeRotation() {
@@ -869,39 +876,28 @@
         }
 
         function getRotationFromDrag(deltaX, deltaY, sensitivity = 0.5) {
-            // Calculate rotation axis perpendicular to drag direction
-            // Drag right -> rotate around Y axis (up)
-            // Drag down -> rotate around X axis (right)
-
             const dragDistance = Math.sqrt(deltaX * deltaX + deltaY * deltaY);
-            if (dragDistance < 0.1) return new Quaternion(); // Identity
+            if (dragDistance < 0.1) return new Quaternion();
 
-            // Create rotation axis in screen space
-            // For intuitive rotation: drag direction determines axis perpendicular to it
             const axis = {
-                x: -deltaY / dragDistance, // Drag down -> rotate right
-                y: deltaX / dragDistance,  // Drag right -> rotate up
+                x: -deltaY / dragDistance,
+                y: deltaX / dragDistance,
                 z: 0
             };
 
-            // Rotation angle proportional to drag distance
             const angle = (dragDistance * sensitivity * Math.PI) / 180;
-
             return Quaternion.fromAxisAngle(axis, angle);
         }
 
-        cubeContainer.addEventListener('mousedown', (e) => {
+        cubeScene.addEventListener('mousedown', (e) => {
             isDragging = true;
             cube.classList.add('dragging');
             cube.classList.remove('auto-rotate');
             previousMouseX = e.clientX;
             previousMouseY = e.clientY;
-            rotationVelocity = new Quaternion(); // Reset velocity
+            rotationVelocity = new Quaternion();
 
-            // Clear any pending auto-rotate
-            if (autoRotateTimeout) {
-                clearTimeout(autoRotateTimeout);
-            }
+            if (autoRotateTimeout) clearTimeout(autoRotateTimeout);
         });
 
         document.addEventListener('mousemove', (e) => {
@@ -910,13 +906,8 @@
             const deltaX = e.clientX - previousMouseX;
             const deltaY = e.clientY - previousMouseY;
 
-            // Create rotation quaternion from drag
             const dragRotation = getRotationFromDrag(deltaX, deltaY, 1.0);
-
-            // Store velocity for momentum
             rotationVelocity = dragRotation;
-
-            // Compose with current rotation
             currentRotation = dragRotation.multiply(currentRotation).normalize();
 
             updateCubeRotation();
@@ -930,30 +921,21 @@
             isDragging = false;
             cube.classList.remove('dragging');
 
-            // Apply momentum with quaternion
             let momentum = 30;
             let currentVelocity = rotationVelocity;
 
             const applyMomentum = () => {
                 if (momentum <= 0) {
-                    // Resume auto-rotation after 3 seconds of inactivity
                     autoRotateTimeout = setTimeout(() => {
                         cube.style.animation = 'none';
                         cube.style.transform = currentRotation.toCSSMatrix();
-
-                        setTimeout(() => {
-                            cube.classList.add('auto-rotate');
-                        }, 50);
+                        setTimeout(() => cube.classList.add('auto-rotate'), 50);
                     }, 3000);
                     return;
                 }
 
-                // Decay velocity towards identity (no rotation)
                 currentVelocity = currentVelocity.slerp(new Quaternion(), 0.05);
-
-                // Apply velocity to current rotation
                 currentRotation = currentVelocity.multiply(currentRotation).normalize();
-
                 updateCubeRotation();
 
                 momentum--;
@@ -963,8 +945,8 @@
             applyMomentum();
         });
 
-        // Touch support for mobile
-        cubeContainer.addEventListener('touchstart', (e) => {
+        // Touch support
+        cubeScene.addEventListener('touchstart', (e) => {
             isDragging = true;
             cube.classList.add('dragging');
             cube.classList.remove('auto-rotate');
@@ -972,24 +954,19 @@
             previousMouseX = touch.clientX;
             previousMouseY = touch.clientY;
             rotationVelocity = new Quaternion();
-
-            if (autoRotateTimeout) {
-                clearTimeout(autoRotateTimeout);
-            }
+            if (autoRotateTimeout) clearTimeout(autoRotateTimeout);
             e.preventDefault();
         }, { passive: false });
 
         document.addEventListener('touchmove', (e) => {
             if (!isDragging) return;
             const touch = e.touches[0];
-
             const deltaX = touch.clientX - previousMouseX;
             const deltaY = touch.clientY - previousMouseY;
 
             const dragRotation = getRotationFromDrag(deltaX, deltaY, 1.0);
             rotationVelocity = dragRotation;
             currentRotation = dragRotation.multiply(currentRotation).normalize();
-
             updateCubeRotation();
 
             previousMouseX = touch.clientX;
@@ -1009,17 +986,13 @@
                     autoRotateTimeout = setTimeout(() => {
                         cube.style.animation = 'none';
                         cube.style.transform = currentRotation.toCSSMatrix();
-
-                        setTimeout(() => {
-                            cube.classList.add('auto-rotate');
-                        }, 50);
+                        setTimeout(() => cube.classList.add('auto-rotate'), 50);
                     }, 3000);
                     return;
                 }
 
                 currentVelocity = currentVelocity.slerp(new Quaternion(), 0.05);
                 currentRotation = currentVelocity.multiply(currentRotation).normalize();
-
                 updateCubeRotation();
 
                 momentum--;
@@ -1029,10 +1002,9 @@
             applyMomentum();
         });
 
-        // Matrix Rain Effect
+        // Matrix Rain
         const matrixCanvas = document.getElementById('matrix-canvas');
         const matrixCtx = matrixCanvas.getContext('2d');
-
         matrixCanvas.width = window.innerWidth;
         matrixCanvas.height = window.innerHeight;
 
@@ -1042,10 +1014,9 @@
         const drops = Array(Math.floor(columns)).fill(1);
 
         function drawMatrix() {
-            matrixCtx.fillStyle = 'rgba(5, 8, 20, 0.05)';
+            matrixCtx.fillStyle = 'rgba(5, 8, 16, 0.05)';
             matrixCtx.fillRect(0, 0, matrixCanvas.width, matrixCanvas.height);
-
-            matrixCtx.fillStyle = '#00ff41';
+            matrixCtx.fillStyle = '#00ff88';
             matrixCtx.font = fontSize + 'px monospace';
 
             for (let i = 0; i < drops.length; i++) {
@@ -1061,10 +1032,9 @@
 
         setInterval(drawMatrix, 50);
 
-        // Neural Network Visualization
+        // Neural Network
         const neuralCanvas = document.getElementById('neural-canvas');
         const neuralCtx = neuralCanvas.getContext('2d');
-
         neuralCanvas.width = window.innerWidth;
         neuralCanvas.height = window.innerHeight;
 
@@ -1072,54 +1042,47 @@
             constructor() {
                 this.x = Math.random() * neuralCanvas.width;
                 this.y = Math.random() * neuralCanvas.height;
-                this.vx = (Math.random() - 0.5) * 0.5;
-                this.vy = (Math.random() - 0.5) * 0.5;
-                this.radius = 3;
+                this.vx = (Math.random() - 0.5) * 0.3;
+                this.vy = (Math.random() - 0.5) * 0.3;
             }
 
             update() {
                 this.x += this.vx;
                 this.y += this.vy;
-
                 if (this.x < 0 || this.x > neuralCanvas.width) this.vx *= -1;
                 if (this.y < 0 || this.y > neuralCanvas.height) this.vy *= -1;
             }
 
             draw() {
                 neuralCtx.beginPath();
-                neuralCtx.arc(this.x, this.y, this.radius, 0, Math.PI * 2);
-                neuralCtx.fillStyle = '#00d9ff';
+                neuralCtx.arc(this.x, this.y, 2, 0, Math.PI * 2);
+                neuralCtx.fillStyle = '#00d4ff';
                 neuralCtx.fill();
-                neuralCtx.shadowBlur = 15;
-                neuralCtx.shadowColor = '#00d9ff';
             }
         }
 
-        const nodes = Array(50).fill(null).map(() => new Node());
+        const nodes = Array(40).fill(null).map(() => new Node());
 
         function drawNeuralNetwork() {
             neuralCtx.clearRect(0, 0, neuralCanvas.width, neuralCanvas.height);
-            neuralCtx.shadowBlur = 0;
 
-            // Draw connections
             for (let i = 0; i < nodes.length; i++) {
                 for (let j = i + 1; j < nodes.length; j++) {
                     const dx = nodes[i].x - nodes[j].x;
                     const dy = nodes[i].y - nodes[j].y;
                     const dist = Math.sqrt(dx * dx + dy * dy);
 
-                    if (dist < 150) {
+                    if (dist < 120) {
                         neuralCtx.beginPath();
                         neuralCtx.moveTo(nodes[i].x, nodes[i].y);
                         neuralCtx.lineTo(nodes[j].x, nodes[j].y);
-                        neuralCtx.strokeStyle = `rgba(0, 217, 255, ${1 - dist / 150})`;
+                        neuralCtx.strokeStyle = `rgba(0, 212, 255, ${0.3 * (1 - dist / 120)})`;
                         neuralCtx.lineWidth = 0.5;
                         neuralCtx.stroke();
                     }
                 }
             }
 
-            // Draw nodes
             nodes.forEach(node => {
                 node.update();
                 node.draw();
@@ -1130,101 +1093,12 @@
 
         drawNeuralNetwork();
 
-        // Network Graph in Container
-        const networkContainer = document.getElementById('network-container');
-        const graphCanvas = document.createElement('canvas');
-        graphCanvas.width = networkContainer.offsetWidth;
-        graphCanvas.height = 300;
-        networkContainer.appendChild(graphCanvas);
-        const graphCtx = graphCanvas.getContext('2d');
-
-        class GraphNode {
-            constructor(x, y) {
-                this.x = x;
-                this.y = y;
-                this.connections = [];
-            }
-
-            draw() {
-                graphCtx.beginPath();
-                graphCtx.arc(this.x, this.y, 6, 0, Math.PI * 2);
-                graphCtx.fillStyle = '#00ff41';
-                graphCtx.fill();
-                graphCtx.shadowBlur = 10;
-                graphCtx.shadowColor = '#00ff41';
-            }
-        }
-
-        const graphNodes = [];
-        const layers = 4;
-        const nodesPerLayer = 6;
-
-        for (let i = 0; i < layers; i++) {
-            for (let j = 0; j < nodesPerLayer; j++) {
-                const x = (graphCanvas.width / (layers + 1)) * (i + 1);
-                const y = (graphCanvas.height / (nodesPerLayer + 1)) * (j + 1);
-                graphNodes.push(new GraphNode(x, y));
-            }
-        }
-
-        // Create connections between adjacent layers
-        for (let i = 0; i < layers - 1; i++) {
-            for (let j = 0; j < nodesPerLayer; j++) {
-                for (let k = 0; k < nodesPerLayer; k++) {
-                    if (Math.random() > 0.3) {
-                        const from = i * nodesPerLayer + j;
-                        const to = (i + 1) * nodesPerLayer + k;
-                        graphNodes[from].connections.push(graphNodes[to]);
-                    }
-                }
-            }
-        }
-
-        let pulseIndex = 0;
-
-        function drawGraph() {
-            graphCtx.clearRect(0, 0, graphCanvas.width, graphCanvas.height);
-            graphCtx.shadowBlur = 0;
-
-            // Draw connections
-            graphNodes.forEach((node, idx) => {
-                node.connections.forEach(target => {
-                    graphCtx.beginPath();
-                    graphCtx.moveTo(node.x, node.y);
-                    graphCtx.lineTo(target.x, target.y);
-                    const isActive = Math.floor(pulseIndex / 10) % graphNodes.length === idx;
-                    graphCtx.strokeStyle = isActive ? '#00ff41' : 'rgba(0, 217, 255, 0.3)';
-                    graphCtx.lineWidth = isActive ? 2 : 1;
-                    graphCtx.stroke();
-                });
-            });
-
-            // Draw nodes
-            graphNodes.forEach(node => node.draw());
-
-            pulseIndex++;
-            setTimeout(() => requestAnimationFrame(drawGraph), 100);
-        }
-
-        drawGraph();
-
         // Resize handler
         window.addEventListener('resize', () => {
             matrixCanvas.width = window.innerWidth;
             matrixCanvas.height = window.innerHeight;
             neuralCanvas.width = window.innerWidth;
             neuralCanvas.height = window.innerHeight;
-        });
-
-        // Smooth scroll
-        document.querySelectorAll('a[href^="#"]').forEach(anchor => {
-            anchor.addEventListener('click', function (e) {
-                e.preventDefault();
-                const target = document.querySelector(this.getAttribute('href'));
-                if (target) {
-                    target.scrollIntoView({ behavior: 'smooth' });
-                }
-            });
         });
     </script>
 </body>
