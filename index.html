@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Mahammad Nuriyev - Exploring the Depths of Complexity</title>
+    <title>Mahammad Nuriyev - Computational Research & Development</title>
     <style>
         * {
             margin: 0;
@@ -12,260 +12,288 @@
         }
 
         :root {
-            --primary: #667eea;
-            --secondary: #764ba2;
-            --accent: #f093fb;
-            --dark: #0f0c29;
-            --light: #fff;
+            --matrix-green: #00ff41;
+            --cyber-cyan: #00d9ff;
+            --electric-blue: #0096ff;
+            --dark-bg: #0a0e27;
+            --darker-bg: #050814;
+            --terminal-green: #33ff33;
+            --code-purple: #c792ea;
+            --warning-orange: #ff9800;
         }
 
         body {
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            font-family: 'Courier New', 'Monaco', 'Consolas', monospace;
+            background: var(--darker-bg);
+            color: var(--matrix-green);
             overflow-x: hidden;
-            background: linear-gradient(135deg, #0f0c29, #302b63, #24243e);
-            color: var(--light);
+            line-height: 1.6;
         }
 
-        /* Particle Background */
-        #particles {
+        /* Matrix Rain Background */
+        #matrix-canvas {
             position: fixed;
             top: 0;
             left: 0;
             width: 100%;
             height: 100%;
             z-index: 0;
+            opacity: 0.15;
+        }
+
+        /* Neural Network Canvas */
+        #neural-canvas {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: 1;
+            opacity: 0.08;
             pointer-events: none;
         }
 
-        .particle {
-            position: absolute;
-            width: 4px;
-            height: 4px;
-            background: rgba(255, 255, 255, 0.5);
-            border-radius: 50%;
-            animation: float 6s infinite ease-in-out;
+        /* Binary Background */
+        .binary-bg {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: 0;
+            opacity: 0.03;
+            font-size: 12px;
+            line-height: 1.5;
+            color: var(--cyber-cyan);
+            pointer-events: none;
+            word-break: break-all;
         }
 
-        @keyframes float {
-            0%, 100% { transform: translate(0, 0) scale(1); opacity: 0; }
-            25% { opacity: 0.8; }
-            50% { transform: translate(100px, -100px) scale(1.5); opacity: 1; }
-            75% { opacity: 0.8; }
+        /* Main Container */
+        .container {
+            position: relative;
+            z-index: 10;
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 2rem;
+        }
+
+        /* Terminal Header */
+        .terminal-header {
+            background: rgba(10, 14, 39, 0.9);
+            border: 2px solid var(--matrix-green);
+            border-radius: 8px;
+            padding: 1.5rem;
+            margin-bottom: 2rem;
+            box-shadow: 0 0 30px rgba(0, 255, 65, 0.3),
+                        inset 0 0 20px rgba(0, 255, 65, 0.05);
+            font-family: 'Courier New', monospace;
+            animation: terminalBoot 2s ease;
+        }
+
+        @keyframes terminalBoot {
+            0% { opacity: 0; transform: translateY(-20px); }
+            100% { opacity: 1; transform: translateY(0); }
+        }
+
+        .terminal-prompt {
+            color: var(--terminal-green);
+            margin-bottom: 0.5rem;
+        }
+
+        .terminal-prompt::before {
+            content: '> ';
+            color: var(--cyber-cyan);
+            animation: blink 1.5s infinite;
+        }
+
+        @keyframes blink {
+            0%, 49% { opacity: 1; }
+            50%, 100% { opacity: 0; }
         }
 
         /* Hero Section */
         .hero {
-            position: relative;
-            height: 100vh;
+            min-height: 80vh;
             display: flex;
+            flex-direction: column;
             align-items: center;
             justify-content: center;
             text-align: center;
-            overflow: hidden;
-        }
-
-        .hero::before {
-            content: '';
-            position: absolute;
-            top: 0;
-            left: 0;
-            right: 0;
-            bottom: 0;
-            background: radial-gradient(circle at 30% 50%, rgba(102, 126, 234, 0.2), transparent 50%),
-                        radial-gradient(circle at 70% 50%, rgba(240, 147, 251, 0.2), transparent 50%);
-            animation: pulse 4s infinite alternate;
-        }
-
-        @keyframes pulse {
-            0% { opacity: 0.5; transform: scale(1); }
-            100% { opacity: 1; transform: scale(1.1); }
-        }
-
-        .hero-content {
             position: relative;
-            z-index: 1;
-            max-width: 900px;
-            padding: 2rem;
+            padding: 4rem 2rem;
         }
+
+        /* 3D Rotating Cube */
+        .cube-container {
+            perspective: 1000px;
+            width: 200px;
+            height: 200px;
+            margin: 2rem auto;
+            position: relative;
+        }
+
+        .cube {
+            width: 100%;
+            height: 100%;
+            position: relative;
+            transform-style: preserve-3d;
+            animation: rotateCube 20s infinite linear;
+        }
+
+        @keyframes rotateCube {
+            0% { transform: rotateX(0deg) rotateY(0deg); }
+            100% { transform: rotateX(360deg) rotateY(360deg); }
+        }
+
+        .cube-face {
+            position: absolute;
+            width: 200px;
+            height: 200px;
+            border: 2px solid var(--cyber-cyan);
+            background: rgba(0, 217, 255, 0.1);
+            backdrop-filter: blur(10px);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 2rem;
+            color: var(--cyber-cyan);
+        }
+
+        .cube-face.front  { transform: translateZ(100px); }
+        .cube-face.back   { transform: translateZ(-100px) rotateY(180deg); }
+        .cube-face.right  { transform: rotateY(90deg) translateZ(100px); }
+        .cube-face.left   { transform: rotateY(-90deg) translateZ(100px); }
+        .cube-face.top    { transform: rotateX(90deg) translateZ(100px); }
+        .cube-face.bottom { transform: rotateX(-90deg) translateZ(100px); }
 
         h1 {
-            font-size: clamp(2.5rem, 8vw, 6rem);
-            font-weight: 900;
-            margin-bottom: 1rem;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 50%, #f093fb 100%);
-            -webkit-background-clip: text;
-            -webkit-text-fill-color: transparent;
-            background-clip: text;
-            animation: gradientShift 3s ease infinite;
-            background-size: 200% 200%;
+            font-size: clamp(2rem, 6vw, 5rem);
+            font-weight: 700;
+            margin: 2rem 0 1rem;
+            color: var(--matrix-green);
+            text-shadow: 0 0 20px var(--matrix-green),
+                         0 0 40px var(--matrix-green);
+            letter-spacing: 3px;
+            animation: glitchText 3s infinite;
         }
 
-        @keyframes gradientShift {
-            0%, 100% { background-position: 0% 50%; }
-            50% { background-position: 100% 50%; }
+        @keyframes glitchText {
+            0%, 90%, 100% { text-shadow: 0 0 20px var(--matrix-green), 0 0 40px var(--matrix-green); }
+            92% { text-shadow: 3px 0 20px var(--cyber-cyan), -3px 0 40px var(--electric-blue); }
+            94% { text-shadow: -3px 0 20px var(--electric-blue), 3px 0 40px var(--cyber-cyan); }
         }
 
-        .subtitle {
-            font-size: clamp(1.2rem, 3vw, 2rem);
+        .terminal-subtitle {
+            font-size: clamp(1rem, 2vw, 1.3rem);
+            color: var(--cyber-cyan);
             margin-bottom: 2rem;
-            opacity: 0;
-            animation: fadeInUp 1s ease forwards 0.5s;
-            font-weight: 300;
-            letter-spacing: 2px;
+            font-family: 'Courier New', monospace;
         }
 
-        @keyframes fadeInUp {
-            to {
-                opacity: 1;
-                transform: translateY(0);
-            }
-            from {
-                opacity: 0;
-                transform: translateY(30px);
-            }
+        .terminal-subtitle::before {
+            content: '$ ';
+            color: var(--warning-orange);
         }
 
-        .cta-button {
+        /* Command Buttons */
+        .command-btn {
             display: inline-block;
-            padding: 1rem 3rem;
-            background: linear-gradient(135deg, var(--primary), var(--accent));
-            color: white;
+            padding: 1rem 2.5rem;
+            margin: 0.5rem;
+            background: transparent;
+            border: 2px solid var(--matrix-green);
+            color: var(--matrix-green);
             text-decoration: none;
-            border-radius: 50px;
+            font-family: 'Courier New', monospace;
             font-weight: 600;
-            font-size: 1.1rem;
+            font-size: 1rem;
             transition: all 0.3s ease;
             position: relative;
             overflow: hidden;
+        }
+
+        .command-btn::before {
+            content: '> ';
+            position: absolute;
+            left: 10px;
             opacity: 0;
-            animation: fadeInUp 1s ease forwards 1s;
-            box-shadow: 0 10px 40px rgba(102, 126, 234, 0.4);
-        }
-
-        .cta-button::before {
-            content: '';
-            position: absolute;
-            top: 50%;
-            left: 50%;
-            width: 0;
-            height: 0;
-            border-radius: 50%;
-            background: rgba(255, 255, 255, 0.3);
-            transform: translate(-50%, -50%);
-            transition: width 0.6s, height 0.6s;
-        }
-
-        .cta-button:hover::before {
-            width: 300px;
-            height: 300px;
-        }
-
-        .cta-button:hover {
-            transform: translateY(-3px);
-            box-shadow: 0 15px 50px rgba(102, 126, 234, 0.6);
-        }
-
-        /* Scroll Indicator */
-        .scroll-indicator {
-            position: absolute;
-            bottom: 2rem;
-            left: 50%;
-            transform: translateX(-50%);
-            animation: bounce 2s infinite;
-        }
-
-        @keyframes bounce {
-            0%, 20%, 50%, 80%, 100% { transform: translateX(-50%) translateY(0); }
-            40% { transform: translateX(-50%) translateY(-20px); }
-            60% { transform: translateX(-50%) translateY(-10px); }
-        }
-
-        .scroll-indicator span {
-            display: block;
-            width: 30px;
-            height: 50px;
-            border: 3px solid rgba(255, 255, 255, 0.5);
-            border-radius: 25px;
-            position: relative;
-        }
-
-        .scroll-indicator span::before {
-            content: '';
-            position: absolute;
-            top: 10px;
-            left: 50%;
-            width: 6px;
-            height: 6px;
-            background: white;
-            border-radius: 50%;
-            transform: translateX(-50%);
-            animation: scroll 2s infinite;
-        }
-
-        @keyframes scroll {
-            0% { opacity: 1; transform: translateX(-50%) translateY(0); }
-            100% { opacity: 0; transform: translateX(-50%) translateY(20px); }
-        }
-
-        /* Content Section */
-        .content-section {
-            position: relative;
-            z-index: 1;
-            padding: 6rem 2rem;
-            max-width: 1200px;
-            margin: 0 auto;
-        }
-
-        .glass-card {
-            background: rgba(255, 255, 255, 0.05);
-            backdrop-filter: blur(10px);
-            border-radius: 20px;
-            padding: 3rem;
-            margin: 2rem 0;
-            border: 1px solid rgba(255, 255, 255, 0.1);
             transition: all 0.3s ease;
-            animation: slideIn 1s ease;
         }
 
-        @keyframes slideIn {
-            from {
-                opacity: 0;
-                transform: translateY(50px);
-            }
-            to {
-                opacity: 1;
-                transform: translateY(0);
-            }
+        .command-btn:hover {
+            background: var(--matrix-green);
+            color: var(--darker-bg);
+            box-shadow: 0 0 30px var(--matrix-green);
+            padding-left: 3rem;
         }
 
-        .glass-card:hover {
-            transform: translateY(-10px);
-            box-shadow: 0 20px 60px rgba(102, 126, 234, 0.3);
-            background: rgba(255, 255, 255, 0.08);
+        .command-btn:hover::before {
+            opacity: 1;
+            left: 15px;
         }
 
-        h2 {
-            font-size: 2.5rem;
-            margin-bottom: 1.5rem;
-            background: linear-gradient(135deg, #667eea, #f093fb);
-            -webkit-background-clip: text;
-            -webkit-text-fill-color: transparent;
-            background-clip: text;
+        /* Code Window */
+        .code-window {
+            background: rgba(10, 14, 39, 0.95);
+            border: 2px solid var(--cyber-cyan);
+            border-radius: 8px;
+            margin: 2rem 0;
+            overflow: hidden;
+            box-shadow: 0 0 40px rgba(0, 217, 255, 0.2);
         }
 
+        .code-window-header {
+            background: rgba(0, 217, 255, 0.1);
+            padding: 0.8rem 1.5rem;
+            border-bottom: 1px solid var(--cyber-cyan);
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .window-dot {
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            background: var(--matrix-green);
+            box-shadow: 0 0 10px var(--matrix-green);
+        }
+
+        .window-dot:nth-child(2) { background: var(--warning-orange); box-shadow: 0 0 10px var(--warning-orange); }
+        .window-dot:nth-child(3) { background: var(--cyber-cyan); box-shadow: 0 0 10px var(--cyber-cyan); }
+
+        .code-content {
+            padding: 2rem;
+            color: var(--matrix-green);
+            line-height: 1.8;
+        }
+
+        .code-content h2 {
+            color: var(--cyber-cyan);
+            font-size: 1.8rem;
+            margin-bottom: 1rem;
+            text-shadow: 0 0 10px var(--cyber-cyan);
+        }
+
+        .code-content h2::before {
+            content: '// ';
+            color: var(--code-purple);
+        }
+
+        /* Blog Cards Grid */
         .blog-grid {
             display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            grid-template-columns: repeat(auto-fit, minmax(350px, 1fr));
             gap: 2rem;
-            margin-top: 3rem;
+            margin: 2rem 0;
         }
 
         .blog-card {
-            background: rgba(255, 255, 255, 0.05);
-            backdrop-filter: blur(10px);
-            border-radius: 15px;
+            background: rgba(10, 14, 39, 0.9);
+            border: 2px solid var(--electric-blue);
+            border-radius: 8px;
             padding: 2rem;
-            border: 1px solid rgba(255, 255, 255, 0.1);
             transition: all 0.3s ease;
             position: relative;
             overflow: hidden;
@@ -274,45 +302,67 @@
         .blog-card::before {
             content: '';
             position: absolute;
-            top: 0;
-            left: 0;
-            right: 0;
-            height: 4px;
-            background: linear-gradient(90deg, var(--primary), var(--accent));
-            transform: scaleX(0);
-            transition: transform 0.3s ease;
+            top: -2px;
+            left: -2px;
+            right: -2px;
+            bottom: -2px;
+            background: linear-gradient(45deg, var(--matrix-green), var(--cyber-cyan), var(--electric-blue), var(--code-purple));
+            z-index: -1;
+            opacity: 0;
+            transition: opacity 0.3s ease;
+            border-radius: 8px;
+            animation: borderRotate 3s linear infinite;
         }
 
-        .blog-card:hover::before {
-            transform: scaleX(1);
+        @keyframes borderRotate {
+            0% { background-position: 0% 50%; }
+            50% { background-position: 100% 50%; }
+            100% { background-position: 0% 50%; }
         }
 
         .blog-card:hover {
-            transform: translateY(-5px);
-            box-shadow: 0 15px 40px rgba(102, 126, 234, 0.3);
-            background: rgba(255, 255, 255, 0.08);
+            transform: translateY(-10px);
+            box-shadow: 0 10px 50px rgba(0, 217, 255, 0.4);
         }
 
-        .blog-card h3 {
-            font-size: 1.5rem;
-            margin-bottom: 1rem;
-            color: var(--light);
-        }
-
-        .blog-card p {
-            color: rgba(255, 255, 255, 0.7);
-            line-height: 1.6;
-            margin-bottom: 1rem;
+        .blog-card:hover::before {
+            opacity: 1;
         }
 
         .blog-card .date {
-            color: var(--accent);
+            color: var(--warning-orange);
             font-size: 0.9rem;
             font-weight: 600;
+            margin-bottom: 1rem;
+            display: block;
+        }
+
+        .blog-card .date::before {
+            content: '[';
+            color: var(--cyber-cyan);
+        }
+
+        .blog-card .date::after {
+            content: ']';
+            color: var(--cyber-cyan);
+        }
+
+        .blog-card h3 {
+            color: var(--matrix-green);
+            font-size: 1.4rem;
+            margin-bottom: 1rem;
+            text-shadow: 0 0 10px rgba(0, 255, 65, 0.5);
+        }
+
+        .blog-card p {
+            color: var(--cyber-cyan);
+            line-height: 1.6;
+            margin-bottom: 1.5rem;
+            opacity: 0.9;
         }
 
         .blog-card a {
-            color: var(--light);
+            color: var(--electric-blue);
             text-decoration: none;
             font-weight: 600;
             display: inline-flex;
@@ -320,261 +370,504 @@
             transition: all 0.3s ease;
         }
 
-        .blog-card a::after {
-            content: '→';
-            margin-left: 0.5rem;
+        .blog-card a::before {
+            content: '>';
+            margin-right: 0.5rem;
             transition: transform 0.3s ease;
         }
 
-        .blog-card a:hover::after {
+        .blog-card a:hover {
+            color: var(--matrix-green);
+            text-shadow: 0 0 10px var(--matrix-green);
+        }
+
+        .blog-card a:hover::before {
             transform: translateX(5px);
         }
 
-        /* Interactive Mouse Follow Effect */
-        .cursor-glow {
-            position: fixed;
-            width: 300px;
-            height: 300px;
-            background: radial-gradient(circle, rgba(102, 126, 234, 0.3), transparent 70%);
-            pointer-events: none;
-            z-index: 9999;
-            transform: translate(-50%, -50%);
-            transition: opacity 0.3s;
+        /* Data Visualization */
+        .data-viz {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 1.5rem;
+            margin: 2rem 0;
         }
 
-        /* Footer */
-        footer {
-            position: relative;
-            z-index: 1;
+        .stat-box {
+            background: rgba(10, 14, 39, 0.9);
+            border: 2px solid var(--matrix-green);
+            border-radius: 8px;
+            padding: 1.5rem;
             text-align: center;
-            padding: 3rem 2rem;
-            background: rgba(0, 0, 0, 0.3);
-            border-top: 1px solid rgba(255, 255, 255, 0.1);
+            position: relative;
+            overflow: hidden;
         }
 
-        footer p {
-            color: rgba(255, 255, 255, 0.6);
+        .stat-box::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 3px;
+            background: linear-gradient(90deg, transparent, var(--matrix-green), transparent);
+            animation: scanLine 2s linear infinite;
+        }
+
+        @keyframes scanLine {
+            0% { transform: translateX(-100%); }
+            100% { transform: translateX(100%); }
+        }
+
+        .stat-number {
+            font-size: 2.5rem;
+            color: var(--cyber-cyan);
+            font-weight: 700;
+            text-shadow: 0 0 20px var(--cyber-cyan);
+        }
+
+        .stat-label {
+            color: var(--matrix-green);
+            font-size: 0.9rem;
+            margin-top: 0.5rem;
+            opacity: 0.8;
+        }
+
+        /* ASCII Art Section */
+        .ascii-art {
+            font-size: 0.7rem;
+            line-height: 1;
+            color: var(--matrix-green);
+            text-align: center;
+            margin: 2rem 0;
+            white-space: pre;
+            font-family: monospace;
+            opacity: 0.6;
+        }
+
+        /* Network Graph Container */
+        .network-graph {
+            height: 300px;
+            margin: 2rem 0;
+            position: relative;
+            border: 2px solid var(--electric-blue);
+            border-radius: 8px;
+            background: rgba(10, 14, 39, 0.5);
+            overflow: hidden;
+        }
+
+        /* Footer Terminal */
+        footer {
+            background: rgba(10, 14, 39, 0.95);
+            border-top: 2px solid var(--matrix-green);
+            padding: 2rem;
+            margin-top: 4rem;
+            text-align: center;
+            color: var(--cyber-cyan);
+        }
+
+        footer::before {
+            content: '>>> END OF TRANSMISSION <<<';
+            display: block;
+            color: var(--warning-orange);
+            margin-bottom: 1rem;
+            animation: blink 2s infinite;
         }
 
         /* Responsive */
         @media (max-width: 768px) {
-            .hero-content {
-                padding: 1rem;
+            .blog-grid {
+                grid-template-columns: 1fr;
             }
 
-            .content-section {
-                padding: 3rem 1rem;
+            .cube-container {
+                width: 150px;
+                height: 150px;
             }
 
-            .glass-card {
-                padding: 2rem;
+            .cube-face {
+                width: 150px;
+                height: 150px;
+            }
+
+            h1 {
+                font-size: 2rem;
             }
         }
 
-        /* Floating Elements */
-        .floating-shape {
+        /* Loading Bar */
+        .loading-bar {
+            width: 100%;
+            height: 4px;
+            background: rgba(0, 217, 255, 0.2);
             position: fixed;
-            border-radius: 50%;
-            filter: blur(60px);
-            opacity: 0.3;
-            animation: floatShape 20s infinite ease-in-out;
-            pointer-events: none;
+            top: 0;
+            left: 0;
+            z-index: 1000;
         }
 
-        .shape-1 {
-            width: 300px;
-            height: 300px;
-            background: var(--primary);
-            top: 10%;
-            left: -10%;
-            animation-delay: 0s;
+        .loading-progress {
+            height: 100%;
+            background: linear-gradient(90deg, var(--matrix-green), var(--cyber-cyan), var(--electric-blue));
+            width: 0;
+            animation: loading 3s ease-in-out infinite;
         }
 
-        .shape-2 {
-            width: 400px;
-            height: 400px;
-            background: var(--accent);
-            bottom: 10%;
-            right: -10%;
-            animation-delay: 7s;
+        @keyframes loading {
+            0% { width: 0%; }
+            50% { width: 70%; }
+            100% { width: 100%; }
         }
 
-        .shape-3 {
-            width: 250px;
-            height: 250px;
-            background: var(--secondary);
-            top: 50%;
-            right: -5%;
-            animation-delay: 3s;
-        }
-
-        @keyframes floatShape {
-            0%, 100% { transform: translate(0, 0) rotate(0deg); }
-            33% { transform: translate(50px, -50px) rotate(120deg); }
-            66% { transform: translate(-30px, 30px) rotate(240deg); }
+        /* Glowing Line Effect */
+        .glow-line {
+            height: 1px;
+            background: linear-gradient(90deg, transparent, var(--cyber-cyan), transparent);
+            margin: 2rem 0;
+            box-shadow: 0 0 20px var(--cyber-cyan);
         }
     </style>
 </head>
 <body>
-    <!-- Cursor Glow Effect -->
-    <div class="cursor-glow" id="cursorGlow"></div>
+    <!-- Loading Bar -->
+    <div class="loading-bar">
+        <div class="loading-progress"></div>
+    </div>
 
-    <!-- Floating Shapes -->
-    <div class="floating-shape shape-1"></div>
-    <div class="floating-shape shape-2"></div>
-    <div class="floating-shape shape-3"></div>
+    <!-- Matrix Rain Canvas -->
+    <canvas id="matrix-canvas"></canvas>
 
-    <!-- Particles -->
-    <div id="particles"></div>
+    <!-- Neural Network Canvas -->
+    <canvas id="neural-canvas"></canvas>
 
-    <!-- Hero Section -->
-    <section class="hero">
-        <div class="hero-content">
-            <h1>Mahammad Nuriyev</h1>
-            <p class="subtitle">Exploring Complexity, Information Theory & Mathematics</p>
-            <a href="#content" class="cta-button">Discover My Work</a>
-        </div>
-        <div class="scroll-indicator">
-            <span></span>
-        </div>
-    </section>
-
-    <!-- Content Section -->
-    <section class="content-section" id="content">
-        <div class="glass-card">
-            <h2>Welcome to My Digital Space</h2>
-            <p style="color: rgba(255, 255, 255, 0.8); line-height: 1.8; font-size: 1.1rem;">
-                Dive into the fascinating world of complexity theory, information science, and mathematical exploration.
-                This space is dedicated to understanding the intricate patterns that govern computation, randomness,
-                and the very nature of information itself.
-            </p>
+    <!-- Main Container -->
+    <div class="container">
+        <!-- Terminal Header -->
+        <div class="terminal-header">
+            <div class="terminal-prompt">Initializing system...</div>
+            <div class="terminal-prompt">Loading computational_research_portfolio.exe</div>
+            <div class="terminal-prompt">Status: <span style="color: var(--matrix-green);">ONLINE</span></div>
         </div>
 
-        <div class="glass-card">
-            <h2>Latest Articles</h2>
-            <div class="blog-grid">
-                <div class="blog-card">
-                    <span class="date">October 25, 2025</span>
-                    <h3>The Million-Dollar Question: Why P vs NP Matters</h3>
-                    <p>Explore the most famous unsolved problem in computer science—why it determines the future of cryptography, optimization, and whether creativity can be automated.</p>
-                    <a href="/2025/10/25/p-vs-np-million-dollar-question.html">Read More</a>
+        <!-- Hero Section -->
+        <section class="hero">
+            <!-- 3D Rotating Cube -->
+            <div class="cube-container">
+                <div class="cube">
+                    <div class="cube-face front">ML</div>
+                    <div class="cube-face back">AI</div>
+                    <div class="cube-face right">CS</div>
+                    <div class="cube-face left">∇</div>
+                    <div class="cube-face top">∑</div>
+                    <div class="cube-face bottom">∫</div>
                 </div>
-                <div class="blog-card">
-                    <span class="date">October 20, 2025</span>
-                    <h3>Shannon's Masterpiece: How Information Theory Revolutionized Everything</h3>
-                    <p>Discover how Claude Shannon's 1948 paper transformed communication, compression, cryptography, and our understanding of information itself.</p>
-                    <a href="/2025/10/20/shannon-information-theory.html">Read More</a>
-                </div>
-                <div class="blog-card">
-                    <span class="date">October 15, 2025</span>
-                    <h3>The Elegant Universe of Turing Machines</h3>
-                    <p>From simple rules to infinite possibilities—understand how Turing machines define the boundaries of computation and what it means to compute.</p>
-                    <a href="/2025/10/15/turing-machines-elegance.html">Read More</a>
+            </div>
+
+            <h1>MAHAMMAD_NURIYEV</h1>
+            <p class="terminal-subtitle">computational_researcher --mode=theoretical --output=innovative</p>
+
+            <div>
+                <a href="#research" class="command-btn">./view_research</a>
+                <a href="#publications" class="command-btn">./read_papers</a>
+            </div>
+        </section>
+
+        <div class="glow-line"></div>
+
+        <!-- Stats Dashboard -->
+        <div class="data-viz">
+            <div class="stat-box">
+                <div class="stat-number">∞</div>
+                <div class="stat-label">COMPUTATIONAL_DEPTH</div>
+            </div>
+            <div class="stat-box">
+                <div class="stat-number">3</div>
+                <div class="stat-label">RESEARCH_PAPERS</div>
+            </div>
+            <div class="stat-box">
+                <div class="stat-number">λ</div>
+                <div class="stat-label">COMPLEXITY_THEORY</div>
+            </div>
+            <div class="stat-box">
+                <div class="stat-number">Σ</div>
+                <div class="stat-label">INFORMATION_THEORY</div>
+            </div>
+        </div>
+
+        <div class="glow-line"></div>
+
+        <!-- About Section -->
+        <div class="code-window">
+            <div class="code-window-header">
+                <span class="window-dot"></span>
+                <span class="window-dot"></span>
+                <span class="window-dot"></span>
+                <span style="color: var(--cyber-cyan); margin-left: 1rem;">system_overview.md</span>
+            </div>
+            <div class="code-content">
+                <h2>RESEARCH FOCUS</h2>
+                <p style="color: var(--matrix-green);">
+                    Exploring the theoretical foundations of computation, algorithmic complexity,
+                    and information theory. Investigating the boundaries between computable and
+                    incomputable, efficient and intractable, pattern and randomness.
+                </p>
+                <br>
+                <p style="color: var(--cyber-cyan);">
+                    <strong>Core Areas:</strong> Kolmogorov Complexity • Turing Machines •
+                    Shannon Entropy • P vs NP • Computational Complexity • Information Theory
+                </p>
+            </div>
+        </div>
+
+        <!-- Publications Section -->
+        <div class="code-window" id="publications">
+            <div class="code-window-header">
+                <span class="window-dot"></span>
+                <span class="window-dot"></span>
+                <span class="window-dot"></span>
+                <span style="color: var(--cyber-cyan); margin-left: 1rem;">research_papers.log</span>
+            </div>
+            <div class="code-content" id="research">
+                <h2>LATEST PUBLICATIONS</h2>
+                <div class="blog-grid">
+                    <div class="blog-card">
+                        <span class="date">2025.10.25</span>
+                        <h3>The Million-Dollar Question: P vs NP</h3>
+                        <p>Comprehensive analysis of the most famous unsolved problem in computer science. Explores implications for cryptography, optimization, and the nature of computational difficulty.</p>
+                        <a href="/2025/10/25/p-vs-np-million-dollar-question.html">execute_read()</a>
+                    </div>
+                    <div class="blog-card">
+                        <span class="date">2025.10.20</span>
+                        <h3>Shannon's Information Theory Revolution</h3>
+                        <p>Deep dive into Claude Shannon's 1948 masterpiece that transformed communication, compression, and our understanding of information as a fundamental quantity.</p>
+                        <a href="/2025/10/20/shannon-information-theory.html">execute_read()</a>
+                    </div>
+                    <div class="blog-card">
+                        <span class="date">2025.10.15</span>
+                        <h3>The Elegant Universe of Turing Machines</h3>
+                        <p>From simple rules to infinite possibilities—exploring how Turing machines define the boundaries of computation and what it fundamentally means to compute.</p>
+                        <a href="/2025/10/15/turing-machines-elegance.html">execute_read()</a>
+                    </div>
                 </div>
             </div>
         </div>
 
-        <div class="glass-card">
-            <h2>About This Space</h2>
-            <p style="color: rgba(255, 255, 255, 0.8); line-height: 1.8; font-size: 1.1rem;">
-                This website serves as a platform for sharing insights, research, and thoughts on computational
-                complexity, algorithmic information theory, and related mathematical domains. Each article is crafted
-                to illuminate complex concepts with clarity and precision.
-            </p>
+        <!-- ASCII Art -->
+        <div class="ascii-art">
+    ╔═══════════════════════════════════════════════════════╗
+    ║  "Information is the resolution of uncertainty"       ║
+    ║                    - Claude Shannon                   ║
+    ╚═══════════════════════════════════════════════════════╝
         </div>
-    </section>
+
+        <!-- Network Visualization Container -->
+        <div class="network-graph" id="network-container"></div>
+    </div>
 
     <!-- Footer -->
     <footer>
-        <p>&copy; 2025 Mahammad Nuriyev. Exploring the boundaries of complexity.</p>
+        <p>© 2025 MAHAMMAD_NURIYEV :: Computational Research Division</p>
+        <p style="color: var(--matrix-green); margin-top: 0.5rem;">
+            [SYSTEM_STATUS: OPERATIONAL] [UPTIME: ∞] [ERRORS: NULL]
+        </p>
     </footer>
 
     <script>
-        // Create particles
-        const particlesContainer = document.getElementById('particles');
-        for (let i = 0; i < 50; i++) {
-            const particle = document.createElement('div');
-            particle.className = 'particle';
-            particle.style.left = Math.random() * 100 + '%';
-            particle.style.top = Math.random() * 100 + '%';
-            particle.style.animationDelay = Math.random() * 6 + 's';
-            particle.style.animationDuration = (Math.random() * 4 + 4) + 's';
-            particlesContainer.appendChild(particle);
-        }
+        // Matrix Rain Effect
+        const matrixCanvas = document.getElementById('matrix-canvas');
+        const matrixCtx = matrixCanvas.getContext('2d');
 
-        // Cursor glow effect
-        const cursorGlow = document.getElementById('cursorGlow');
-        let mouseX = 0, mouseY = 0;
-        let glowX = 0, glowY = 0;
+        matrixCanvas.width = window.innerWidth;
+        matrixCanvas.height = window.innerHeight;
 
-        document.addEventListener('mousemove', (e) => {
-            mouseX = e.clientX;
-            mouseY = e.clientY;
-        });
+        const chars = '01アイウエオカキクケコサシスセソタチツテトナニヌネノハヒフヘホマミムメモヤユヨラリルレロワヲン';
+        const fontSize = 14;
+        const columns = matrixCanvas.width / fontSize;
+        const drops = Array(Math.floor(columns)).fill(1);
 
-        function animateGlow() {
-            glowX += (mouseX - glowX) * 0.1;
-            glowY += (mouseY - glowY) * 0.1;
-            cursorGlow.style.left = glowX + 'px';
-            cursorGlow.style.top = glowY + 'px';
-            requestAnimationFrame(animateGlow);
-        }
-        animateGlow();
+        function drawMatrix() {
+            matrixCtx.fillStyle = 'rgba(5, 8, 20, 0.05)';
+            matrixCtx.fillRect(0, 0, matrixCanvas.width, matrixCanvas.height);
 
-        // Smooth scroll for CTA button
-        document.querySelector('.cta-button').addEventListener('click', (e) => {
-            e.preventDefault();
-            document.querySelector('#content').scrollIntoView({ behavior: 'smooth' });
-        });
+            matrixCtx.fillStyle = '#00ff41';
+            matrixCtx.font = fontSize + 'px monospace';
 
-        // Parallax effect on scroll
-        window.addEventListener('scroll', () => {
-            const scrolled = window.pageYOffset;
-            const hero = document.querySelector('.hero');
-            hero.style.transform = `translateY(${scrolled * 0.5}px)`;
-            hero.style.opacity = 1 - scrolled / 700;
-        });
+            for (let i = 0; i < drops.length; i++) {
+                const char = chars[Math.floor(Math.random() * chars.length)];
+                matrixCtx.fillText(char, i * fontSize, drops[i] * fontSize);
 
-        // Intersection Observer for animations
-        const observerOptions = {
-            threshold: 0.1,
-            rootMargin: '0px 0px -100px 0px'
-        };
-
-        const observer = new IntersectionObserver((entries) => {
-            entries.forEach(entry => {
-                if (entry.isIntersecting) {
-                    entry.target.style.opacity = '1';
-                    entry.target.style.transform = 'translateY(0)';
+                if (drops[i] * fontSize > matrixCanvas.height && Math.random() > 0.975) {
+                    drops[i] = 0;
                 }
-            });
-        }, observerOptions);
+                drops[i]++;
+            }
+        }
 
-        document.querySelectorAll('.glass-card, .blog-card').forEach(card => {
-            card.style.opacity = '0';
-            card.style.transform = 'translateY(50px)';
-            card.style.transition = 'all 0.8s ease';
-            observer.observe(card);
+        setInterval(drawMatrix, 50);
+
+        // Neural Network Visualization
+        const neuralCanvas = document.getElementById('neural-canvas');
+        const neuralCtx = neuralCanvas.getContext('2d');
+
+        neuralCanvas.width = window.innerWidth;
+        neuralCanvas.height = window.innerHeight;
+
+        class Node {
+            constructor() {
+                this.x = Math.random() * neuralCanvas.width;
+                this.y = Math.random() * neuralCanvas.height;
+                this.vx = (Math.random() - 0.5) * 0.5;
+                this.vy = (Math.random() - 0.5) * 0.5;
+                this.radius = 3;
+            }
+
+            update() {
+                this.x += this.vx;
+                this.y += this.vy;
+
+                if (this.x < 0 || this.x > neuralCanvas.width) this.vx *= -1;
+                if (this.y < 0 || this.y > neuralCanvas.height) this.vy *= -1;
+            }
+
+            draw() {
+                neuralCtx.beginPath();
+                neuralCtx.arc(this.x, this.y, this.radius, 0, Math.PI * 2);
+                neuralCtx.fillStyle = '#00d9ff';
+                neuralCtx.fill();
+                neuralCtx.shadowBlur = 15;
+                neuralCtx.shadowColor = '#00d9ff';
+            }
+        }
+
+        const nodes = Array(50).fill(null).map(() => new Node());
+
+        function drawNeuralNetwork() {
+            neuralCtx.clearRect(0, 0, neuralCanvas.width, neuralCanvas.height);
+            neuralCtx.shadowBlur = 0;
+
+            // Draw connections
+            for (let i = 0; i < nodes.length; i++) {
+                for (let j = i + 1; j < nodes.length; j++) {
+                    const dx = nodes[i].x - nodes[j].x;
+                    const dy = nodes[i].y - nodes[j].y;
+                    const dist = Math.sqrt(dx * dx + dy * dy);
+
+                    if (dist < 150) {
+                        neuralCtx.beginPath();
+                        neuralCtx.moveTo(nodes[i].x, nodes[i].y);
+                        neuralCtx.lineTo(nodes[j].x, nodes[j].y);
+                        neuralCtx.strokeStyle = `rgba(0, 217, 255, ${1 - dist / 150})`;
+                        neuralCtx.lineWidth = 0.5;
+                        neuralCtx.stroke();
+                    }
+                }
+            }
+
+            // Draw nodes
+            nodes.forEach(node => {
+                node.update();
+                node.draw();
+            });
+
+            requestAnimationFrame(drawNeuralNetwork);
+        }
+
+        drawNeuralNetwork();
+
+        // Network Graph in Container
+        const networkContainer = document.getElementById('network-container');
+        const graphCanvas = document.createElement('canvas');
+        graphCanvas.width = networkContainer.offsetWidth;
+        graphCanvas.height = 300;
+        networkContainer.appendChild(graphCanvas);
+        const graphCtx = graphCanvas.getContext('2d');
+
+        class GraphNode {
+            constructor(x, y) {
+                this.x = x;
+                this.y = y;
+                this.connections = [];
+            }
+
+            draw() {
+                graphCtx.beginPath();
+                graphCtx.arc(this.x, this.y, 6, 0, Math.PI * 2);
+                graphCtx.fillStyle = '#00ff41';
+                graphCtx.fill();
+                graphCtx.shadowBlur = 10;
+                graphCtx.shadowColor = '#00ff41';
+            }
+        }
+
+        const graphNodes = [];
+        const layers = 4;
+        const nodesPerLayer = 6;
+
+        for (let i = 0; i < layers; i++) {
+            for (let j = 0; j < nodesPerLayer; j++) {
+                const x = (graphCanvas.width / (layers + 1)) * (i + 1);
+                const y = (graphCanvas.height / (nodesPerLayer + 1)) * (j + 1);
+                graphNodes.push(new GraphNode(x, y));
+            }
+        }
+
+        // Create connections between adjacent layers
+        for (let i = 0; i < layers - 1; i++) {
+            for (let j = 0; j < nodesPerLayer; j++) {
+                for (let k = 0; k < nodesPerLayer; k++) {
+                    if (Math.random() > 0.3) {
+                        const from = i * nodesPerLayer + j;
+                        const to = (i + 1) * nodesPerLayer + k;
+                        graphNodes[from].connections.push(graphNodes[to]);
+                    }
+                }
+            }
+        }
+
+        let pulseIndex = 0;
+
+        function drawGraph() {
+            graphCtx.clearRect(0, 0, graphCanvas.width, graphCanvas.height);
+            graphCtx.shadowBlur = 0;
+
+            // Draw connections
+            graphNodes.forEach((node, idx) => {
+                node.connections.forEach(target => {
+                    graphCtx.beginPath();
+                    graphCtx.moveTo(node.x, node.y);
+                    graphCtx.lineTo(target.x, target.y);
+                    const isActive = Math.floor(pulseIndex / 10) % graphNodes.length === idx;
+                    graphCtx.strokeStyle = isActive ? '#00ff41' : 'rgba(0, 217, 255, 0.3)';
+                    graphCtx.lineWidth = isActive ? 2 : 1;
+                    graphCtx.stroke();
+                });
+            });
+
+            // Draw nodes
+            graphNodes.forEach(node => node.draw());
+
+            pulseIndex++;
+            setTimeout(() => requestAnimationFrame(drawGraph), 100);
+        }
+
+        drawGraph();
+
+        // Resize handler
+        window.addEventListener('resize', () => {
+            matrixCanvas.width = window.innerWidth;
+            matrixCanvas.height = window.innerHeight;
+            neuralCanvas.width = window.innerWidth;
+            neuralCanvas.height = window.innerHeight;
         });
 
-        // Add interactive tilt effect to cards
-        document.querySelectorAll('.blog-card').forEach(card => {
-            card.addEventListener('mousemove', (e) => {
-                const rect = card.getBoundingClientRect();
-                const x = e.clientX - rect.left;
-                const y = e.clientY - rect.top;
-
-                const centerX = rect.width / 2;
-                const centerY = rect.height / 2;
-
-                const rotateX = (y - centerY) / 10;
-                const rotateY = (centerX - x) / 10;
-
-                card.style.transform = `perspective(1000px) rotateX(${rotateX}deg) rotateY(${rotateY}deg) translateY(-5px)`;
-            });
-
-            card.addEventListener('mouseleave', () => {
-                card.style.transform = 'perspective(1000px) rotateX(0) rotateY(0) translateY(0)';
+        // Smooth scroll
+        document.querySelectorAll('a[href^="#"]').forEach(anchor => {
+            anchor.addEventListener('click', function (e) {
+                e.preventDefault();
+                const target = document.querySelector(this.getAttribute('href'));
+                if (target) {
+                    target.scrollIntoView({ behavior: 'smooth' });
+                }
             });
         });
     </script>
