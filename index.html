@@ -131,6 +131,11 @@
             height: 200px;
             margin: 2rem auto;
             position: relative;
+            cursor: grab;
+        }
+
+        .cube-container:active {
+            cursor: grabbing;
         }
 
         .cube {
@@ -138,6 +143,16 @@
             height: 100%;
             position: relative;
             transform-style: preserve-3d;
+            transition: transform 0.1s ease-out;
+            animation: rotateCube 20s infinite linear;
+        }
+
+        .cube.dragging {
+            animation: none;
+            transition: none;
+        }
+
+        .cube.auto-rotate {
             animation: rotateCube 20s infinite linear;
         }
 
@@ -526,6 +541,55 @@
             margin: 2rem 0;
             box-shadow: 0 0 20px var(--cyber-cyan);
         }
+
+        /* Warning Box */
+        .warning-box {
+            background: rgba(255, 152, 0, 0.1);
+            border: 2px solid var(--warning-orange);
+            border-left: 5px solid var(--warning-orange);
+            border-radius: 8px;
+            padding: 1.5rem;
+            margin: 2rem 0;
+            box-shadow: 0 0 30px rgba(255, 152, 0, 0.2),
+                        inset 0 0 20px rgba(255, 152, 0, 0.05);
+            animation: warningPulse 2s ease-in-out infinite;
+        }
+
+        @keyframes warningPulse {
+            0%, 100% { box-shadow: 0 0 30px rgba(255, 152, 0, 0.2), inset 0 0 20px rgba(255, 152, 0, 0.05); }
+            50% { box-shadow: 0 0 40px rgba(255, 152, 0, 0.4), inset 0 0 30px rgba(255, 152, 0, 0.1); }
+        }
+
+        .warning-box .warning-icon {
+            color: var(--warning-orange);
+            font-size: 1.5rem;
+            margin-right: 1rem;
+            display: inline-block;
+            animation: warningBlink 1.5s infinite;
+        }
+
+        @keyframes warningBlink {
+            0%, 49%, 100% { opacity: 1; }
+            50%, 99% { opacity: 0.3; }
+        }
+
+        .warning-box .warning-title {
+            color: var(--warning-orange);
+            font-weight: 700;
+            font-size: 1.2rem;
+            margin-bottom: 0.5rem;
+            text-shadow: 0 0 10px var(--warning-orange);
+        }
+
+        .warning-box .warning-title::before {
+            content: '[!] ';
+        }
+
+        .warning-box .warning-text {
+            color: var(--cyber-cyan);
+            line-height: 1.6;
+            opacity: 0.9;
+        }
     </style>
 </head>
 <body>
@@ -547,6 +611,20 @@
             <div class="terminal-prompt">Initializing system...</div>
             <div class="terminal-prompt">Loading computational_research_portfolio.exe</div>
             <div class="terminal-prompt">Status: <span style="color: var(--matrix-green);">ONLINE</span></div>
+        </div>
+
+        <!-- Warning Box -->
+        <div class="warning-box">
+            <div class="warning-title">
+                <span class="warning-icon">⚠</span>
+                ACCURACY DISCLAIMER
+            </div>
+            <div class="warning-text">
+                <strong>WARNING:</strong> The content and information presented on this website may contain inaccuracies,
+                errors, or outdated information. Articles are generated for educational and exploratory purposes.
+                Always verify critical information from authoritative academic sources before relying on it for
+                research, implementation, or decision-making purposes.
+            </div>
         </div>
 
         <!-- Hero Section -->
@@ -673,6 +751,172 @@
     </footer>
 
     <script>
+        // Interactive 3D Cube
+        const cubeContainer = document.querySelector('.cube-container');
+        const cube = document.querySelector('.cube');
+
+        let isDragging = false;
+        let previousMouseX = 0;
+        let previousMouseY = 0;
+        let rotationX = 0;
+        let rotationY = 0;
+        let velocityX = 0;
+        let velocityY = 0;
+        let autoRotateTimeout;
+
+        function updateCubeRotation() {
+            cube.style.transform = `rotateX(${rotationX}deg) rotateY(${rotationY}deg)`;
+        }
+
+        cubeContainer.addEventListener('mousedown', (e) => {
+            isDragging = true;
+            cube.classList.add('dragging');
+            cube.classList.remove('auto-rotate');
+            previousMouseX = e.clientX;
+            previousMouseY = e.clientY;
+            velocityX = 0;
+            velocityY = 0;
+
+            // Clear any pending auto-rotate
+            if (autoRotateTimeout) {
+                clearTimeout(autoRotateTimeout);
+            }
+        });
+
+        document.addEventListener('mousemove', (e) => {
+            if (!isDragging) return;
+
+            const deltaX = e.clientX - previousMouseX;
+            const deltaY = e.clientY - previousMouseY;
+
+            velocityX = deltaY * 0.5;
+            velocityY = deltaX * 0.5;
+
+            rotationX += velocityX;
+            rotationY += velocityY;
+
+            updateCubeRotation();
+
+            previousMouseX = e.clientX;
+            previousMouseY = e.clientY;
+        });
+
+        document.addEventListener('mouseup', () => {
+            if (!isDragging) return;
+            isDragging = false;
+            cube.classList.remove('dragging');
+
+            // Apply momentum
+            let momentum = 30; // frames of momentum
+            const applyMomentum = () => {
+                if (momentum <= 0) {
+                    // Resume auto-rotation after 3 seconds of inactivity
+                    autoRotateTimeout = setTimeout(() => {
+                        // Calculate current rotation modulo 360
+                        rotationX = rotationX % 360;
+                        rotationY = rotationY % 360;
+
+                        // Smoothly transition to auto-rotate from current position
+                        cube.style.animation = 'none';
+                        cube.style.transform = `rotateX(${rotationX}deg) rotateY(${rotationY}deg)`;
+
+                        // Small delay to ensure transform is applied
+                        setTimeout(() => {
+                            cube.classList.add('auto-rotate');
+                        }, 50);
+                    }, 3000);
+                    return;
+                }
+
+                velocityX *= 0.95;
+                velocityY *= 0.95;
+
+                rotationX += velocityX;
+                rotationY += velocityY;
+
+                updateCubeRotation();
+
+                momentum--;
+                requestAnimationFrame(applyMomentum);
+            };
+
+            applyMomentum();
+        });
+
+        // Touch support for mobile
+        cubeContainer.addEventListener('touchstart', (e) => {
+            isDragging = true;
+            cube.classList.add('dragging');
+            cube.classList.remove('auto-rotate');
+            const touch = e.touches[0];
+            previousMouseX = touch.clientX;
+            previousMouseY = touch.clientY;
+            velocityX = 0;
+            velocityY = 0;
+
+            if (autoRotateTimeout) {
+                clearTimeout(autoRotateTimeout);
+            }
+            e.preventDefault();
+        }, { passive: false });
+
+        document.addEventListener('touchmove', (e) => {
+            if (!isDragging) return;
+            const touch = e.touches[0];
+
+            const deltaX = touch.clientX - previousMouseX;
+            const deltaY = touch.clientY - previousMouseY;
+
+            velocityX = deltaY * 0.5;
+            velocityY = deltaX * 0.5;
+
+            rotationX += velocityX;
+            rotationY += velocityY;
+
+            updateCubeRotation();
+
+            previousMouseX = touch.clientX;
+            previousMouseY = touch.clientY;
+        }, { passive: false });
+
+        document.addEventListener('touchend', () => {
+            if (!isDragging) return;
+            isDragging = false;
+            cube.classList.remove('dragging');
+
+            // Apply momentum (same as mouse)
+            let momentum = 30;
+            const applyMomentum = () => {
+                if (momentum <= 0) {
+                    autoRotateTimeout = setTimeout(() => {
+                        rotationX = rotationX % 360;
+                        rotationY = rotationY % 360;
+
+                        cube.style.animation = 'none';
+                        cube.style.transform = `rotateX(${rotationX}deg) rotateY(${rotationY}deg)`;
+
+                        setTimeout(() => {
+                            cube.classList.add('auto-rotate');
+                        }, 50);
+                    }, 3000);
+                    return;
+                }
+
+                velocityX *= 0.95;
+                velocityY *= 0.95;
+
+                rotationX += velocityX;
+                rotationY += velocityY;
+
+                updateCubeRotation();
+
+                momentum--;
+                requestAnimationFrame(applyMomentum);
+            };
+
+            applyMomentum();
+        });
+
         // Matrix Rain Effect
         const matrixCanvas = document.getElementById('matrix-canvas');
         const matrixCtx = matrixCanvas.getContext('2d');
