@@ -1,0 +1,1543 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Tactical Warfare - 2D Combat</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Courier New', monospace;
+            overflow: hidden;
+            background: #1a1a1a;
+            color: #0f0;
+        }
+
+        #gameCanvas {
+            display: block;
+            background: #87ceeb;
+            margin: 0 auto;
+            border: 3px solid #333;
+        }
+
+        #hud {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+            z-index: 100;
+        }
+
+        .player-panel {
+            position: absolute;
+            top: 20px;
+            background: rgba(0, 0, 0, 0.85);
+            padding: 15px 20px;
+            border: 3px solid;
+            min-width: 280px;
+        }
+
+        .player1-panel {
+            left: 20px;
+            border-color: #00ff00;
+        }
+
+        .player2-panel {
+            right: 20px;
+            border-color: #ff0000;
+        }
+
+        .player-name {
+            font-size: 18px;
+            font-weight: bold;
+            margin-bottom: 10px;
+        }
+
+        .player1-panel .player-name {
+            color: #00ff00;
+        }
+
+        .player2-panel .player-name {
+            color: #ff0000;
+        }
+
+        .health-display {
+            margin-bottom: 10px;
+        }
+
+        .bar-container {
+            background: #222;
+            height: 22px;
+            border: 1px solid #555;
+            margin: 5px 0;
+            position: relative;
+        }
+
+        .bar {
+            height: 100%;
+            transition: width 0.3s ease;
+        }
+
+        .health-bar {
+            background: linear-gradient(90deg, #ff0000, #00ff00);
+        }
+
+        .ammo-bar {
+            background: linear-gradient(90deg, #ffaa00, #ffff00);
+        }
+
+        .bar-text {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            color: #fff;
+            font-size: 12px;
+            text-shadow: 1px 1px 2px #000;
+            font-weight: bold;
+        }
+
+        .weapon-display {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin-top: 10px;
+            padding-top: 10px;
+            border-top: 1px solid #444;
+        }
+
+        .weapon-icon {
+            font-size: 24px;
+        }
+
+        .weapon-name {
+            color: #ffaa00;
+            font-weight: bold;
+        }
+
+        .vehicle-status {
+            margin-top: 10px;
+            padding-top: 10px;
+            border-top: 1px solid #444;
+            color: #00aaff;
+            font-size: 14px;
+        }
+
+        .kill-feed {
+            position: absolute;
+            top: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            min-width: 300px;
+            max-width: 500px;
+        }
+
+        .kill-message {
+            background: rgba(0, 0, 0, 0.9);
+            padding: 10px 15px;
+            margin: 5px 0;
+            border-left: 4px solid #ff0000;
+            animation: slideDown 0.3s ease, fadeOut 0.5s ease 3.5s;
+            text-align: center;
+            color: #fff;
+        }
+
+        @keyframes slideDown {
+            from { transform: translateY(-30px); opacity: 0; }
+            to { transform: translateY(0); opacity: 1; }
+        }
+
+        @keyframes fadeOut {
+            to { opacity: 0; }
+        }
+
+        #menu {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(135deg, #1a1a1a 0%, #2d2d2d 100%);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            z-index: 1000;
+        }
+
+        #menu.hidden {
+            display: none;
+        }
+
+        .menu-title {
+            font-size: 70px;
+            color: #00ff00;
+            margin-bottom: 20px;
+            text-shadow: 0 0 20px #00ff00, 0 0 40px #00ff00;
+            font-weight: bold;
+        }
+
+        .menu-subtitle {
+            font-size: 24px;
+            color: #888;
+            margin-bottom: 50px;
+        }
+
+        .menu-button {
+            background: transparent;
+            border: 3px solid #00ff00;
+            color: #00ff00;
+            padding: 18px 50px;
+            font-size: 24px;
+            cursor: pointer;
+            transition: all 0.3s;
+            font-family: 'Courier New', monospace;
+            pointer-events: all;
+            margin: 10px;
+        }
+
+        .menu-button:hover {
+            background: #00ff00;
+            color: #000;
+            transform: scale(1.05);
+            box-shadow: 0 0 30px rgba(0, 255, 0, 0.8);
+        }
+
+        .controls-display {
+            margin-top: 50px;
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 40px;
+            background: rgba(0, 0, 0, 0.7);
+            padding: 30px;
+            border: 2px solid #444;
+        }
+
+        .player-controls {
+            text-align: left;
+        }
+
+        .controls-header {
+            font-size: 20px;
+            font-weight: bold;
+            margin-bottom: 15px;
+            padding-bottom: 10px;
+            border-bottom: 2px solid;
+        }
+
+        .player1-controls .controls-header {
+            color: #00ff00;
+            border-color: #00ff00;
+        }
+
+        .player2-controls .controls-header {
+            color: #ff0000;
+            border-color: #ff0000;
+        }
+
+        .control-row {
+            margin: 8px 0;
+            color: #aaa;
+            font-size: 14px;
+        }
+
+        .key {
+            display: inline-block;
+            background: #333;
+            padding: 3px 8px;
+            border: 1px solid #666;
+            border-radius: 3px;
+            color: #fff;
+            font-weight: bold;
+            min-width: 30px;
+            text-align: center;
+        }
+
+        .game-over-screen {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.95);
+            display: none;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            z-index: 2000;
+        }
+
+        .game-over-screen.show {
+            display: flex;
+        }
+
+        .game-over-title {
+            font-size: 80px;
+            font-weight: bold;
+            margin-bottom: 30px;
+            text-shadow: 0 0 30px currentColor;
+        }
+
+        .winner-announcement {
+            font-size: 45px;
+            margin-bottom: 40px;
+            color: #fff;
+        }
+
+        .final-stats {
+            background: rgba(0, 0, 0, 0.8);
+            padding: 30px 50px;
+            border: 3px solid #00ff00;
+            margin-bottom: 30px;
+        }
+
+        .stat-line {
+            display: flex;
+            justify-content: space-between;
+            gap: 60px;
+            margin: 12px 0;
+            font-size: 18px;
+        }
+
+        .instructions {
+            position: absolute;
+            bottom: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: rgba(0, 0, 0, 0.8);
+            padding: 10px 20px;
+            border: 2px solid #ffaa00;
+            color: #ffaa00;
+            font-size: 14px;
+            animation: pulse 2s ease-in-out infinite;
+        }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 0.8; }
+            50% { opacity: 1; }
+        }
+    </style>
+</head>
+<body>
+    <canvas id="gameCanvas" width="1400" height="800"></canvas>
+
+    <div id="hud">
+        <div class="player-panel player1-panel">
+            <div class="player-name">PLAYER 1 [GREEN]</div>
+            <div class="health-display">
+                <div class="bar-container">
+                    <div class="bar health-bar" id="p1HealthBar" style="width: 100%"></div>
+                    <div class="bar-text" id="p1HealthText">100 / 100</div>
+                </div>
+            </div>
+            <div class="weapon-display">
+                <div class="weapon-icon" id="p1WeaponIcon">🔫</div>
+                <div>
+                    <div class="weapon-name" id="p1WeaponName">PISTOL</div>
+                    <div class="bar-container" style="width: 150px;">
+                        <div class="bar ammo-bar" id="p1AmmoBar" style="width: 100%"></div>
+                        <div class="bar-text" id="p1AmmoText">∞</div>
+                    </div>
+                </div>
+            </div>
+            <div class="vehicle-status" id="p1Vehicle" style="display: none;"></div>
+        </div>
+
+        <div class="player-panel player2-panel">
+            <div class="player-name">PLAYER 2 [RED]</div>
+            <div class="health-display">
+                <div class="bar-container">
+                    <div class="bar health-bar" id="p2HealthBar" style="width: 100%"></div>
+                    <div class="bar-text" id="p2HealthText">100 / 100</div>
+                </div>
+            </div>
+            <div class="weapon-display">
+                <div class="weapon-icon" id="p2WeaponIcon">🔫</div>
+                <div>
+                    <div class="weapon-name" id="p2WeaponName">PISTOL</div>
+                    <div class="bar-container" style="width: 150px;">
+                        <div class="bar ammo-bar" id="p2AmmoBar" style="width: 100%"></div>
+                        <div class="bar-text" id="p2AmmoText">∞</div>
+                    </div>
+                </div>
+            </div>
+            <div class="vehicle-status" id="p2Vehicle" style="display: none;"></div>
+        </div>
+
+        <div class="kill-feed" id="killFeed"></div>
+
+        <div class="instructions">
+            Press E (P1) or ENTER (P2) to interact with vehicles and structures
+        </div>
+    </div>
+
+    <div id="menu">
+        <div class="menu-title">TACTICAL WARFARE</div>
+        <div class="menu-subtitle">2D COMBAT SIMULATOR</div>
+        <button class="menu-button" onclick="startGame()">START BATTLE</button>
+
+        <div class="controls-display">
+            <div class="player-controls player1-controls">
+                <div class="controls-header">PLAYER 1 CONTROLS</div>
+                <div class="control-row"><span class="key">A</span> <span class="key">D</span> Move Left/Right</div>
+                <div class="control-row"><span class="key">W</span> Jump / Climb</div>
+                <div class="control-row"><span class="key">S</span> Crouch / Hide</div>
+                <div class="control-row"><span class="key">SPACE</span> Shoot</div>
+                <div class="control-row"><span class="key">Q</span> Switch Weapon</div>
+                <div class="control-row"><span class="key">E</span> Interact (Enter/Exit Vehicle)</div>
+                <div class="control-row"><span class="key">R</span> Reload</div>
+            </div>
+            <div class="player-controls player2-controls">
+                <div class="controls-header">PLAYER 2 CONTROLS</div>
+                <div class="control-row"><span class="key">←</span> <span class="key">→</span> Move Left/Right</div>
+                <div class="control-row"><span class="key">↑</span> Jump / Climb</div>
+                <div class="control-row"><span class="key">↓</span> Crouch / Hide</div>
+                <div class="control-row"><span class="key">SHIFT</span> Shoot</div>
+                <div class="control-row"><span class="key">CTRL</span> Switch Weapon</div>
+                <div class="control-row"><span class="key">ENTER</span> Interact (Enter/Exit Vehicle)</div>
+                <div class="control-row"><span class="key">0</span> Reload</div>
+            </div>
+        </div>
+    </div>
+
+    <div class="game-over-screen" id="gameOverScreen">
+        <div class="game-over-title" id="gameOverTitle">BATTLE OVER</div>
+        <div class="winner-announcement" id="winnerText"></div>
+        <div class="final-stats" id="finalStatsDisplay"></div>
+        <button class="menu-button" onclick="backToMenu()">BACK TO MENU</button>
+    </div>
+
+    <script>
+        const canvas = document.getElementById('gameCanvas');
+        const ctx = canvas.getContext('2d');
+
+        // Game constants
+        const GRAVITY = 0.8;
+        const JUMP_FORCE = -15;
+        const MOVE_SPEED = 5;
+        const PLAYER_WIDTH = 30;
+        const PLAYER_HEIGHT = 50;
+
+        // Game state
+        let gameActive = false;
+        let keys = {};
+        let bullets = [];
+        let particles = [];
+        let weapons = [];
+        let vehicles = [];
+        let structures = [];
+        let platforms = [];
+        let ladders = [];
+
+        // Players
+        let player1, player2;
+
+        // Weapon types
+        const WEAPON_TYPES = {
+            PISTOL: {
+                name: 'PISTOL',
+                icon: '🔫',
+                damage: 15,
+                fireRate: 300,
+                ammo: Infinity,
+                maxAmmo: Infinity,
+                bulletSpeed: 15,
+                bulletSize: 4,
+                color: '#ffff00',
+                automatic: false
+            },
+            RIFLE: {
+                name: 'RIFLE',
+                icon: '🔫',
+                damage: 20,
+                fireRate: 150,
+                ammo: 30,
+                maxAmmo: 30,
+                bulletSpeed: 20,
+                bulletSize: 5,
+                color: '#ff6600',
+                automatic: true
+            },
+            SHOTGUN: {
+                name: 'SHOTGUN',
+                icon: '💥',
+                damage: 12,
+                fireRate: 600,
+                ammo: 8,
+                maxAmmo: 8,
+                bulletSpeed: 12,
+                bulletSize: 6,
+                spread: 5,
+                pellets: 5,
+                color: '#ff0000',
+                automatic: false
+            },
+            SNIPER: {
+                name: 'SNIPER',
+                icon: '🎯',
+                damage: 80,
+                fireRate: 1200,
+                ammo: 5,
+                maxAmmo: 5,
+                bulletSpeed: 30,
+                bulletSize: 8,
+                color: '#00ffff',
+                automatic: false
+            },
+            ROCKET: {
+                name: 'ROCKET',
+                icon: '🚀',
+                damage: 60,
+                fireRate: 2000,
+                ammo: 3,
+                maxAmmo: 3,
+                bulletSpeed: 10,
+                bulletSize: 12,
+                explosive: true,
+                explosionRadius: 100,
+                color: '#ff00ff',
+                automatic: false
+            }
+        };
+
+        // Audio System
+        const audioContext = new (window.AudioContext || window.webkitAudioContext)();
+
+        function playSound(frequency, duration, type = 'sine', volume = 0.15) {
+            const oscillator = audioContext.createOscillator();
+            const gainNode = audioContext.createGain();
+
+            oscillator.connect(gainNode);
+            gainNode.connect(audioContext.destination);
+
+            oscillator.frequency.value = frequency;
+            oscillator.type = type;
+
+            gainNode.gain.setValueAtTime(volume, audioContext.currentTime);
+            gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + duration);
+
+            oscillator.start(audioContext.currentTime);
+            oscillator.stop(audioContext.currentTime + duration);
+        }
+
+        function playShootSound(weaponType) {
+            if (weaponType === 'PISTOL') {
+                playSound(400, 0.1, 'square', 0.15);
+            } else if (weaponType === 'RIFLE') {
+                playSound(300, 0.08, 'square', 0.12);
+            } else if (weaponType === 'SHOTGUN') {
+                playSound(200, 0.15, 'sawtooth', 0.18);
+            } else if (weaponType === 'SNIPER') {
+                playSound(500, 0.2, 'sine', 0.2);
+            } else if (weaponType === 'ROCKET') {
+                playSound(150, 0.3, 'sawtooth', 0.2);
+            }
+        }
+
+        function playExplosionSound() {
+            playSound(80, 0.4, 'sawtooth', 0.25);
+            setTimeout(() => playSound(40, 0.3, 'sawtooth', 0.2), 50);
+        }
+
+        function playHitSound() {
+            playSound(250, 0.1, 'triangle', 0.15);
+        }
+
+        function playJumpSound() {
+            playSound(400, 0.1, 'sine', 0.1);
+        }
+
+        function playPickupSound() {
+            playSound(600, 0.1, 'sine', 0.15);
+            setTimeout(() => playSound(800, 0.1, 'sine', 0.15), 50);
+        }
+
+        // Input handling
+        window.addEventListener('keydown', (e) => {
+            keys[e.key.toLowerCase()] = true;
+            if (e.key === ' ' || e.key === 'Shift') e.preventDefault();
+        });
+        window.addEventListener('keyup', (e) => keys[e.key.toLowerCase()] = false);
+
+        // Player class
+        class Player {
+            constructor(x, y, color, controls, name) {
+                this.x = x;
+                this.y = y;
+                this.width = PLAYER_WIDTH;
+                this.height = PLAYER_HEIGHT;
+                this.vx = 0;
+                this.vy = 0;
+                this.color = color;
+                this.controls = controls;
+                this.name = name;
+                this.health = 100;
+                this.maxHealth = 100;
+                this.facing = 1; // 1 = right, -1 = left
+                this.grounded = false;
+                this.crouching = false;
+                this.onLadder = false;
+                this.weapon = {...WEAPON_TYPES.PISTOL};
+                this.inventory = [WEAPON_TYPES.PISTOL];
+                this.currentWeaponIndex = 0;
+                this.lastShot = 0;
+                this.inVehicle = null;
+                this.nearbyInteractable = null;
+                this.kills = 0;
+                this.deaths = 0;
+            }
+
+            update(deltaTime) {
+                if (this.inVehicle) {
+                    this.inVehicle.update(this.controls, deltaTime);
+                    this.x = this.inVehicle.x;
+                    this.y = this.inVehicle.y - this.height;
+                    return;
+                }
+
+                // Movement
+                if (keys[this.controls.left]) {
+                    this.vx = -MOVE_SPEED;
+                    this.facing = -1;
+                }
+                if (keys[this.controls.right]) {
+                    this.vx = MOVE_SPEED;
+                    this.facing = 1;
+                }
+
+                // Apply friction
+                if (!keys[this.controls.left] && !keys[this.controls.right]) {
+                    this.vx *= 0.8;
+                }
+
+                // Jumping and climbing
+                if (keys[this.controls.jump]) {
+                    if (this.onLadder) {
+                        this.vy = -5;
+                        this.grounded = false;
+                    } else if (this.grounded) {
+                        this.vy = JUMP_FORCE;
+                        this.grounded = false;
+                        playJumpSound();
+                    }
+                }
+
+                // Crouching
+                this.crouching = keys[this.controls.crouch] && this.grounded;
+
+                // Gravity
+                if (!this.onLadder) {
+                    this.vy += GRAVITY;
+                }
+
+                // Apply velocity
+                this.x += this.vx;
+                this.y += this.vy;
+
+                // Ground collision
+                this.grounded = false;
+                this.onLadder = false;
+
+                // Check platforms
+                for (let platform of platforms) {
+                    if (this.y + this.height >= platform.y &&
+                        this.y + this.height <= platform.y + 20 &&
+                        this.x + this.width > platform.x &&
+                        this.x < platform.x + platform.width &&
+                        this.vy >= 0) {
+                        this.y = platform.y - this.height;
+                        this.vy = 0;
+                        this.grounded = true;
+                    }
+                }
+
+                // Check ladders
+                for (let ladder of ladders) {
+                    if (this.x + this.width > ladder.x &&
+                        this.x < ladder.x + ladder.width &&
+                        this.y + this.height > ladder.y &&
+                        this.y < ladder.y + ladder.height) {
+                        this.onLadder = true;
+                        if (keys[this.controls.jump] || keys[this.controls.crouch]) {
+                            this.vy *= 0.8;
+                        } else {
+                            this.vy = 0;
+                        }
+                    }
+                }
+
+                // Boundaries
+                if (this.x < 0) this.x = 0;
+                if (this.x + this.width > canvas.width) this.x = canvas.width - this.width;
+                if (this.y + this.height > canvas.height) {
+                    this.y = canvas.height - this.height;
+                    this.vy = 0;
+                    this.grounded = true;
+                }
+
+                // Shooting
+                const currentTime = Date.now();
+                if (keys[this.controls.shoot]) {
+                    if (this.weapon.automatic || !this.lastShotPressed) {
+                        if (currentTime - this.lastShot > this.weapon.fireRate && this.weapon.ammo > 0) {
+                            this.shoot();
+                            this.lastShot = currentTime;
+                        }
+                    }
+                    this.lastShotPressed = true;
+                } else {
+                    this.lastShotPressed = false;
+                }
+
+                // Weapon switch
+                if (keys[this.controls.switch] && !this.switchPressed) {
+                    this.currentWeaponIndex = (this.currentWeaponIndex + 1) % this.inventory.length;
+                    this.weapon = {...this.inventory[this.currentWeaponIndex]};
+                    this.switchPressed = true;
+                }
+                if (!keys[this.controls.switch]) {
+                    this.switchPressed = false;
+                }
+
+                // Reload
+                if (keys[this.controls.reload] && !this.reloadPressed) {
+                    if (this.weapon.ammo < this.weapon.maxAmmo && this.weapon.maxAmmo !== Infinity) {
+                        this.weapon.ammo = this.weapon.maxAmmo;
+                        playPickupSound();
+                    }
+                    this.reloadPressed = true;
+                }
+                if (!keys[this.controls.reload]) {
+                    this.reloadPressed = false;
+                }
+
+                // Interact with vehicles/structures
+                if (keys[this.controls.interact] && !this.interactPressed) {
+                    this.interact();
+                    this.interactPressed = true;
+                }
+                if (!keys[this.controls.interact]) {
+                    this.interactPressed = false;
+                }
+
+                // Check nearby interactables
+                this.checkNearbyInteractables();
+
+                // Weapon pickups
+                for (let weapon of weapons) {
+                    if (weapon.active && this.collidesWith(weapon)) {
+                        this.pickupWeapon(weapon);
+                    }
+                }
+            }
+
+            shoot() {
+                if (this.weapon.ammo === 0 && this.weapon.ammo !== Infinity) return;
+
+                const bulletX = this.x + (this.facing > 0 ? this.width : 0);
+                const bulletY = this.y + this.height / 2;
+
+                if (this.weapon.name === 'SHOTGUN') {
+                    // Shotgun fires multiple pellets
+                    for (let i = 0; i < this.weapon.pellets; i++) {
+                        const spread = (Math.random() - 0.5) * this.weapon.spread;
+                        bullets.push(new Bullet(
+                            bulletX,
+                            bulletY,
+                            this.facing * this.weapon.bulletSpeed,
+                            spread,
+                            this.weapon,
+                            this
+                        ));
+                    }
+                } else {
+                    bullets.push(new Bullet(
+                        bulletX,
+                        bulletY,
+                        this.facing * this.weapon.bulletSpeed,
+                        0,
+                        this.weapon,
+                        this
+                    ));
+                }
+
+                if (this.weapon.ammo !== Infinity) {
+                    this.weapon.ammo--;
+                }
+
+                playShootSound(this.weapon.name);
+
+                // Recoil
+                this.vx -= this.facing * 2;
+            }
+
+            pickupWeapon(weaponPickup) {
+                const newWeapon = {...weaponPickup.type};
+
+                // Check if already have this weapon
+                let hasWeapon = false;
+                for (let i = 0; i < this.inventory.length; i++) {
+                    if (this.inventory[i].name === newWeapon.name) {
+                        // Refill ammo
+                        this.inventory[i].ammo = newWeapon.maxAmmo;
+                        hasWeapon = true;
+                        break;
+                    }
+                }
+
+                if (!hasWeapon) {
+                    this.inventory.push(newWeapon);
+                    this.currentWeaponIndex = this.inventory.length - 1;
+                    this.weapon = {...newWeapon};
+                }
+
+                weaponPickup.active = false;
+                playPickupSound();
+            }
+
+            checkNearbyInteractables() {
+                this.nearbyInteractable = null;
+
+                // Check vehicles
+                for (let vehicle of vehicles) {
+                    if (Math.abs(this.x - vehicle.x) < 100 && Math.abs(this.y - vehicle.y) < 100) {
+                        this.nearbyInteractable = vehicle;
+                        return;
+                    }
+                }
+
+                // Check structures
+                for (let structure of structures) {
+                    if (Math.abs(this.x - structure.x) < 100 && Math.abs(this.y - structure.y) < 100) {
+                        this.nearbyInteractable = structure;
+                        return;
+                    }
+                }
+            }
+
+            interact() {
+                if (this.inVehicle) {
+                    // Exit vehicle
+                    this.inVehicle = null;
+                    playPickupSound();
+                } else if (this.nearbyInteractable) {
+                    if (this.nearbyInteractable.type === 'vehicle') {
+                        // Enter vehicle
+                        this.inVehicle = this.nearbyInteractable;
+                        playPickupSound();
+                    } else if (this.nearbyInteractable.type === 'turret') {
+                        // Use turret
+                        this.nearbyInteractable.fire(this);
+                    }
+                }
+            }
+
+            collidesWith(obj) {
+                return this.x < obj.x + obj.width &&
+                       this.x + this.width > obj.x &&
+                       this.y < obj.y + obj.height &&
+                       this.y + this.height > obj.y;
+            }
+
+            takeDamage(damage, attacker) {
+                this.health -= damage;
+                playHitSound();
+
+                if (this.health <= 0) {
+                    this.die(attacker);
+                }
+
+                // Screen shake effect
+                createHitParticles(this.x + this.width/2, this.y + this.height/2);
+            }
+
+            die(killer) {
+                this.health = 0;
+                this.deaths++;
+                if (killer) {
+                    killer.kills++;
+                }
+
+                createExplosion(this.x + this.width/2, this.y + this.height/2, 30);
+                playExplosionSound();
+
+                addKillMessage(`${killer ? killer.name : 'Someone'} eliminated ${this.name}!`);
+
+                // Check for game over
+                if (this.deaths >= 5) {
+                    endGame();
+                } else {
+                    // Respawn after delay
+                    setTimeout(() => this.respawn(), 3000);
+                }
+            }
+
+            respawn() {
+                this.health = this.maxHealth;
+                this.x = this === player1 ? 100 : canvas.width - 100;
+                this.y = 100;
+                this.vx = 0;
+                this.vy = 0;
+                this.weapon = {...WEAPON_TYPES.PISTOL};
+                this.inventory = [WEAPON_TYPES.PISTOL];
+                this.currentWeaponIndex = 0;
+                this.inVehicle = null;
+            }
+
+            draw() {
+                if (this.health <= 0) return;
+
+                if (this.inVehicle) return; // Don't draw player when in vehicle
+
+                ctx.save();
+
+                // Crouching
+                let drawHeight = this.height;
+                let drawY = this.y;
+                if (this.crouching) {
+                    drawHeight = this.height * 0.6;
+                    drawY = this.y + this.height * 0.4;
+                }
+
+                // Body
+                ctx.fillStyle = this.color;
+                ctx.fillRect(this.x, drawY, this.width, drawHeight);
+
+                // Outline
+                ctx.strokeStyle = '#000';
+                ctx.lineWidth = 2;
+                ctx.strokeRect(this.x, drawY, this.width, drawHeight);
+
+                // Head
+                ctx.fillStyle = this.color;
+                ctx.beginPath();
+                ctx.arc(this.x + this.width/2, drawY + 10, 8, 0, Math.PI * 2);
+                ctx.fill();
+                ctx.stroke();
+
+                // Weapon
+                ctx.fillStyle = '#333';
+                const weaponLength = 20;
+                const weaponX = this.x + (this.facing > 0 ? this.width : 0);
+                const weaponY = drawY + drawHeight / 2;
+                ctx.fillRect(
+                    weaponX,
+                    weaponY - 2,
+                    weaponLength * this.facing,
+                    4
+                );
+
+                ctx.restore();
+            }
+        }
+
+        // Bullet class
+        class Bullet {
+            constructor(x, y, vx, vy, weapon, owner) {
+                this.x = x;
+                this.y = y;
+                this.vx = vx;
+                this.vy = vy;
+                this.weapon = weapon;
+                this.owner = owner;
+                this.radius = weapon.bulletSize;
+                this.damage = weapon.damage;
+                this.color = weapon.color;
+                this.life = 3;
+            }
+
+            update(deltaTime) {
+                this.x += this.vx;
+                this.y += this.vy;
+                this.life -= deltaTime;
+
+                // Hit detection
+                const targets = [player1, player2];
+                for (let target of targets) {
+                    if (target !== this.owner && target.health > 0 && !target.inVehicle) {
+                        const dx = this.x - (target.x + target.width/2);
+                        const dy = this.y - (target.y + target.height/2);
+                        const distance = Math.sqrt(dx*dx + dy*dy);
+
+                        if (distance < this.radius + target.width/2) {
+                            target.takeDamage(this.damage, this.owner);
+
+                            if (this.weapon.explosive) {
+                                createExplosion(this.x, this.y, this.weapon.explosionRadius);
+                                playExplosionSound();
+                            }
+
+                            return true; // Bullet hit
+                        }
+                    }
+                }
+
+                // Check vehicle hits
+                for (let vehicle of vehicles) {
+                    if (this.x > vehicle.x && this.x < vehicle.x + vehicle.width &&
+                        this.y > vehicle.y && this.y < vehicle.y + vehicle.height) {
+
+                        if (this.weapon.explosive) {
+                            createExplosion(this.x, this.y, this.weapon.explosionRadius);
+                            playExplosionSound();
+                        }
+                        return true;
+                    }
+                }
+
+                // Out of bounds or lifetime expired
+                if (this.x < 0 || this.x > canvas.width || this.y < 0 || this.y > canvas.height || this.life <= 0) {
+                    return true; // Remove bullet
+                }
+
+                return false;
+            }
+
+            draw() {
+                ctx.fillStyle = this.color;
+                ctx.beginPath();
+                ctx.arc(this.x, this.y, this.radius, 0, Math.PI * 2);
+                ctx.fill();
+
+                // Trail
+                ctx.strokeStyle = this.color;
+                ctx.lineWidth = 2;
+                ctx.globalAlpha = 0.5;
+                ctx.beginPath();
+                ctx.moveTo(this.x, this.y);
+                ctx.lineTo(this.x - this.vx * 2, this.y - this.vy * 2);
+                ctx.stroke();
+                ctx.globalAlpha = 1;
+            }
+        }
+
+        // Vehicle class
+        class Vehicle {
+            constructor(x, y, vehicleType) {
+                this.x = x;
+                this.y = y;
+                this.type = 'vehicle';
+                this.vehicleType = vehicleType;
+                this.vx = 0;
+
+                if (vehicleType === 'tank') {
+                    this.width = 80;
+                    this.height = 60;
+                    this.color = '#4a6741';
+                    this.maxSpeed = 3;
+                } else if (vehicleType === 'jeep') {
+                    this.width = 70;
+                    this.height = 40;
+                    this.color = '#8b7355';
+                    this.maxSpeed = 7;
+                }
+            }
+
+            update(controls, deltaTime) {
+                if (keys[controls.left]) {
+                    this.vx = -this.maxSpeed;
+                }
+                if (keys[controls.right]) {
+                    this.vx = this.maxSpeed;
+                }
+
+                this.vx *= 0.9;
+                this.x += this.vx;
+
+                // Boundaries
+                if (this.x < 0) this.x = 0;
+                if (this.x + this.width > canvas.width) this.x = canvas.width - this.width;
+            }
+
+            draw() {
+                ctx.fillStyle = this.color;
+                ctx.fillRect(this.x, this.y, this.width, this.height);
+                ctx.strokeStyle = '#000';
+                ctx.lineWidth = 3;
+                ctx.strokeRect(this.x, this.y, this.width, this.height);
+
+                if (this.vehicleType === 'tank') {
+                    // Turret
+                    ctx.fillStyle = '#3a5631';
+                    ctx.fillRect(this.x + 20, this.y - 15, 40, 20);
+
+                    // Cannon
+                    ctx.fillStyle = '#2a4621';
+                    ctx.fillRect(this.x + 60, this.y - 5, 30, 8);
+
+                    // Tracks
+                    ctx.fillStyle = '#222';
+                    ctx.fillRect(this.x, this.y + this.height - 10, this.width, 10);
+                } else if (this.vehicleType === 'jeep') {
+                    // Windshield
+                    ctx.fillStyle = '#4a8090';
+                    ctx.fillRect(this.x + 10, this.y + 5, 30, 20);
+
+                    // Wheels
+                    ctx.fillStyle = '#222';
+                    ctx.beginPath();
+                    ctx.arc(this.x + 15, this.y + this.height, 8, 0, Math.PI * 2);
+                    ctx.arc(this.x + 55, this.y + this.height, 8, 0, Math.PI * 2);
+                    ctx.fill();
+                }
+            }
+        }
+
+        // Structure class (turrets, cannons)
+        class Structure {
+            constructor(x, y, structureType) {
+                this.x = x;
+                this.y = y;
+                this.type = 'turret';
+                this.structureType = structureType;
+                this.width = 50;
+                this.height = 50;
+                this.lastFire = 0;
+            }
+
+            fire(player) {
+                const currentTime = Date.now();
+                if (currentTime - this.lastFire < 500) return;
+
+                const bulletX = this.x + this.width / 2;
+                const bulletY = this.y + this.height / 2;
+
+                bullets.push(new Bullet(
+                    bulletX,
+                    bulletY,
+                    player.facing * 20,
+                    0,
+                    WEAPON_TYPES.RIFLE,
+                    player
+                ));
+
+                this.lastFire = currentTime;
+                playShootSound('RIFLE');
+            }
+
+            draw() {
+                // Base
+                ctx.fillStyle = '#555';
+                ctx.fillRect(this.x, this.y, this.width, this.height);
+                ctx.strokeStyle = '#222';
+                ctx.lineWidth = 3;
+                ctx.strokeRect(this.x, this.y, this.width, this.height);
+
+                // Barrel
+                ctx.fillStyle = '#333';
+                ctx.fillRect(this.x + this.width, this.y + this.height/2 - 5, 40, 10);
+            }
+        }
+
+        // Weapon pickup class
+        class WeaponPickup {
+            constructor(x, y, weaponType) {
+                this.x = x;
+                this.y = y;
+                this.width = 30;
+                this.height = 20;
+                this.type = weaponType;
+                this.active = true;
+            }
+
+            draw() {
+                if (!this.active) return;
+
+                ctx.fillStyle = '#ffaa00';
+                ctx.fillRect(this.x, this.y, this.width, this.height);
+                ctx.strokeStyle = '#000';
+                ctx.lineWidth = 2;
+                ctx.strokeRect(this.x, this.y, this.width, this.height);
+
+                // Icon
+                ctx.fillStyle = '#000';
+                ctx.font = '16px Arial';
+                ctx.textAlign = 'center';
+                ctx.fillText(this.type.icon, this.x + this.width/2, this.y + this.height/2 + 5);
+
+                // Floating animation
+                this.y += Math.sin(Date.now() * 0.003) * 0.1;
+            }
+        }
+
+        // Particle effects
+        function createExplosion(x, y, radius) {
+            const numParticles = 20;
+            for (let i = 0; i < numParticles; i++) {
+                const angle = (i / numParticles) * Math.PI * 2;
+                const speed = 2 + Math.random() * 5;
+                particles.push({
+                    x: x,
+                    y: y,
+                    vx: Math.cos(angle) * speed,
+                    vy: Math.sin(angle) * speed,
+                    life: 1,
+                    color: `rgb(255, ${Math.floor(Math.random() * 100)}, 0)`,
+                    size: 5 + Math.random() * 5
+                });
+            }
+        }
+
+        function createHitParticles(x, y) {
+            for (let i = 0; i < 10; i++) {
+                particles.push({
+                    x: x,
+                    y: y,
+                    vx: (Math.random() - 0.5) * 8,
+                    vy: (Math.random() - 0.5) * 8,
+                    life: 0.5,
+                    color: '#ff0000',
+                    size: 3
+                });
+            }
+        }
+
+        function updateParticles(deltaTime) {
+            for (let i = particles.length - 1; i >= 0; i--) {
+                const p = particles[i];
+                p.x += p.vx;
+                p.y += p.vy;
+                p.vy += GRAVITY * 0.5;
+                p.life -= deltaTime;
+
+                if (p.life <= 0) {
+                    particles.splice(i, 1);
+                }
+            }
+        }
+
+        function drawParticles() {
+            for (let p of particles) {
+                ctx.fillStyle = p.color;
+                ctx.globalAlpha = p.life;
+                ctx.beginPath();
+                ctx.arc(p.x, p.y, p.size, 0, Math.PI * 2);
+                ctx.fill();
+            }
+            ctx.globalAlpha = 1;
+        }
+
+        // Initialize game
+        function initGame() {
+            // Create players
+            player1 = new Player(100, 100, '#00ff00', {
+                left: 'a',
+                right: 'd',
+                jump: 'w',
+                crouch: 's',
+                shoot: ' ',
+                switch: 'q',
+                reload: 'r',
+                interact: 'e'
+            }, 'PLAYER 1');
+
+            player2 = new Player(canvas.width - 100, 100, '#ff0000', {
+                left: 'arrowleft',
+                right: 'arrowright',
+                jump: 'arrowup',
+                crouch: 'arrowdown',
+                shoot: 'shift',
+                switch: 'control',
+                reload: '0',
+                interact: 'enter'
+            }, 'PLAYER 2');
+
+            // Create platforms
+            platforms = [
+                { x: 0, y: canvas.height - 50, width: canvas.width, height: 50 }, // Ground
+                { x: 200, y: 600, width: 200, height: 20 },
+                { x: 600, y: 500, width: 200, height: 20 },
+                { x: 1000, y: 600, width: 200, height: 20 },
+                { x: 400, y: 400, width: 150, height: 20 },
+                { x: 850, y: 350, width: 150, height: 20 },
+                { x: 100, y: 300, width: 100, height: 20 },
+                { x: 1200, y: 300, width: 100, height: 20 }
+            ];
+
+            // Create ladders
+            ladders = [
+                { x: 150, y: 300, width: 30, height: 300 },
+                { x: 750, y: 350, width: 30, height: 250 },
+                { x: 1100, y: 300, width: 30, height: 300 }
+            ];
+
+            // Create vehicles
+            vehicles = [
+                new Vehicle(300, canvas.height - 110, 'tank'),
+                new Vehicle(900, canvas.height - 90, 'jeep')
+            ];
+
+            // Create structures
+            structures = [
+                new Structure(500, canvas.height - 100, 'turret'),
+                new Structure(1300, 250, 'turret')
+            ];
+
+            // Create weapon pickups
+            weapons = [
+                new WeaponPickup(400, 380, WEAPON_TYPES.RIFLE),
+                new WeaponPickup(850, 330, WEAPON_TYPES.SHOTGUN),
+                new WeaponPickup(700, 480, WEAPON_TYPES.SNIPER),
+                new WeaponPickup(200, 580, WEAPON_TYPES.ROCKET),
+                new WeaponPickup(1000, 580, WEAPON_TYPES.RIFLE)
+            ];
+        }
+
+        // Update game
+        function update(deltaTime) {
+            if (!gameActive) return;
+
+            player1.update(deltaTime);
+            player2.update(deltaTime);
+
+            // Update bullets
+            for (let i = bullets.length - 1; i >= 0; i--) {
+                if (bullets[i].update(deltaTime)) {
+                    bullets.splice(i, 1);
+                }
+            }
+
+            // Update particles
+            updateParticles(deltaTime);
+
+            // Respawn weapon pickups
+            for (let weapon of weapons) {
+                if (!weapon.active) {
+                    setTimeout(() => weapon.active = true, 15000);
+                }
+            }
+        }
+
+        // Draw game
+        function draw() {
+            // Background
+            ctx.fillStyle = '#87ceeb';
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+            // Draw ground/sky gradient
+            const gradient = ctx.createLinearGradient(0, 0, 0, canvas.height);
+            gradient.addColorStop(0, '#87ceeb');
+            gradient.addColorStop(0.7, '#c9e4ff');
+            gradient.addColorStop(1, '#8b7355');
+            ctx.fillStyle = gradient;
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+            // Draw platforms
+            ctx.fillStyle = '#654321';
+            for (let platform of platforms) {
+                ctx.fillRect(platform.x, platform.y, platform.width, platform.height);
+                ctx.strokeStyle = '#4a3319';
+                ctx.lineWidth = 2;
+                ctx.strokeRect(platform.x, platform.y, platform.width, platform.height);
+            }
+
+            // Draw ladders
+            ctx.strokeStyle = '#8b7355';
+            ctx.lineWidth = 3;
+            for (let ladder of ladders) {
+                for (let y = ladder.y; y < ladder.y + ladder.height; y += 15) {
+                    ctx.beginPath();
+                    ctx.moveTo(ladder.x, y);
+                    ctx.lineTo(ladder.x + ladder.width, y);
+                    ctx.stroke();
+                }
+                ctx.strokeRect(ladder.x, ladder.y, ladder.width, ladder.height);
+            }
+
+            // Draw structures
+            for (let structure of structures) {
+                structure.draw();
+            }
+
+            // Draw vehicles
+            for (let vehicle of vehicles) {
+                vehicle.draw();
+            }
+
+            // Draw weapon pickups
+            for (let weapon of weapons) {
+                weapon.draw();
+            }
+
+            // Draw bullets
+            for (let bullet of bullets) {
+                bullet.draw();
+            }
+
+            // Draw particles
+            drawParticles();
+
+            // Draw players
+            player1.draw();
+            player2.draw();
+
+            // Draw interaction prompts
+            if (player1.nearbyInteractable) {
+                ctx.fillStyle = 'rgba(0, 255, 0, 0.7)';
+                ctx.font = '14px Courier New';
+                ctx.textAlign = 'center';
+                ctx.fillText('[E] Interact', player1.x + player1.width/2, player1.y - 10);
+            }
+            if (player2.nearbyInteractable) {
+                ctx.fillStyle = 'rgba(255, 0, 0, 0.7)';
+                ctx.font = '14px Courier New';
+                ctx.textAlign = 'center';
+                ctx.fillText('[ENTER] Interact', player2.x + player2.width/2, player2.y - 10);
+            }
+        }
+
+        // Update HUD
+        function updateHUD() {
+            // Player 1
+            const p1HealthPercent = (player1.health / player1.maxHealth) * 100;
+            document.getElementById('p1HealthBar').style.width = p1HealthPercent + '%';
+            document.getElementById('p1HealthText').textContent = `${Math.max(0, Math.floor(player1.health))} / ${player1.maxHealth}`;
+            document.getElementById('p1WeaponIcon').textContent = player1.weapon.icon;
+            document.getElementById('p1WeaponName').textContent = player1.weapon.name;
+
+            if (player1.weapon.maxAmmo === Infinity) {
+                document.getElementById('p1AmmoBar').style.width = '100%';
+                document.getElementById('p1AmmoText').textContent = '∞';
+            } else {
+                const p1AmmoPercent = (player1.weapon.ammo / player1.weapon.maxAmmo) * 100;
+                document.getElementById('p1AmmoBar').style.width = p1AmmoPercent + '%';
+                document.getElementById('p1AmmoText').textContent = `${player1.weapon.ammo} / ${player1.weapon.maxAmmo}`;
+            }
+
+            if (player1.inVehicle) {
+                document.getElementById('p1Vehicle').style.display = 'block';
+                document.getElementById('p1Vehicle').textContent = `IN ${player1.inVehicle.vehicleType.toUpperCase()}`;
+            } else {
+                document.getElementById('p1Vehicle').style.display = 'none';
+            }
+
+            // Player 2
+            const p2HealthPercent = (player2.health / player2.maxHealth) * 100;
+            document.getElementById('p2HealthBar').style.width = p2HealthPercent + '%';
+            document.getElementById('p2HealthText').textContent = `${Math.max(0, Math.floor(player2.health))} / ${player2.maxHealth}`;
+            document.getElementById('p2WeaponIcon').textContent = player2.weapon.icon;
+            document.getElementById('p2WeaponName').textContent = player2.weapon.name;
+
+            if (player2.weapon.maxAmmo === Infinity) {
+                document.getElementById('p2AmmoBar').style.width = '100%';
+                document.getElementById('p2AmmoText').textContent = '∞';
+            } else {
+                const p2AmmoPercent = (player2.weapon.ammo / player2.weapon.maxAmmo) * 100;
+                document.getElementById('p2AmmoBar').style.width = p2AmmoPercent + '%';
+                document.getElementById('p2AmmoText').textContent = `${player2.weapon.ammo} / ${player2.weapon.maxAmmo}`;
+            }
+
+            if (player2.inVehicle) {
+                document.getElementById('p2Vehicle').style.display = 'block';
+                document.getElementById('p2Vehicle').textContent = `IN ${player2.inVehicle.vehicleType.toUpperCase()}`;
+            } else {
+                document.getElementById('p2Vehicle').style.display = 'none';
+            }
+        }
+
+        // Kill feed
+        function addKillMessage(message) {
+            const feed = document.getElementById('killFeed');
+            const msg = document.createElement('div');
+            msg.className = 'kill-message';
+            msg.textContent = message;
+            feed.appendChild(msg);
+
+            setTimeout(() => msg.remove(), 4000);
+        }
+
+        // Menu functions
+        function startGame() {
+            document.getElementById('menu').classList.add('hidden');
+            initGame();
+            gameActive = true;
+        }
+
+        function endGame() {
+            gameActive = false;
+
+            const screen = document.getElementById('gameOverScreen');
+            const title = document.getElementById('gameOverTitle');
+            const winnerText = document.getElementById('winnerText');
+            const stats = document.getElementById('finalStatsDisplay');
+
+            let winner, winnerColor;
+            if (player1.kills > player2.kills) {
+                winner = 'PLAYER 1 WINS!';
+                winnerColor = '#00ff00';
+            } else if (player2.kills > player1.kills) {
+                winner = 'PLAYER 2 WINS!';
+                winnerColor = '#ff0000';
+            } else {
+                winner = 'DRAW!';
+                winnerColor = '#ffaa00';
+            }
+
+            title.style.color = winnerColor;
+            winnerText.textContent = winner;
+            winnerText.style.color = winnerColor;
+
+            stats.innerHTML = `
+                <div class="stat-line">
+                    <span>Player 1 Kills:</span>
+                    <span style="color: #00ff00">${player1.kills}</span>
+                </div>
+                <div class="stat-line">
+                    <span>Player 1 Deaths:</span>
+                    <span style="color: #00ff00">${player1.deaths}</span>
+                </div>
+                <hr style="margin: 15px 0; border-color: #444;">
+                <div class="stat-line">
+                    <span>Player 2 Kills:</span>
+                    <span style="color: #ff0000">${player2.kills}</span>
+                </div>
+                <div class="stat-line">
+                    <span>Player 2 Deaths:</span>
+                    <span style="color: #ff0000">${player2.deaths}</span>
+                </div>
+            `;
+
+            screen.classList.add('show');
+        }
+
+        function backToMenu() {
+            document.getElementById('gameOverScreen').classList.remove('show');
+            document.getElementById('menu').classList.remove('hidden');
+
+            // Reset
+            bullets = [];
+            particles = [];
+            weapons = [];
+            vehicles = [];
+            structures = [];
+            platforms = [];
+            ladders = [];
+        }
+
+        // Game loop
+        let lastTime = performance.now();
+
+        function gameLoop() {
+            requestAnimationFrame(gameLoop);
+
+            const currentTime = performance.now();
+            const deltaTime = Math.min((currentTime - lastTime) / 1000, 0.1);
+            lastTime = currentTime;
+
+            update(deltaTime);
+            draw();
+            updateHUD();
+        }
+
+        // Start
+        gameLoop();
+    </script>
+</body>
+</html>
