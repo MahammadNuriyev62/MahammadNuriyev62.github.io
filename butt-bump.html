@@ -1,0 +1,697 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Butt Bump Battle - Ridiculous 2-Player Game</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Comic Sans MS', cursive, sans-serif;
+            background: linear-gradient(135deg, #ff9a9e 0%, #fad0c4 50%, #a18cd1 100%);
+            overflow: hidden;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+        }
+
+        #menu {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            text-align: center;
+            background: rgba(255, 255, 255, 0.95);
+            padding: 40px;
+            border-radius: 30px;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+            z-index: 100;
+        }
+
+        #menu.hidden {
+            display: none;
+        }
+
+        .menu-title {
+            font-size: 48px;
+            color: #ff1493;
+            margin-bottom: 10px;
+            text-shadow: 3px 3px 6px rgba(0, 0, 0, 0.2);
+            animation: wiggle 1s infinite;
+        }
+
+        @keyframes wiggle {
+            0%, 100% { transform: rotate(-3deg); }
+            50% { transform: rotate(3deg); }
+        }
+
+        .subtitle {
+            font-size: 20px;
+            color: #666;
+            margin-bottom: 30px;
+            font-style: italic;
+        }
+
+        .controls {
+            display: flex;
+            justify-content: space-around;
+            margin: 30px 0;
+            gap: 40px;
+        }
+
+        .player-controls {
+            background: rgba(255, 255, 255, 0.8);
+            padding: 20px;
+            border-radius: 15px;
+            border: 3px solid;
+        }
+
+        .player1-controls {
+            border-color: #00ff88;
+        }
+
+        .player2-controls {
+            border-color: #ff0088;
+        }
+
+        .player-controls h3 {
+            margin-bottom: 15px;
+            font-size: 24px;
+        }
+
+        .player1-controls h3 {
+            color: #00ff88;
+        }
+
+        .player2-controls h3 {
+            color: #ff0088;
+        }
+
+        .key {
+            display: inline-block;
+            background: #333;
+            color: white;
+            padding: 8px 12px;
+            border-radius: 5px;
+            margin: 5px;
+            font-weight: bold;
+            box-shadow: 2px 2px 5px rgba(0, 0, 0, 0.3);
+        }
+
+        .menu-button {
+            background: linear-gradient(135deg, #ff6b9d, #c06c84);
+            color: white;
+            border: none;
+            padding: 20px 50px;
+            font-size: 28px;
+            border-radius: 50px;
+            cursor: pointer;
+            transition: all 0.3s;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+            font-family: 'Comic Sans MS', cursive, sans-serif;
+            font-weight: bold;
+        }
+
+        .menu-button:hover {
+            transform: scale(1.1);
+            box-shadow: 0 15px 40px rgba(0, 0, 0, 0.4);
+        }
+
+        #gameCanvas {
+            border: 5px solid white;
+            border-radius: 20px;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.4);
+            display: none;
+        }
+
+        #gameCanvas.visible {
+            display: block;
+        }
+
+        #hud {
+            position: absolute;
+            top: 20px;
+            width: 100%;
+            display: none;
+            justify-content: space-between;
+            padding: 0 50px;
+            z-index: 10;
+        }
+
+        #hud.visible {
+            display: flex;
+        }
+
+        .player-score {
+            background: rgba(255, 255, 255, 0.95);
+            padding: 20px 30px;
+            border-radius: 15px;
+            font-size: 32px;
+            font-weight: bold;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+            min-width: 200px;
+            text-align: center;
+        }
+
+        .player1-score {
+            color: #00ff88;
+            border: 4px solid #00ff88;
+        }
+
+        .player2-score {
+            color: #ff0088;
+            border: 4px solid #ff0088;
+        }
+
+        #gameOver {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            text-align: center;
+            background: rgba(255, 255, 255, 0.98);
+            padding: 50px;
+            border-radius: 30px;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.4);
+            display: none;
+            z-index: 100;
+        }
+
+        #gameOver.visible {
+            display: block;
+        }
+
+        .winner-text {
+            font-size: 56px;
+            margin-bottom: 20px;
+            text-shadow: 3px 3px 6px rgba(0, 0, 0, 0.2);
+            animation: bounce 0.5s infinite alternate;
+        }
+
+        @keyframes bounce {
+            from { transform: translateY(0px); }
+            to { transform: translateY(-20px); }
+        }
+
+        .game-buttons {
+            margin-top: 30px;
+            display: flex;
+            gap: 20px;
+            justify-content: center;
+        }
+
+        .back-button {
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            color: white;
+            border: none;
+            padding: 15px 40px;
+            font-size: 20px;
+            border-radius: 50px;
+            cursor: pointer;
+            transition: all 0.3s;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+            font-family: 'Comic Sans MS', cursive, sans-serif;
+            font-weight: bold;
+        }
+
+        .back-button:hover {
+            transform: scale(1.05);
+        }
+    </style>
+</head>
+<body>
+    <div id="menu">
+        <h1 class="menu-title">🍑 BUTT BUMP BATTLE 🍑</h1>
+        <p class="subtitle">The most ridiculous 2-player game ever!</p>
+
+        <div class="controls">
+            <div class="player-controls player1-controls">
+                <h3>Player 1 (Green)</h3>
+                <div>
+                    Move: <span class="key">W</span><span class="key">A</span><span class="key">S</span><span class="key">D</span>
+                </div>
+                <div>
+                    Bump: <span class="key">SPACE</span>
+                </div>
+            </div>
+            <div class="player-controls player2-controls">
+                <h3>Player 2 (Pink)</h3>
+                <div>
+                    Move: <span class="key">↑</span><span class="key">←</span><span class="key">↓</span><span class="key">→</span>
+                </div>
+                <div>
+                    Bump: <span class="key">ENTER</span>
+                </div>
+            </div>
+        </div>
+
+        <p style="margin: 20px 0; font-size: 18px; color: #333;">
+            Bump your opponent off the screen to score points!<br>
+            First to 5 wins! 🏆
+        </p>
+
+        <button class="menu-button" onclick="startGame()">START BUMPING!</button>
+    </div>
+
+    <div id="hud">
+        <div class="player-score player1-score">
+            Player 1: <span id="p1Score">0</span>
+        </div>
+        <div class="player-score player2-score">
+            Player 2: <span id="p2Score">0</span>
+        </div>
+    </div>
+
+    <canvas id="gameCanvas" width="1200" height="700"></canvas>
+
+    <div id="gameOver">
+        <h1 class="winner-text" id="winnerText"></h1>
+        <p style="font-size: 24px; margin-bottom: 20px;">Butt Bump Champion! 🏆</p>
+        <div class="game-buttons">
+            <button class="back-button" onclick="startGame()">Play Again</button>
+            <button class="back-button" onclick="backToMenu()">Main Menu</button>
+        </div>
+    </div>
+
+    <script>
+        const canvas = document.getElementById('gameCanvas');
+        const ctx = canvas.getContext('2d');
+        const menu = document.getElementById('menu');
+        const hud = document.getElementById('hud');
+        const gameOverScreen = document.getElementById('gameOver');
+
+        let gameState = {
+            player1: {
+                x: 200,
+                y: 350,
+                vx: 0,
+                vy: 0,
+                angle: 0,
+                bumping: false,
+                bumpCooldown: 0,
+                score: 0
+            },
+            player2: {
+                x: 1000,
+                y: 350,
+                vx: 0,
+                vy: 0,
+                angle: 180,
+                bumping: false,
+                bumpCooldown: 0,
+                score: 0
+            },
+            particles: [],
+            round: 1
+        };
+
+        const keys = {};
+        const PLAYER_SIZE = 40;
+        const MOVE_SPEED = 0.5;
+        const MAX_SPEED = 8;
+        const FRICTION = 0.95;
+        const BUMP_FORCE = 25;
+        const BUMP_COOLDOWN = 30;
+        const WIN_SCORE = 5;
+
+        document.addEventListener('keydown', (e) => {
+            keys[e.key.toLowerCase()] = true;
+            if (e.key === ' ' || e.key === 'Enter') {
+                e.preventDefault();
+            }
+        });
+
+        document.addEventListener('keyup', (e) => {
+            keys[e.key.toLowerCase()] = false;
+        });
+
+        function startGame() {
+            menu.classList.add('hidden');
+            canvas.classList.add('visible');
+            hud.classList.add('visible');
+            gameOverScreen.classList.remove('visible');
+
+            resetRound();
+            requestAnimationFrame(gameLoop);
+        }
+
+        function resetRound() {
+            gameState.player1.x = 200;
+            gameState.player1.y = 350;
+            gameState.player1.vx = 0;
+            gameState.player1.vy = 0;
+            gameState.player1.angle = 0;
+            gameState.player1.bumping = false;
+            gameState.player1.bumpCooldown = 0;
+
+            gameState.player2.x = 1000;
+            gameState.player2.y = 350;
+            gameState.player2.vx = 0;
+            gameState.player2.vy = 0;
+            gameState.player2.angle = 180;
+            gameState.player2.bumping = false;
+            gameState.player2.bumpCooldown = 0;
+
+            gameState.particles = [];
+        }
+
+        function backToMenu() {
+            canvas.classList.remove('visible');
+            hud.classList.remove('visible');
+            gameOverScreen.classList.remove('visible');
+            menu.classList.remove('hidden');
+
+            gameState.player1.score = 0;
+            gameState.player2.score = 0;
+            gameState.round = 1;
+            updateScores();
+        }
+
+        function updateScores() {
+            document.getElementById('p1Score').textContent = gameState.player1.score;
+            document.getElementById('p2Score').textContent = gameState.player2.score;
+        }
+
+        function createParticles(x, y, color, count = 10) {
+            for (let i = 0; i < count; i++) {
+                gameState.particles.push({
+                    x: x,
+                    y: y,
+                    vx: (Math.random() - 0.5) * 10,
+                    vy: (Math.random() - 0.5) * 10,
+                    size: Math.random() * 8 + 4,
+                    color: color,
+                    life: 60
+                });
+            }
+        }
+
+        function playBumpSound(pitch = 1) {
+            const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+            const oscillator = audioCtx.createOscillator();
+            const gainNode = audioCtx.createGain();
+
+            oscillator.connect(gainNode);
+            gainNode.connect(audioCtx.destination);
+
+            oscillator.frequency.value = 100 * pitch;
+            oscillator.type = 'sine';
+
+            gainNode.gain.setValueAtTime(0.3, audioCtx.currentTime);
+            gainNode.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.2);
+
+            oscillator.start(audioCtx.currentTime);
+            oscillator.stop(audioCtx.currentTime + 0.2);
+        }
+
+        function gameLoop() {
+            // Clear canvas
+            ctx.fillStyle = '#ffeef8';
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+            // Draw danger zones
+            ctx.fillStyle = 'rgba(255, 0, 0, 0.1)';
+            ctx.fillRect(0, 0, 50, canvas.height); // Left
+            ctx.fillRect(canvas.width - 50, 0, 50, canvas.height); // Right
+            ctx.fillRect(0, 0, canvas.width, 50); // Top
+            ctx.fillRect(0, canvas.height - 50, canvas.width, 50); // Bottom
+
+            // Update Player 1
+            updatePlayer(gameState.player1, 'w', 's', 'a', 'd', ' ');
+
+            // Update Player 2
+            updatePlayer(gameState.player2, 'arrowup', 'arrowdown', 'arrowleft', 'arrowright', 'enter');
+
+            // Check collisions
+            checkCollision();
+
+            // Check if players are out of bounds
+            checkBounds();
+
+            // Update particles
+            updateParticles();
+
+            // Draw players
+            drawPlayer(gameState.player1, '#00ff88', 'P1');
+            drawPlayer(gameState.player2, '#ff0088', 'P2');
+
+            // Draw particles
+            drawParticles();
+
+            requestAnimationFrame(gameLoop);
+        }
+
+        function updatePlayer(player, upKey, downKey, leftKey, rightKey, bumpKey) {
+            // Movement
+            if (keys[upKey]) {
+                player.vy -= MOVE_SPEED;
+                player.angle = 270;
+            }
+            if (keys[downKey]) {
+                player.vy += MOVE_SPEED;
+                player.angle = 90;
+            }
+            if (keys[leftKey]) {
+                player.vx -= MOVE_SPEED;
+                player.angle = 180;
+            }
+            if (keys[rightKey]) {
+                player.vx += MOVE_SPEED;
+                player.angle = 0;
+            }
+
+            // Diagonal angles
+            if (keys[upKey] && keys[rightKey]) player.angle = 315;
+            if (keys[upKey] && keys[leftKey]) player.angle = 225;
+            if (keys[downKey] && keys[rightKey]) player.angle = 45;
+            if (keys[downKey] && keys[leftKey]) player.angle = 135;
+
+            // Bump action
+            if (keys[bumpKey] && player.bumpCooldown === 0) {
+                player.bumping = true;
+                player.bumpCooldown = BUMP_COOLDOWN;
+                playBumpSound(1.2);
+            }
+
+            if (player.bumping) {
+                player.bumping = false;
+            }
+
+            if (player.bumpCooldown > 0) {
+                player.bumpCooldown--;
+            }
+
+            // Limit speed
+            const speed = Math.sqrt(player.vx * player.vx + player.vy * player.vy);
+            if (speed > MAX_SPEED) {
+                player.vx = (player.vx / speed) * MAX_SPEED;
+                player.vy = (player.vy / speed) * MAX_SPEED;
+            }
+
+            // Apply friction
+            player.vx *= FRICTION;
+            player.vy *= FRICTION;
+
+            // Update position
+            player.x += player.vx;
+            player.y += player.vy;
+
+            // Bounce off walls (with dampening)
+            if (player.x < PLAYER_SIZE) {
+                player.x = PLAYER_SIZE;
+                player.vx = Math.abs(player.vx) * 0.5;
+            }
+            if (player.x > canvas.width - PLAYER_SIZE) {
+                player.x = canvas.width - PLAYER_SIZE;
+                player.vx = -Math.abs(player.vx) * 0.5;
+            }
+            if (player.y < PLAYER_SIZE) {
+                player.y = PLAYER_SIZE;
+                player.vy = Math.abs(player.vy) * 0.5;
+            }
+            if (player.y > canvas.height - PLAYER_SIZE) {
+                player.y = canvas.height - PLAYER_SIZE;
+                player.vy = -Math.abs(player.vy) * 0.5;
+            }
+        }
+
+        function checkCollision() {
+            const dx = gameState.player2.x - gameState.player1.x;
+            const dy = gameState.player2.y - gameState.player1.y;
+            const distance = Math.sqrt(dx * dx + dy * dy);
+
+            if (distance < PLAYER_SIZE * 2) {
+                // Collision detected
+                const angle = Math.atan2(dy, dx);
+
+                // Check who is bumping
+                const p1Bumping = gameState.player1.bumpCooldown > BUMP_COOLDOWN - 5;
+                const p2Bumping = gameState.player2.bumpCooldown > BUMP_COOLDOWN - 5;
+
+                if (p1Bumping && !p2Bumping) {
+                    // Player 1 bumps player 2
+                    gameState.player2.vx += Math.cos(angle) * BUMP_FORCE;
+                    gameState.player2.vy += Math.sin(angle) * BUMP_FORCE;
+                    createParticles(gameState.player2.x, gameState.player2.y, '#ff0088', 15);
+                    playBumpSound(1.5);
+                } else if (p2Bumping && !p1Bumping) {
+                    // Player 2 bumps player 1
+                    gameState.player1.vx -= Math.cos(angle) * BUMP_FORCE;
+                    gameState.player1.vy -= Math.sin(angle) * BUMP_FORCE;
+                    createParticles(gameState.player1.x, gameState.player1.y, '#00ff88', 15);
+                    playBumpSound(1.5);
+                } else {
+                    // Both bumping or neither - just bounce
+                    const pushX = Math.cos(angle) * 10;
+                    const pushY = Math.sin(angle) * 10;
+                    gameState.player1.vx -= pushX;
+                    gameState.player1.vy -= pushY;
+                    gameState.player2.vx += pushX;
+                    gameState.player2.vy += pushY;
+                    playBumpSound(0.8);
+                }
+            }
+        }
+
+        function checkBounds() {
+            const margin = 20;
+
+            // Player 1 out of bounds
+            if (gameState.player1.x < -margin || gameState.player1.x > canvas.width + margin ||
+                gameState.player1.y < -margin || gameState.player1.y > canvas.height + margin) {
+                gameState.player2.score++;
+                createParticles(canvas.width / 2, canvas.height / 2, '#ff0088', 30);
+                playBumpSound(2);
+                updateScores();
+
+                if (gameState.player2.score >= WIN_SCORE) {
+                    endGame('Player 2 (Pink)');
+                } else {
+                    setTimeout(resetRound, 1000);
+                }
+            }
+
+            // Player 2 out of bounds
+            if (gameState.player2.x < -margin || gameState.player2.x > canvas.width + margin ||
+                gameState.player2.y < -margin || gameState.player2.y > canvas.height + margin) {
+                gameState.player1.score++;
+                createParticles(canvas.width / 2, canvas.height / 2, '#00ff88', 30);
+                playBumpSound(2);
+                updateScores();
+
+                if (gameState.player1.score >= WIN_SCORE) {
+                    endGame('Player 1 (Green)');
+                } else {
+                    setTimeout(resetRound, 1000);
+                }
+            }
+        }
+
+        function endGame(winner) {
+            document.getElementById('winnerText').textContent = `${winner} WINS!`;
+            document.getElementById('winnerText').style.color = winner.includes('1') ? '#00ff88' : '#ff0088';
+            gameOverScreen.classList.add('visible');
+        }
+
+        function drawPlayer(player, color, label) {
+            ctx.save();
+            ctx.translate(player.x, player.y);
+
+            // Draw bump shockwave if bumping
+            if (player.bumpCooldown > BUMP_COOLDOWN - 10) {
+                const scale = (BUMP_COOLDOWN - player.bumpCooldown) / 10;
+                ctx.strokeStyle = color;
+                ctx.lineWidth = 5 - scale * 4;
+                ctx.globalAlpha = 1 - scale;
+                ctx.beginPath();
+                ctx.arc(0, 0, PLAYER_SIZE + scale * 30, 0, Math.PI * 2);
+                ctx.stroke();
+                ctx.globalAlpha = 1;
+            }
+
+            // Body (circle)
+            ctx.fillStyle = color;
+            ctx.beginPath();
+            ctx.arc(0, 0, PLAYER_SIZE, 0, Math.PI * 2);
+            ctx.fill();
+            ctx.strokeStyle = '#fff';
+            ctx.lineWidth = 3;
+            ctx.stroke();
+
+            // Draw exaggerated butt based on angle
+            const buttAngle = (player.angle * Math.PI) / 180;
+            const buttX = Math.cos(buttAngle + Math.PI) * PLAYER_SIZE * 0.7;
+            const buttY = Math.sin(buttAngle + Math.PI) * PLAYER_SIZE * 0.7;
+
+            // Butt (two circles)
+            ctx.fillStyle = color;
+            ctx.beginPath();
+            ctx.arc(buttX - 8, buttY, 18, 0, Math.PI * 2);
+            ctx.fill();
+            ctx.beginPath();
+            ctx.arc(buttX + 8, buttY, 18, 0, Math.PI * 2);
+            ctx.fill();
+
+            // Face direction indicator (simple eyes)
+            const faceX = Math.cos(buttAngle) * PLAYER_SIZE * 0.5;
+            const faceY = Math.sin(buttAngle) * PLAYER_SIZE * 0.5;
+
+            ctx.fillStyle = '#fff';
+            ctx.beginPath();
+            ctx.arc(faceX - 8, faceY, 5, 0, Math.PI * 2);
+            ctx.fill();
+            ctx.beginPath();
+            ctx.arc(faceX + 8, faceY, 5, 0, Math.PI * 2);
+            ctx.fill();
+
+            ctx.fillStyle = '#000';
+            ctx.beginPath();
+            ctx.arc(faceX - 8, faceY, 3, 0, Math.PI * 2);
+            ctx.fill();
+            ctx.beginPath();
+            ctx.arc(faceX + 8, faceY, 3, 0, Math.PI * 2);
+            ctx.fill();
+
+            // Label
+            ctx.fillStyle = '#fff';
+            ctx.font = 'bold 16px Comic Sans MS';
+            ctx.textAlign = 'center';
+            ctx.fillText(label, 0, 5);
+
+            ctx.restore();
+        }
+
+        function updateParticles() {
+            for (let i = gameState.particles.length - 1; i >= 0; i--) {
+                const p = gameState.particles[i];
+                p.x += p.vx;
+                p.y += p.vy;
+                p.vx *= 0.95;
+                p.vy *= 0.95;
+                p.life--;
+
+                if (p.life <= 0) {
+                    gameState.particles.splice(i, 1);
+                }
+            }
+        }
+
+        function drawParticles() {
+            gameState.particles.forEach(p => {
+                ctx.fillStyle = p.color;
+                ctx.globalAlpha = p.life / 60;
+                ctx.beginPath();
+                ctx.arc(p.x, p.y, p.size, 0, Math.PI * 2);
+                ctx.fill();
+                ctx.globalAlpha = 1;
+            });
+        }
+    </script>
+</body>
+</html>
