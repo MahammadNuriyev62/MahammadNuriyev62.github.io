@@ -348,6 +348,10 @@
                 </div>
             </div>
             <div class="vehicle-status" id="p1Vehicle" style="display: none;"></div>
+            <div style="margin-top: 10px; padding-top: 10px; border-top: 1px solid #444;">
+                <div style="color: #ffaa00; font-size: 14px;">SCORE: <span id="p1Score">0</span></div>
+                <div style="color: #ff00ff; font-size: 14px; margin-top: 5px;">COMBO: <span id="p1Combo">0</span>x</div>
+            </div>
         </div>
 
         <div class="player-panel player2-panel">
@@ -369,6 +373,10 @@
                 </div>
             </div>
             <div class="vehicle-status" id="p2Vehicle" style="display: none;"></div>
+            <div style="margin-top: 10px; padding-top: 10px; border-top: 1px solid #444;">
+                <div style="color: #ffaa00; font-size: 14px;">SCORE: <span id="p2Score">0</span></div>
+                <div style="color: #ff00ff; font-size: 14px; margin-top: 5px;">COMBO: <span id="p2Combo">0</span>x</div>
+            </div>
         </div>
 
         <div class="kill-feed" id="killFeed"></div>
@@ -435,6 +443,10 @@
         let structures = [];
         let platforms = [];
         let ladders = [];
+        let healthPickups = [];
+        let ammoPickups = [];
+        let powerUps = [];
+        let destructibles = [];
 
         // Players
         let player1, player2;
@@ -504,6 +516,59 @@
                 explosionRadius: 100,
                 color: '#ff00ff',
                 automatic: false
+            },
+            MACHINE_GUN: {
+                name: 'MACHINE_GUN',
+                icon: '🔫',
+                damage: 15,
+                fireRate: 80,
+                ammo: 100,
+                maxAmmo: 100,
+                bulletSpeed: 18,
+                bulletSize: 4,
+                color: '#ffaa00',
+                automatic: true
+            },
+            LASER: {
+                name: 'LASER',
+                icon: '⚡',
+                damage: 25,
+                fireRate: 100,
+                ammo: 50,
+                maxAmmo: 50,
+                bulletSpeed: 35,
+                bulletSize: 3,
+                color: '#00ff00',
+                automatic: true
+            },
+            FLAMETHROWER: {
+                name: 'FLAMETHROWER',
+                icon: '🔥',
+                damage: 8,
+                fireRate: 50,
+                ammo: 200,
+                maxAmmo: 200,
+                bulletSpeed: 8,
+                bulletSize: 8,
+                spread: 8,
+                color: '#ff4400',
+                automatic: true,
+                flame: true
+            },
+            GRENADE: {
+                name: 'GRENADE',
+                icon: '💣',
+                damage: 70,
+                fireRate: 1500,
+                ammo: 5,
+                maxAmmo: 5,
+                throwSpeed: 12,
+                bulletSize: 8,
+                explosive: true,
+                explosionRadius: 120,
+                color: '#00aa00',
+                automatic: false,
+                isGrenade: true
             }
         };
 
@@ -592,23 +657,68 @@
                 this.nearbyInteractable = null;
                 this.kills = 0;
                 this.deaths = 0;
+                this.activePowerUps = {};
+                this.shield = false;
+                this.damageMultiplier = 1;
+                this.score = 0;
+                this.combo = 0;
+                this.comboTimer = 0;
+                this.comboTimeout = 5; // seconds to maintain combo
             }
 
             update(deltaTime) {
+                // Handle interaction (vehicle exit) BEFORE early return
+                if (keys[this.controls.interact] && !this.interactPressed) {
+                    this.interact();
+                    this.interactPressed = true;
+                }
+                if (!keys[this.controls.interact]) {
+                    this.interactPressed = false;
+                }
+
+                // Handle shooting from vehicles
+                const currentTime = Date.now();
                 if (this.inVehicle) {
                     this.inVehicle.update(this.controls, deltaTime);
                     this.x = this.inVehicle.x;
                     this.y = this.inVehicle.y - this.height;
+
+                    // Allow shooting from vehicles
+                    if (keys[this.controls.shoot]) {
+                        if (this.weapon.automatic || !this.lastShotPressed) {
+                            if (currentTime - this.lastShot > this.weapon.fireRate && this.weapon.ammo > 0) {
+                                this.shootFromVehicle();
+                                this.lastShot = currentTime;
+                            }
+                        }
+                        this.lastShotPressed = true;
+                    } else {
+                        this.lastShotPressed = false;
+                    }
+
+                    // Reload in vehicle
+                    if (keys[this.controls.reload] && !this.reloadPressed) {
+                        if (this.weapon.ammo < this.weapon.maxAmmo && this.weapon.maxAmmo !== Infinity) {
+                            this.weapon.ammo = this.weapon.maxAmmo;
+                            playPickupSound();
+                        }
+                        this.reloadPressed = true;
+                    }
+                    if (!keys[this.controls.reload]) {
+                        this.reloadPressed = false;
+                    }
+
                     return;
                 }
 
                 // Movement
+                const moveSpeed = this.activePowerUps['speed'] ? MOVE_SPEED * 1.5 : MOVE_SPEED;
                 if (keys[this.controls.left]) {
-                    this.vx = -MOVE_SPEED;
+                    this.vx = -moveSpeed;
                     this.facing = -1;
                 }
                 if (keys[this.controls.right]) {
-                    this.vx = MOVE_SPEED;
+                    this.vx = moveSpeed;
                     this.facing = 1;
                 }
 
@@ -682,11 +792,11 @@
                     this.grounded = true;
                 }
 
-                // Shooting
-                const currentTime = Date.now();
+                // Shooting (when not in vehicle)
+                const fireRate = this.activePowerUps['rapid'] ? this.weapon.fireRate * 0.5 : this.weapon.fireRate;
                 if (keys[this.controls.shoot]) {
                     if (this.weapon.automatic || !this.lastShotPressed) {
-                        if (currentTime - this.lastShot > this.weapon.fireRate && this.weapon.ammo > 0) {
+                        if (currentTime - this.lastShot > fireRate && this.weapon.ammo > 0) {
                             this.shoot();
                             this.lastShot = currentTime;
                         }
@@ -718,15 +828,6 @@
                     this.reloadPressed = false;
                 }
 
-                // Interact with vehicles/structures
-                if (keys[this.controls.interact] && !this.interactPressed) {
-                    this.interact();
-                    this.interactPressed = true;
-                }
-                if (!keys[this.controls.interact]) {
-                    this.interactPressed = false;
-                }
-
                 // Check nearby interactables
                 this.checkNearbyInteractables();
 
@@ -734,6 +835,55 @@
                 for (let weapon of weapons) {
                     if (weapon.active && this.collidesWith(weapon)) {
                         this.pickupWeapon(weapon);
+                    }
+                }
+
+                // Health pickups
+                for (let health of healthPickups) {
+                    if (health.active && this.collidesWith(health)) {
+                        this.health = Math.min(this.health + health.amount, this.maxHealth);
+                        health.active = false;
+                        playPickupSound();
+                        addKillMessage(`${this.name} restored ${health.amount} health!`);
+                    }
+                }
+
+                // Ammo pickups
+                for (let ammo of ammoPickups) {
+                    if (ammo.active && this.collidesWith(ammo)) {
+                        // Refill all weapons
+                        for (let weapon of this.inventory) {
+                            weapon.ammo = weapon.maxAmmo;
+                        }
+                        this.weapon.ammo = this.weapon.maxAmmo;
+                        ammo.active = false;
+                        playPickupSound();
+                        addKillMessage(`${this.name} refilled ammo!`);
+                    }
+                }
+
+                // Power-ups
+                for (let powerUp of powerUps) {
+                    if (powerUp.active && this.collidesWith(powerUp)) {
+                        this.activatePowerUp(powerUp);
+                        powerUp.active = false;
+                    }
+                }
+
+                // Update active power-ups
+                for (let type in this.activePowerUps) {
+                    this.activePowerUps[type] -= deltaTime;
+                    if (this.activePowerUps[type] <= 0) {
+                        this.deactivatePowerUp(type);
+                        delete this.activePowerUps[type];
+                    }
+                }
+
+                // Update combo timer
+                if (this.combo > 0) {
+                    this.comboTimer -= deltaTime;
+                    if (this.comboTimer <= 0) {
+                        this.combo = 0;
                     }
                 }
             }
@@ -744,7 +894,18 @@
                 const bulletX = this.x + (this.facing > 0 ? this.width : 0);
                 const bulletY = this.y + this.height / 2;
 
-                if (this.weapon.name === 'SHOTGUN') {
+                if (this.weapon.isGrenade) {
+                    // Throw grenade with arc
+                    bullets.push(new Grenade(
+                        bulletX,
+                        bulletY,
+                        this.facing * this.weapon.throwSpeed,
+                        -8, // Upward throw
+                        this.weapon,
+                        this
+                    ));
+                    playExplosionSound();
+                } else if (this.weapon.name === 'SHOTGUN') {
                     // Shotgun fires multiple pellets
                     for (let i = 0; i < this.weapon.pellets; i++) {
                         const spread = (Math.random() - 0.5) * this.weapon.spread;
@@ -753,6 +914,20 @@
                             bulletY,
                             this.facing * this.weapon.bulletSpeed,
                             spread,
+                            this.weapon,
+                            this
+                        ));
+                    }
+                } else if (this.weapon.flame) {
+                    // Flamethrower fires stream of particles
+                    for (let i = 0; i < 3; i++) {
+                        const spread = (Math.random() - 0.5) * this.weapon.spread;
+                        const spreadY = (Math.random() - 0.5) * this.weapon.spread;
+                        bullets.push(new Bullet(
+                            bulletX,
+                            bulletY,
+                            this.facing * this.weapon.bulletSpeed + spread,
+                            spreadY,
                             this.weapon,
                             this
                         ));
@@ -776,6 +951,58 @@
 
                 // Recoil
                 this.vx -= this.facing * 2;
+            }
+
+            shootFromVehicle() {
+                if (this.inVehicle.vehicleType === 'tank') {
+                    // Tank fires powerful cannon shots
+                    const bulletX = this.inVehicle.x + this.inVehicle.width;
+                    const bulletY = this.inVehicle.y + 20;
+
+                    // Tank cannon - explosive rounds
+                    const cannonWeapon = {
+                        name: 'TANK_CANNON',
+                        damage: 50,
+                        bulletSpeed: 18,
+                        bulletSize: 10,
+                        color: '#ff6600',
+                        explosive: true,
+                        explosionRadius: 80
+                    };
+
+                    bullets.push(new Bullet(
+                        bulletX,
+                        bulletY,
+                        cannonWeapon.bulletSpeed,
+                        0,
+                        cannonWeapon,
+                        this
+                    ));
+
+                    playShootSound('ROCKET');
+                    this.inVehicle.vx -= 5; // Recoil pushes tank back
+                } else if (this.inVehicle.vehicleType === 'jeep') {
+                    // Jeep has mounted machine gun
+                    const bulletX = this.inVehicle.x + this.inVehicle.width / 2;
+                    const bulletY = this.inVehicle.y + 10;
+
+                    bullets.push(new Bullet(
+                        bulletX,
+                        bulletY,
+                        15,
+                        (Math.random() - 0.5) * 2,
+                        {
+                            name: 'MOUNTED_GUN',
+                            damage: 18,
+                            bulletSpeed: 15,
+                            bulletSize: 5,
+                            color: '#ffaa00'
+                        },
+                        this
+                    ));
+
+                    playShootSound('RIFLE');
+                }
             }
 
             pickupWeapon(weaponPickup) {
@@ -839,6 +1066,31 @@
                 }
             }
 
+            activatePowerUp(powerUp) {
+                this.activePowerUps[powerUp.type] = powerUp.duration;
+                playPickupSound();
+                addKillMessage(`${this.name} activated ${powerUp.name}!`);
+
+                if (powerUp.type === 'speed') {
+                    // Speed boost already handled in movement
+                } else if (powerUp.type === 'shield') {
+                    this.shield = true;
+                } else if (powerUp.type === 'damage') {
+                    this.damageMultiplier = 2;
+                } else if (powerUp.type === 'rapid') {
+                    // Rapid fire handled in shooting
+                }
+            }
+
+            deactivatePowerUp(type) {
+                if (type === 'shield') {
+                    this.shield = false;
+                } else if (type === 'damage') {
+                    this.damageMultiplier = 1;
+                }
+                addKillMessage(`${this.name}'s power-up expired!`);
+            }
+
             collidesWith(obj) {
                 return this.x < obj.x + obj.width &&
                        this.x + this.width > obj.x &&
@@ -847,6 +1099,16 @@
             }
 
             takeDamage(damage, attacker) {
+                // Apply shield protection
+                if (this.shield) {
+                    damage *= 0.3; // Shield reduces damage by 70%
+                }
+
+                // Apply attacker's damage multiplier
+                if (attacker && attacker.damageMultiplier) {
+                    damage *= attacker.damageMultiplier;
+                }
+
                 this.health -= damage;
                 playHitSound();
 
@@ -861,14 +1123,32 @@
             die(killer) {
                 this.health = 0;
                 this.deaths++;
+
+                // Reset combo
+                this.combo = 0;
+                this.comboTimer = 0;
+
                 if (killer) {
                     killer.kills++;
+
+                    // Increase combo
+                    killer.combo++;
+                    killer.comboTimer = killer.comboTimeout;
+
+                    // Award score with combo multiplier
+                    const comboMultiplier = Math.min(killer.combo, 10); // Max 10x
+                    const scoreGained = 100 * comboMultiplier;
+                    killer.score += scoreGained;
+
+                    if (killer.combo > 1) {
+                        addKillMessage(`${killer.name} eliminated ${this.name}! ${killer.combo}x COMBO! +${scoreGained} points`);
+                    } else {
+                        addKillMessage(`${killer.name} eliminated ${this.name}! +${scoreGained} points`);
+                    }
                 }
 
                 createExplosion(this.x + this.width/2, this.y + this.height/2, 30);
                 playExplosionSound();
-
-                addKillMessage(`${killer ? killer.name : 'Someone'} eliminated ${this.name}!`);
 
                 // Check for game over
                 if (this.deaths >= 5) {
@@ -906,6 +1186,35 @@
                     drawY = this.y + this.height * 0.4;
                 }
 
+                // Shield effect
+                if (this.shield) {
+                    ctx.strokeStyle = '#00ff00';
+                    ctx.lineWidth = 3;
+                    ctx.shadowBlur = 15;
+                    ctx.shadowColor = '#00ff00';
+                    ctx.beginPath();
+                    ctx.arc(this.x + this.width/2, drawY + drawHeight/2, this.width/2 + 10, 0, Math.PI * 2);
+                    ctx.stroke();
+                    ctx.shadowBlur = 0;
+                }
+
+                // Speed boost effect
+                if (this.activePowerUps['speed']) {
+                    ctx.strokeStyle = '#00ccff';
+                    ctx.lineWidth = 2;
+                    for (let i = 0; i < 3; i++) {
+                        ctx.globalAlpha = 0.3 - i * 0.1;
+                        ctx.strokeRect(this.x - i * 5 * this.facing, drawY, this.width, drawHeight);
+                    }
+                    ctx.globalAlpha = 1;
+                }
+
+                // Damage boost glow
+                if (this.activePowerUps['damage']) {
+                    ctx.shadowBlur = 10;
+                    ctx.shadowColor = '#ff0000';
+                }
+
                 // Body
                 ctx.fillStyle = this.color;
                 ctx.fillRect(this.x, drawY, this.width, drawHeight);
@@ -914,6 +1223,8 @@
                 ctx.strokeStyle = '#000';
                 ctx.lineWidth = 2;
                 ctx.strokeRect(this.x, drawY, this.width, drawHeight);
+
+                ctx.shadowBlur = 0;
 
                 // Head
                 ctx.fillStyle = this.color;
@@ -933,6 +1244,19 @@
                     weaponLength * this.facing,
                     4
                 );
+
+                // Rapid fire indicator
+                if (this.activePowerUps['rapid']) {
+                    ctx.fillStyle = '#ff00ff';
+                    ctx.globalAlpha = 0.5;
+                    ctx.fillRect(
+                        weaponX,
+                        weaponY - 4,
+                        weaponLength * this.facing * 1.2,
+                        8
+                    );
+                    ctx.globalAlpha = 1;
+                }
 
                 ctx.restore();
             }
@@ -992,6 +1316,34 @@
                     }
                 }
 
+                // Check destructible object hits
+                for (let obj of destructibles) {
+                    if (!obj.destroyed &&
+                        this.x > obj.x && this.x < obj.x + obj.width &&
+                        this.y > obj.y && this.y < obj.y + obj.height) {
+
+                        obj.takeDamage(this.damage);
+
+                        if (this.weapon.explosive) {
+                            createExplosion(this.x, this.y, this.weapon.explosionRadius);
+                            playExplosionSound();
+
+                            // Damage nearby destructibles
+                            for (let nearObj of destructibles) {
+                                if (!nearObj.destroyed && nearObj !== obj) {
+                                    const dx = this.x - (nearObj.x + nearObj.width/2);
+                                    const dy = this.y - (nearObj.y + nearObj.height/2);
+                                    const distance = Math.sqrt(dx*dx + dy*dy);
+                                    if (distance < this.weapon.explosionRadius) {
+                                        nearObj.takeDamage(this.damage * 0.5);
+                                    }
+                                }
+                            }
+                        }
+                        return true;
+                    }
+                }
+
                 // Out of bounds or lifetime expired
                 if (this.x < 0 || this.x > canvas.width || this.y < 0 || this.y > canvas.height || this.life <= 0) {
                     return true; // Remove bullet
@@ -1013,6 +1365,134 @@
                 ctx.beginPath();
                 ctx.moveTo(this.x, this.y);
                 ctx.lineTo(this.x - this.vx * 2, this.y - this.vy * 2);
+                ctx.stroke();
+                ctx.globalAlpha = 1;
+            }
+        }
+
+        // Grenade class
+        class Grenade {
+            constructor(x, y, vx, vy, weapon, owner) {
+                this.x = x;
+                this.y = y;
+                this.vx = vx;
+                this.vy = vy;
+                this.weapon = weapon;
+                this.owner = owner;
+                this.radius = weapon.bulletSize;
+                this.damage = weapon.damage;
+                this.color = weapon.color;
+                this.fuseTime = 2.5; // Explodes after 2.5 seconds
+                this.bounced = false;
+            }
+
+            update(deltaTime) {
+                // Apply gravity
+                this.vy += GRAVITY;
+                this.x += this.vx;
+                this.y += this.vy;
+
+                // Reduce fuse time
+                this.fuseTime -= deltaTime;
+
+                // Check ground collision (bounce once)
+                if (this.y + this.radius >= canvas.height - 50) {
+                    if (!this.bounced) {
+                        this.y = canvas.height - 50 - this.radius;
+                        this.vy = -this.vy * 0.5; // Bounce with energy loss
+                        this.vx *= 0.7;
+                        this.bounced = true;
+                        playHitSound();
+                    } else {
+                        // Second hit = explode
+                        this.explode();
+                        return true;
+                    }
+                }
+
+                // Check platform collisions
+                for (let platform of platforms) {
+                    if (this.y + this.radius >= platform.y &&
+                        this.y - this.radius <= platform.y + platform.height &&
+                        this.x + this.radius > platform.x &&
+                        this.x - this.radius < platform.x + platform.width &&
+                        this.vy > 0) {
+                        if (!this.bounced) {
+                            this.y = platform.y - this.radius;
+                            this.vy = -this.vy * 0.5;
+                            this.vx *= 0.7;
+                            this.bounced = true;
+                            playHitSound();
+                        } else {
+                            this.explode();
+                            return true;
+                        }
+                    }
+                }
+
+                // Fuse expired
+                if (this.fuseTime <= 0) {
+                    this.explode();
+                    return true;
+                }
+
+                // Out of bounds
+                if (this.x < 0 || this.x > canvas.width || this.y > canvas.height + 100) {
+                    return true;
+                }
+
+                return false;
+            }
+
+            explode() {
+                createExplosion(this.x, this.y, this.weapon.explosionRadius);
+                playExplosionSound();
+
+                // Damage players in radius
+                const targets = [player1, player2];
+                for (let target of targets) {
+                    if (target !== this.owner && target.health > 0) {
+                        const dx = this.x - (target.x + target.width/2);
+                        const dy = this.y - (target.y + target.height/2);
+                        const distance = Math.sqrt(dx*dx + dy*dy);
+
+                        if (distance < this.weapon.explosionRadius) {
+                            const damageMultiplier = 1 - (distance / this.weapon.explosionRadius);
+                            const damage = this.damage * damageMultiplier;
+                            target.takeDamage(damage, this.owner);
+                        }
+                    }
+                }
+            }
+
+            draw() {
+                // Grenade body
+                ctx.fillStyle = this.color;
+                ctx.beginPath();
+                ctx.arc(this.x, this.y, this.radius, 0, Math.PI * 2);
+                ctx.fill();
+                ctx.strokeStyle = '#000';
+                ctx.lineWidth = 2;
+                ctx.stroke();
+
+                // Fuse indicator (flashing when about to explode)
+                if (this.fuseTime < 1) {
+                    const flash = Math.sin(this.fuseTime * 20) > 0;
+                    if (flash) {
+                        ctx.fillStyle = '#ff0000';
+                        ctx.beginPath();
+                        ctx.arc(this.x, this.y - this.radius, 3, 0, Math.PI * 2);
+                        ctx.fill();
+                    }
+                }
+
+                // Trail
+                ctx.strokeStyle = this.color;
+                ctx.lineWidth = 2;
+                ctx.globalAlpha = 0.3;
+                ctx.beginPath();
+                ctx.moveTo(this.x, this.y);
+                ctx.lineTo(this.x - this.vx, this.y - this.vy);
                 ctx.stroke();
                 ctx.globalAlpha = 1;
             }
@@ -1167,6 +1647,210 @@
             }
         }
 
+        // Health pickup class
+        class HealthPickup {
+            constructor(x, y, amount = 50) {
+                this.x = x;
+                this.y = y;
+                this.width = 25;
+                this.height = 25;
+                this.amount = amount;
+                this.active = true;
+                this.floatOffset = 0;
+            }
+
+            draw() {
+                if (!this.active) return;
+
+                this.floatOffset += 0.05;
+                const floatY = this.y + Math.sin(this.floatOffset) * 5;
+
+                // Health cross
+                ctx.fillStyle = '#ff3333';
+                ctx.fillRect(this.x + 8, this.y, 9, 25);
+                ctx.fillRect(this.x, this.y + 8, 25, 9);
+
+                ctx.strokeStyle = '#fff';
+                ctx.lineWidth = 2;
+                ctx.strokeRect(this.x + 8, floatY, 9, 25);
+                ctx.strokeRect(this.x, floatY + 8, 25, 9);
+
+                // Glow effect
+                ctx.shadowBlur = 10;
+                ctx.shadowColor = '#ff3333';
+                ctx.strokeRect(this.x, floatY, this.width, this.height);
+                ctx.shadowBlur = 0;
+            }
+        }
+
+        // Ammo pickup class
+        class AmmoPickup {
+            constructor(x, y) {
+                this.x = x;
+                this.y = y;
+                this.width = 30;
+                this.height = 20;
+                this.active = true;
+                this.floatOffset = 0;
+            }
+
+            draw() {
+                if (!this.active) return;
+
+                this.floatOffset += 0.05;
+                const floatY = this.y + Math.sin(this.floatOffset) * 5;
+
+                ctx.fillStyle = '#ffcc00';
+                ctx.fillRect(this.x, floatY, this.width, this.height);
+                ctx.strokeStyle = '#000';
+                ctx.lineWidth = 2;
+                ctx.strokeRect(this.x, floatY, this.width, this.height);
+
+                // Ammo icon
+                ctx.fillStyle = '#000';
+                ctx.font = 'bold 12px Arial';
+                ctx.textAlign = 'center';
+                ctx.fillText('AMMO', this.x + this.width/2, floatY + this.height/2 + 4);
+            }
+        }
+
+        // Power-up class
+        class PowerUp {
+            constructor(x, y, type) {
+                this.x = x;
+                this.y = y;
+                this.width = 30;
+                this.height = 30;
+                this.type = type; // 'speed', 'shield', 'damage', 'rapid'
+                this.active = true;
+                this.floatOffset = 0;
+                this.duration = 10; // seconds
+
+                // Set colors and icons based on type
+                if (type === 'speed') {
+                    this.color = '#00ccff';
+                    this.icon = '⚡';
+                    this.name = 'SPEED BOOST';
+                } else if (type === 'shield') {
+                    this.color = '#00ff00';
+                    this.icon = '🛡';
+                    this.name = 'SHIELD';
+                } else if (type === 'damage') {
+                    this.color = '#ff0000';
+                    this.icon = '💪';
+                    this.name = 'DAMAGE 2X';
+                } else if (type === 'rapid') {
+                    this.color = '#ff00ff';
+                    this.icon = '🔥';
+                    this.name = 'RAPID FIRE';
+                }
+            }
+
+            draw() {
+                if (!this.active) return;
+
+                this.floatOffset += 0.08;
+                const floatY = this.y + Math.sin(this.floatOffset) * 8;
+
+                // Outer glow
+                ctx.shadowBlur = 20;
+                ctx.shadowColor = this.color;
+                ctx.fillStyle = this.color;
+                ctx.globalAlpha = 0.3;
+                ctx.beginPath();
+                ctx.arc(this.x + this.width/2, floatY + this.height/2, this.width/2 + 5, 0, Math.PI * 2);
+                ctx.fill();
+                ctx.globalAlpha = 1;
+                ctx.shadowBlur = 0;
+
+                // Power-up body
+                ctx.fillStyle = this.color;
+                ctx.beginPath();
+                ctx.arc(this.x + this.width/2, floatY + this.height/2, this.width/2, 0, Math.PI * 2);
+                ctx.fill();
+                ctx.strokeStyle = '#fff';
+                ctx.lineWidth = 3;
+                ctx.stroke();
+
+                // Icon
+                ctx.fillStyle = '#fff';
+                ctx.font = '20px Arial';
+                ctx.textAlign = 'center';
+                ctx.fillText(this.icon, this.x + this.width/2, floatY + this.height/2 + 7);
+            }
+        }
+
+        // Destructible object class
+        class DestructibleObject {
+            constructor(x, y, width, height, type = 'crate') {
+                this.x = x;
+                this.y = y;
+                this.width = width;
+                this.height = height;
+                this.type = type;
+                this.health = 100;
+                this.maxHealth = 100;
+                this.destroyed = false;
+            }
+
+            takeDamage(damage) {
+                this.health -= damage;
+                if (this.health <= 0) {
+                    this.destroyed = true;
+                    createExplosion(this.x + this.width/2, this.y + this.height/2, 40);
+                    playExplosionSound();
+                    return true;
+                }
+                return false;
+            }
+
+            draw() {
+                if (this.destroyed) return;
+
+                if (this.type === 'crate') {
+                    // Wooden crate
+                    ctx.fillStyle = '#8B4513';
+                    ctx.fillRect(this.x, this.y, this.width, this.height);
+                    ctx.strokeStyle = '#654321';
+                    ctx.lineWidth = 3;
+                    ctx.strokeRect(this.x, this.y, this.width, this.height);
+
+                    // Wood planks
+                    ctx.strokeStyle = '#654321';
+                    ctx.lineWidth = 2;
+                    ctx.beginPath();
+                    ctx.moveTo(this.x + this.width/3, this.y);
+                    ctx.lineTo(this.x + this.width/3, this.y + this.height);
+                    ctx.moveTo(this.x + 2*this.width/3, this.y);
+                    ctx.lineTo(this.x + 2*this.width/3, this.y + this.height);
+                    ctx.stroke();
+                } else if (this.type === 'barrel') {
+                    // Explosive barrel
+                    ctx.fillStyle = '#666';
+                    ctx.fillRect(this.x, this.y, this.width, this.height);
+                    ctx.strokeStyle = '#333';
+                    ctx.lineWidth = 3;
+                    ctx.strokeRect(this.x, this.y, this.width, this.height);
+
+                    // Warning symbol
+                    ctx.fillStyle = '#ff0000';
+                    ctx.font = 'bold 20px Arial';
+                    ctx.textAlign = 'center';
+                    ctx.fillText('!', this.x + this.width/2, this.y + this.height/2 + 7);
+                }
+
+                // Health bar
+                if (this.health < this.maxHealth) {
+                    const barWidth = this.width;
+                    const barHeight = 5;
+                    ctx.fillStyle = '#333';
+                    ctx.fillRect(this.x, this.y - 10, barWidth, barHeight);
+                    ctx.fillStyle = '#00ff00';
+                    ctx.fillRect(this.x, this.y - 10, barWidth * (this.health / this.maxHealth), barHeight);
+                }
+            }
+        }
+
         // Particle effects
         function createExplosion(x, y, radius) {
             const numParticles = 20;
@@ -1286,7 +1970,50 @@
                 new WeaponPickup(850, 330, WEAPON_TYPES.SHOTGUN),
                 new WeaponPickup(700, 480, WEAPON_TYPES.SNIPER),
                 new WeaponPickup(200, 580, WEAPON_TYPES.ROCKET),
-                new WeaponPickup(1000, 580, WEAPON_TYPES.RIFLE)
+                new WeaponPickup(1000, 580, WEAPON_TYPES.MACHINE_GUN),
+                new WeaponPickup(100, 280, WEAPON_TYPES.LASER),
+                new WeaponPickup(1200, 280, WEAPON_TYPES.FLAMETHROWER),
+                new WeaponPickup(600, 380, WEAPON_TYPES.GRENADE)
+            ];
+
+            // Create health pickups
+            healthPickups = [
+                new HealthPickup(300, 560, 50),
+                new HealthPickup(1100, 560, 50),
+                new HealthPickup(500, 360, 30),
+                new HealthPickup(900, 310, 30),
+                new HealthPickup(700, canvas.height - 100, 75)
+            ];
+
+            // Create ammo pickups
+            ammoPickups = [
+                new AmmoPickup(250, 560),
+                new AmmoPickup(950, 560),
+                new AmmoPickup(700, 450),
+                new AmmoPickup(450, 360)
+            ];
+
+            // Create power-ups
+            powerUps = [
+                new PowerUp(150, 260, 'speed'),
+                new PowerUp(1250, 260, 'speed'),
+                new PowerUp(700, 360, 'shield'),
+                new PowerUp(350, 560, 'damage'),
+                new PowerUp(1050, 560, 'rapid')
+            ];
+
+            // Create destructible objects
+            destructibles = [
+                new DestructibleObject(500, canvas.height - 100, 50, 50, 'crate'),
+                new DestructibleObject(800, canvas.height - 100, 50, 50, 'barrel'),
+                new DestructibleObject(650, 450, 50, 50, 'crate'),
+                new DestructibleObject(550, 450, 50, 50, 'barrel'),
+                new DestructibleObject(300, 550, 50, 50, 'crate'),
+                new DestructibleObject(1100, 550, 50, 50, 'crate'),
+                new DestructibleObject(450, 350, 50, 50, 'barrel'),
+                new DestructibleObject(950, 300, 50, 50, 'barrel'),
+                new DestructibleObject(200, 250, 50, 50, 'crate'),
+                new DestructibleObject(1150, 250, 50, 50, 'crate')
             ];
         }
 
@@ -1307,10 +2034,40 @@
             // Update particles
             updateParticles(deltaTime);
 
-            // Respawn weapon pickups
+            // Respawn pickups
             for (let weapon of weapons) {
-                if (!weapon.active) {
-                    setTimeout(() => weapon.active = true, 15000);
+                if (!weapon.active && !weapon.respawnTimer) {
+                    weapon.respawnTimer = setTimeout(() => {
+                        weapon.active = true;
+                        weapon.respawnTimer = null;
+                    }, 15000);
+                }
+            }
+
+            for (let health of healthPickups) {
+                if (!health.active && !health.respawnTimer) {
+                    health.respawnTimer = setTimeout(() => {
+                        health.active = true;
+                        health.respawnTimer = null;
+                    }, 20000);
+                }
+            }
+
+            for (let ammo of ammoPickups) {
+                if (!ammo.active && !ammo.respawnTimer) {
+                    ammo.respawnTimer = setTimeout(() => {
+                        ammo.active = true;
+                        ammo.respawnTimer = null;
+                    }, 18000);
+                }
+            }
+
+            for (let powerUp of powerUps) {
+                if (!powerUp.active && !powerUp.respawnTimer) {
+                    powerUp.respawnTimer = setTimeout(() => {
+                        powerUp.active = true;
+                        powerUp.respawnTimer = null;
+                    }, 30000);
                 }
             }
         }
@@ -1356,9 +2113,29 @@
                 structure.draw();
             }
 
+            // Draw destructible objects
+            for (let obj of destructibles) {
+                obj.draw();
+            }
+
             // Draw vehicles
             for (let vehicle of vehicles) {
                 vehicle.draw();
+            }
+
+            // Draw health pickups
+            for (let health of healthPickups) {
+                health.draw();
+            }
+
+            // Draw ammo pickups
+            for (let ammo of ammoPickups) {
+                ammo.draw();
+            }
+
+            // Draw power-ups
+            for (let powerUp of powerUps) {
+                powerUp.draw();
             }
 
             // Draw weapon pickups
@@ -1418,6 +2195,9 @@
                 document.getElementById('p1Vehicle').style.display = 'none';
             }
 
+            document.getElementById('p1Score').textContent = player1.score;
+            document.getElementById('p1Combo').textContent = player1.combo;
+
             // Player 2
             const p2HealthPercent = (player2.health / player2.maxHealth) * 100;
             document.getElementById('p2HealthBar').style.width = p2HealthPercent + '%';
@@ -1440,6 +2220,9 @@
             } else {
                 document.getElementById('p2Vehicle').style.display = 'none';
             }
+
+            document.getElementById('p2Score').textContent = player2.score;
+            document.getElementById('p2Combo').textContent = player2.combo;
         }
 
         // Kill feed
@@ -1486,6 +2269,10 @@
 
             stats.innerHTML = `
                 <div class="stat-line">
+                    <span>Player 1 Score:</span>
+                    <span style="color: #00ff00">${player1.score}</span>
+                </div>
+                <div class="stat-line">
                     <span>Player 1 Kills:</span>
                     <span style="color: #00ff00">${player1.kills}</span>
                 </div>
@@ -1494,6 +2281,10 @@
                     <span style="color: #00ff00">${player1.deaths}</span>
                 </div>
                 <hr style="margin: 15px 0; border-color: #444;">
+                <div class="stat-line">
+                    <span>Player 2 Score:</span>
+                    <span style="color: #ff0000">${player2.score}</span>
+                </div>
                 <div class="stat-line">
                     <span>Player 2 Kills:</span>
                     <span style="color: #ff0000">${player2.kills}</span>
@@ -1519,6 +2310,10 @@
             structures = [];
             platforms = [];
             ladders = [];
+            healthPickups = [];
+            ammoPickups = [];
+            powerUps = [];
+            destructibles = [];
         }
 
         // Game loop
