@@ -327,7 +327,6 @@
 </head>
 <body>
     <canvas id="gameCanvas" width="1400" height="800"></canvas>
-    <!-- Actual game world will be 3500x1400, canvas is viewport -->
 
     <div id="hud">
         <div class="player-panel player1-panel">
@@ -433,20 +432,6 @@
         const MOVE_SPEED = 5;
         const PLAYER_WIDTH = 30;
         const PLAYER_HEIGHT = 50;
-
-        // World and camera
-        const WORLD_WIDTH = 3500;
-        const WORLD_HEIGHT = 1400;
-        const VIEWPORT_WIDTH = canvas.width;
-        const VIEWPORT_HEIGHT = canvas.height;
-
-        let camera = {
-            x: 0,
-            y: 0,
-            targetX: 0,
-            targetY: 0,
-            smoothing: 0.1
-        };
 
         // Game state
         let gameActive = false;
@@ -679,9 +664,6 @@
                 this.combo = 0;
                 this.comboTimer = 0;
                 this.comboTimeout = 5; // seconds to maintain combo
-                this.artilleryCharge = 0;
-                this.maxArtilleryCharge = 3; // 3 seconds max charge
-                this.isChargingArtillery = false;
             }
 
             update(deltaTime) {
@@ -701,30 +683,17 @@
                     this.x = this.inVehicle.x;
                     this.y = this.inVehicle.y - this.height;
 
-                    // Tank artillery charging mechanic
-                    if (this.inVehicle.vehicleType === 'tank') {
-                        if (keys[this.controls.shoot]) {
-                            this.isChargingArtillery = true;
-                            this.artilleryCharge = Math.min(this.artilleryCharge + deltaTime, this.maxArtilleryCharge);
-                        } else if (this.isChargingArtillery) {
-                            // Release - fire artillery
-                            this.shootFromVehicle();
-                            this.isChargingArtillery = false;
-                            this.artilleryCharge = 0;
-                        }
-                    } else {
-                        // Other vehicles - normal shooting
-                        if (keys[this.controls.shoot]) {
-                            if (this.weapon.automatic || !this.lastShotPressed) {
-                                if (currentTime - this.lastShot > 200) { // Vehicle fire rate
-                                    this.shootFromVehicle();
-                                    this.lastShot = currentTime;
-                                }
+                    // Allow shooting from vehicles
+                    if (keys[this.controls.shoot]) {
+                        if (this.weapon.automatic || !this.lastShotPressed) {
+                            if (currentTime - this.lastShot > this.weapon.fireRate && this.weapon.ammo > 0) {
+                                this.shootFromVehicle();
+                                this.lastShot = currentTime;
                             }
-                            this.lastShotPressed = true;
-                        } else {
-                            this.lastShotPressed = false;
                         }
+                        this.lastShotPressed = true;
+                    } else {
+                        this.lastShotPressed = false;
                     }
 
                     // Reload in vehicle
@@ -816,9 +785,9 @@
 
                 // Boundaries
                 if (this.x < 0) this.x = 0;
-                if (this.x + this.width > WORLD_WIDTH) this.x = WORLD_WIDTH - this.width;
-                if (this.y + this.height > WORLD_HEIGHT) {
-                    this.y = WORLD_HEIGHT - this.height;
+                if (this.x + this.width > canvas.width) this.x = canvas.width - this.width;
+                if (this.y + this.height > canvas.height) {
+                    this.y = canvas.height - this.height;
                     this.vy = 0;
                     this.grounded = true;
                 }
@@ -986,47 +955,32 @@
 
             shootFromVehicle() {
                 if (this.inVehicle.vehicleType === 'tank') {
-                    // Tank fires artillery with arc based on charge
+                    // Tank fires powerful cannon shots
                     const bulletX = this.inVehicle.x + this.inVehicle.width;
                     const bulletY = this.inVehicle.y + 20;
-
-                    // Calculate velocity based on charge (0-3 seconds)
-                    const chargePercent = this.artilleryCharge / this.maxArtilleryCharge;
-                    const minSpeed = 15;
-                    const maxSpeed = 30;
-                    const speed = minSpeed + (maxSpeed - minSpeed) * chargePercent;
-
-                    // Arc angle based on charge (45-75 degrees)
-                    const minAngle = 45 * Math.PI / 180;
-                    const maxAngle = 75 * Math.PI / 180;
-                    const angle = minAngle + (maxAngle - minAngle) * chargePercent;
-
-                    const vx = Math.cos(angle) * speed;
-                    const vy = -Math.sin(angle) * speed; // Negative for upward
 
                     // Tank cannon - explosive rounds
                     const cannonWeapon = {
                         name: 'TANK_CANNON',
-                        damage: 50 + chargePercent * 30, // More damage with charge
-                        bulletSpeed: speed,
+                        damage: 50,
+                        bulletSpeed: 18,
                         bulletSize: 10,
                         color: '#ff6600',
                         explosive: true,
-                        explosionRadius: 80 + chargePercent * 40,
-                        gravity: true // Artillery rounds affected by gravity
+                        explosionRadius: 80
                     };
 
-                    bullets.push(new ArtilleryShell(
+                    bullets.push(new Bullet(
                         bulletX,
                         bulletY,
-                        vx,
-                        vy,
+                        cannonWeapon.bulletSpeed,
+                        0,
                         cannonWeapon,
                         this
                     ));
 
                     playShootSound('ROCKET');
-                    this.inVehicle.vx -= 3 + chargePercent * 5; // More recoil with charge
+                    this.inVehicle.vx -= 5; // Recoil pushes tank back
                 } else if (this.inVehicle.vehicleType === 'jeep') {
                     // Jeep has mounted machine gun
                     const bulletX = this.inVehicle.x + this.inVehicle.width / 2;
@@ -1046,51 +1000,6 @@
                         },
                         this
                     ));
-
-                    playShootSound('RIFLE');
-                } else if (this.inVehicle.vehicleType === 'helicopter') {
-                    // Helicopter machine gun
-                    const bulletX = this.inVehicle.x + this.inVehicle.width / 2;
-                    const bulletY = this.inVehicle.y + this.inVehicle.height;
-
-                    bullets.push(new Bullet(
-                        bulletX,
-                        bulletY,
-                        this.vx * 0.5, // Inherit some vehicle velocity
-                        12, // Downward
-                        {
-                            name: 'HELI_GUN',
-                            damage: 20,
-                            bulletSpeed: 12,
-                            bulletSize: 5,
-                            color: '#ffaa00'
-                        },
-                        this
-                    ));
-
-                    playShootSound('RIFLE');
-                } else if (this.inVehicle.vehicleType === 'airplane') {
-                    // Airplane forward guns
-                    const bulletX = this.inVehicle.x + this.inVehicle.width;
-                    const bulletY = this.inVehicle.y + this.inVehicle.height / 2;
-
-                    // Twin guns
-                    for (let i = -1; i <= 1; i += 2) {
-                        bullets.push(new Bullet(
-                            bulletX,
-                            bulletY + i * 15,
-                            20, // Fast forward
-                            0,
-                            {
-                                name: 'PLANE_GUN',
-                                damage: 22,
-                                bulletSpeed: 20,
-                                bulletSize: 6,
-                                color: '#ff8800'
-                            },
-                            this
-                        ));
-                    }
 
                     playShootSound('RIFLE');
                 }
@@ -1267,17 +1176,14 @@
 
                 if (this.inVehicle) return; // Don't draw player when in vehicle
 
-                const drawX = this.x - camera.x;
-                const drawY = this.y - camera.y;
-
                 ctx.save();
 
                 // Crouching
                 let drawHeight = this.height;
-                let adjustedDrawY = drawY;
+                let drawY = this.y;
                 if (this.crouching) {
                     drawHeight = this.height * 0.6;
-                    adjustedDrawY = drawY + this.height * 0.4;
+                    drawY = this.y + this.height * 0.4;
                 }
 
                 // Shield effect
@@ -1287,7 +1193,7 @@
                     ctx.shadowBlur = 15;
                     ctx.shadowColor = '#00ff00';
                     ctx.beginPath();
-                    ctx.arc(drawX + this.width/2, adjustedDrawY + drawHeight/2, this.width/2 + 10, 0, Math.PI * 2);
+                    ctx.arc(this.x + this.width/2, drawY + drawHeight/2, this.width/2 + 10, 0, Math.PI * 2);
                     ctx.stroke();
                     ctx.shadowBlur = 0;
                 }
@@ -1298,7 +1204,7 @@
                     ctx.lineWidth = 2;
                     for (let i = 0; i < 3; i++) {
                         ctx.globalAlpha = 0.3 - i * 0.1;
-                        ctx.strokeRect(drawX - i * 5 * this.facing, adjustedDrawY, this.width, drawHeight);
+                        ctx.strokeRect(this.x - i * 5 * this.facing, drawY, this.width, drawHeight);
                     }
                     ctx.globalAlpha = 1;
                 }
@@ -1309,51 +1215,29 @@
                     ctx.shadowColor = '#ff0000';
                 }
 
-                // Artillery charge indicator (when in tank)
-                if (this.inVehicle && this.inVehicle.vehicleType === 'tank' && this.isChargingArtillery) {
-                    const chargePercent = this.artilleryCharge / this.maxArtilleryCharge;
-                    const barWidth = 100;
-                    const barHeight = 10;
-                    const barX = this.inVehicle.x - camera.x + (this.inVehicle.width - barWidth) / 2;
-                    const barY = this.inVehicle.y - camera.y - 30;
-
-                    // Charge bar background
-                    ctx.fillStyle = '#222';
-                    ctx.fillRect(barX, barY, barWidth, barHeight);
-
-                    // Charge bar fill
-                    ctx.fillStyle = chargePercent < 0.33 ? '#ffaa00' : chargePercent < 0.67 ? '#ff6600' : '#ff0000';
-                    ctx.fillRect(barX, barY, barWidth * chargePercent, barHeight);
-
-                    // Border
-                    ctx.strokeStyle = '#fff';
-                    ctx.lineWidth = 2;
-                    ctx.strokeRect(barX, barY, barWidth, barHeight);
-                }
-
                 // Body
                 ctx.fillStyle = this.color;
-                ctx.fillRect(drawX, adjustedDrawY, this.width, drawHeight);
+                ctx.fillRect(this.x, drawY, this.width, drawHeight);
 
                 // Outline
                 ctx.strokeStyle = '#000';
                 ctx.lineWidth = 2;
-                ctx.strokeRect(drawX, adjustedDrawY, this.width, drawHeight);
+                ctx.strokeRect(this.x, drawY, this.width, drawHeight);
 
                 ctx.shadowBlur = 0;
 
                 // Head
                 ctx.fillStyle = this.color;
                 ctx.beginPath();
-                ctx.arc(drawX + this.width/2, adjustedDrawY + 10, 8, 0, Math.PI * 2);
+                ctx.arc(this.x + this.width/2, drawY + 10, 8, 0, Math.PI * 2);
                 ctx.fill();
                 ctx.stroke();
 
                 // Weapon
                 ctx.fillStyle = '#333';
                 const weaponLength = 20;
-                const weaponX = drawX + (this.facing > 0 ? this.width : 0);
-                const weaponY = adjustedDrawY + drawHeight / 2;
+                const weaponX = this.x + (this.facing > 0 ? this.width : 0);
+                const weaponY = drawY + drawHeight / 2;
                 ctx.fillRect(
                     weaponX,
                     weaponY - 2,
@@ -1469,12 +1353,9 @@
             }
 
             draw() {
-                const drawX = this.x - camera.x;
-                const drawY = this.y - camera.y;
-
                 ctx.fillStyle = this.color;
                 ctx.beginPath();
-                ctx.arc(drawX, drawY, this.radius, 0, Math.PI * 2);
+                ctx.arc(this.x, this.y, this.radius, 0, Math.PI * 2);
                 ctx.fill();
 
                 // Trail
@@ -1482,165 +1363,10 @@
                 ctx.lineWidth = 2;
                 ctx.globalAlpha = 0.5;
                 ctx.beginPath();
-                ctx.moveTo(drawX, drawY);
-                ctx.lineTo(drawX - this.vx * 2, drawY - this.vy * 2);
+                ctx.moveTo(this.x, this.y);
+                ctx.lineTo(this.x - this.vx * 2, this.y - this.vy * 2);
                 ctx.stroke();
                 ctx.globalAlpha = 1;
-            }
-        }
-
-        // Artillery Shell class (for tank artillery)
-        class ArtilleryShell {
-            constructor(x, y, vx, vy, weapon, owner) {
-                this.x = x;
-                this.y = y;
-                this.vx = vx;
-                this.vy = vy;
-                this.weapon = weapon;
-                this.owner = owner;
-                this.radius = weapon.bulletSize;
-                this.damage = weapon.damage;
-                this.color = weapon.color;
-                this.rotation = 0;
-                this.trail = [];
-            }
-
-            update(deltaTime) {
-                // Apply gravity
-                this.vy += GRAVITY * 0.8;
-                this.x += this.vx;
-                this.y += this.vy;
-
-                // Rotation based on velocity
-                this.rotation = Math.atan2(this.vy, this.vx);
-
-                // Add to trail
-                this.trail.push({x: this.x, y: this.y, life: 0.5});
-                if (this.trail.length > 20) this.trail.shift();
-
-                // Update trail
-                for (let i = this.trail.length - 1; i >= 0; i--) {
-                    this.trail[i].life -= deltaTime;
-                    if (this.trail[i].life <= 0) {
-                        this.trail.splice(i, 1);
-                    }
-                }
-
-                // Hit detection
-                const targets = [player1, player2];
-                for (let target of targets) {
-                    if (target !== this.owner && target.health > 0 && !target.inVehicle) {
-                        const dx = this.x - (target.x + target.width/2);
-                        const dy = this.y - (target.y + target.height/2);
-                        const distance = Math.sqrt(dx*dx + dy*dy);
-
-                        if (distance < this.radius + target.width/2) {
-                            this.explode();
-                            return true;
-                        }
-                    }
-                }
-
-                // Check destructible object hits
-                for (let obj of destructibles) {
-                    if (!obj.destroyed &&
-                        this.x > obj.x && this.x < obj.x + obj.width &&
-                        this.y > obj.y && this.y < obj.y + obj.height) {
-                        this.explode();
-                        obj.takeDamage(this.damage);
-                        return true;
-                    }
-                }
-
-                // Ground/platform collision
-                if (this.y + this.radius >= WORLD_HEIGHT - 50) {
-                    this.explode();
-                    return true;
-                }
-
-                for (let platform of platforms) {
-                    if (this.y + this.radius >= platform.y &&
-                        this.y - this.radius <= platform.y + 20 &&
-                        this.x > platform.x &&
-                        this.x < platform.x + platform.width) {
-                        this.explode();
-                        return true;
-                    }
-                }
-
-                // Out of bounds
-                if (this.x < 0 || this.x > WORLD_WIDTH || this.y > WORLD_HEIGHT + 100) {
-                    return true;
-                }
-
-                return false;
-            }
-
-            explode() {
-                createExplosion(this.x, this.y, this.weapon.explosionRadius);
-                playExplosionSound();
-
-                // Damage all entities in radius
-                const targets = [player1, player2];
-                for (let target of targets) {
-                    if (target !== this.owner && target.health > 0) {
-                        const dx = this.x - (target.x + target.width/2);
-                        const dy = this.y - (target.y + target.height/2);
-                        const distance = Math.sqrt(dx*dx + dy*dy);
-
-                        if (distance < this.weapon.explosionRadius) {
-                            const damageMultiplier = 1 - (distance / this.weapon.explosionRadius);
-                            const damage = this.damage * damageMultiplier;
-                            target.takeDamage(damage, this.owner);
-                        }
-                    }
-                }
-
-                // Damage destructibles in radius
-                for (let obj of destructibles) {
-                    if (!obj.destroyed) {
-                        const dx = this.x - (obj.x + obj.width/2);
-                        const dy = this.y - (obj.y + obj.height/2);
-                        const distance = Math.sqrt(dx*dx + dy*dy);
-
-                        if (distance < this.weapon.explosionRadius) {
-                            obj.takeDamage(this.damage * 0.7);
-                        }
-                    }
-                }
-            }
-
-            draw() {
-                // Draw smoke trail
-                for (let i = 0; i < this.trail.length; i++) {
-                    const t = this.trail[i];
-                    ctx.fillStyle = `rgba(100, 100, 100, ${t.life})`;
-                    ctx.beginPath();
-                    ctx.arc(t.x - camera.x, t.y - camera.y, 3, 0, Math.PI * 2);
-                    ctx.fill();
-                }
-
-                // Draw shell
-                ctx.save();
-                ctx.translate(this.x - camera.x, this.y - camera.y);
-                ctx.rotate(this.rotation);
-
-                ctx.fillStyle = this.color;
-                ctx.fillRect(-this.radius, -this.radius/2, this.radius * 2, this.radius);
-                ctx.strokeStyle = '#000';
-                ctx.lineWidth = 2;
-                ctx.strokeRect(-this.radius, -this.radius/2, this.radius * 2, this.radius);
-
-                ctx.restore();
-
-                // Glow effect
-                ctx.shadowBlur = 15;
-                ctx.shadowColor = this.color;
-                ctx.fillStyle = this.color;
-                ctx.beginPath();
-                ctx.arc(this.x - camera.x, this.y - camera.y, this.radius/2, 0, Math.PI * 2);
-                ctx.fill();
-                ctx.shadowBlur = 0;
             }
         }
 
@@ -1780,239 +1506,66 @@
                 this.type = 'vehicle';
                 this.vehicleType = vehicleType;
                 this.vx = 0;
-                this.vy = 0;
-                this.isFlying = false;
 
                 if (vehicleType === 'tank') {
                     this.width = 80;
                     this.height = 60;
                     this.color = '#4a6741';
                     this.maxSpeed = 3;
-                    this.isFlying = false;
                 } else if (vehicleType === 'jeep') {
                     this.width = 70;
                     this.height = 40;
                     this.color = '#8b7355';
                     this.maxSpeed = 7;
-                    this.isFlying = false;
-                } else if (vehicleType === 'helicopter') {
-                    this.width = 90;
-                    this.height = 50;
-                    this.color = '#2a4a2a';
-                    this.maxSpeed = 6;
-                    this.isFlying = true;
-                    this.rotorAngle = 0;
-                    this.hoverStrength = 0.5;
-                } else if (vehicleType === 'airplane') {
-                    this.width = 100;
-                    this.height = 40;
-                    this.color = '#5a7a9a';
-                    this.maxSpeed = 10;
-                    this.isFlying = true;
-                    this.tilt = 0;
-                    this.minAltitude = 100;
                 }
             }
 
             update(controls, deltaTime) {
-                if (this.vehicleType === 'helicopter') {
-                    // Helicopter controls
-                    if (keys[controls.left]) {
-                        this.vx = -this.maxSpeed;
-                    }
-                    if (keys[controls.right]) {
-                        this.vx = this.maxSpeed;
-                    }
-                    if (keys[controls.jump]) { // Up
-                        this.vy = -this.maxSpeed;
-                    }
-                    if (keys[controls.crouch]) { // Down
-                        this.vy = this.maxSpeed * 0.7;
-                    }
-
-                    // Hover damping
-                    this.vx *= 0.92;
-                    this.vy *= 0.92;
-
-                    // Rotor animation
-                    this.rotorAngle += 0.5;
-
-                } else if (this.vehicleType === 'airplane') {
-                    // Airplane controls - always moving forward
-                    const baseSpeed = this.maxSpeed * 0.7;
-                    this.vx = baseSpeed;
-
-                    if (keys[controls.left]) {
-                        this.vx -= 2;
-                        this.tilt = -0.2;
-                    } else if (keys[controls.right]) {
-                        this.vx += 2;
-                        this.tilt = 0.2;
-                    } else {
-                        this.tilt *= 0.9;
-                    }
-
-                    if (keys[controls.jump]) { // Climb
-                        this.vy = -4;
-                    } else if (keys[controls.crouch]) { // Dive
-                        this.vy = 3;
-                    } else {
-                        this.vy *= 0.95; // Auto-level
-                    }
-
-                    // Maintain minimum altitude
-                    if (this.y > WORLD_HEIGHT - this.minAltitude) {
-                        this.vy = -2;
-                    }
-
-                } else {
-                    // Ground vehicles
-                    if (keys[controls.left]) {
-                        this.vx = -this.maxSpeed;
-                    }
-                    if (keys[controls.right]) {
-                        this.vx = this.maxSpeed;
-                    }
-
-                    this.vx *= 0.9;
+                if (keys[controls.left]) {
+                    this.vx = -this.maxSpeed;
+                }
+                if (keys[controls.right]) {
+                    this.vx = this.maxSpeed;
                 }
 
-                // Apply velocity
+                this.vx *= 0.9;
                 this.x += this.vx;
-                this.y += this.vy;
 
                 // Boundaries
                 if (this.x < 0) this.x = 0;
-                if (this.x + this.width > WORLD_WIDTH) this.x = WORLD_WIDTH - this.width;
-
-                if (this.isFlying) {
-                    if (this.y < 0) this.y = 0;
-                    if (this.y + this.height > WORLD_HEIGHT) this.y = WORLD_HEIGHT - this.height;
-                }
+                if (this.x + this.width > canvas.width) this.x = canvas.width - this.width;
             }
 
             draw() {
-                const drawX = this.x - camera.x;
-                const drawY = this.y - camera.y;
-
                 ctx.fillStyle = this.color;
-                ctx.fillRect(drawX, drawY, this.width, this.height);
+                ctx.fillRect(this.x, this.y, this.width, this.height);
                 ctx.strokeStyle = '#000';
                 ctx.lineWidth = 3;
-                ctx.strokeRect(drawX, drawY, this.width, this.height);
+                ctx.strokeRect(this.x, this.y, this.width, this.height);
 
                 if (this.vehicleType === 'tank') {
                     // Turret
                     ctx.fillStyle = '#3a5631';
-                    ctx.fillRect(drawX + 20, drawY - 15, 40, 20);
+                    ctx.fillRect(this.x + 20, this.y - 15, 40, 20);
 
                     // Cannon
                     ctx.fillStyle = '#2a4621';
-                    ctx.fillRect(drawX + 60, drawY - 5, 30, 8);
+                    ctx.fillRect(this.x + 60, this.y - 5, 30, 8);
 
                     // Tracks
                     ctx.fillStyle = '#222';
-                    ctx.fillRect(drawX, drawY + this.height - 10, this.width, 10);
+                    ctx.fillRect(this.x, this.y + this.height - 10, this.width, 10);
                 } else if (this.vehicleType === 'jeep') {
                     // Windshield
                     ctx.fillStyle = '#4a8090';
-                    ctx.fillRect(drawX + 10, drawY + 5, 30, 20);
+                    ctx.fillRect(this.x + 10, this.y + 5, 30, 20);
 
                     // Wheels
                     ctx.fillStyle = '#222';
                     ctx.beginPath();
-                    ctx.arc(drawX + 15, drawY + this.height, 8, 0, Math.PI * 2);
-                    ctx.arc(drawX + 55, drawY + this.height, 8, 0, Math.PI * 2);
+                    ctx.arc(this.x + 15, this.y + this.height, 8, 0, Math.PI * 2);
+                    ctx.arc(this.x + 55, this.y + this.height, 8, 0, Math.PI * 2);
                     ctx.fill();
-                } else if (this.vehicleType === 'helicopter') {
-                    // Main body
-                    ctx.fillStyle = this.color;
-                    ctx.fillRect(drawX + 10, drawY + 20, 70, 30);
-
-                    // Cockpit
-                    ctx.fillStyle = '#4a8090';
-                    ctx.fillRect(drawX + 20, drawY + 22, 30, 20);
-
-                    // Tail
-                    ctx.fillStyle = this.color;
-                    ctx.fillRect(drawX + 70, drawY + 30, 20, 10);
-
-                    // Main rotor
-                    ctx.save();
-                    ctx.translate(drawX + 45, drawY + 15);
-                    ctx.rotate(this.rotorAngle);
-                    ctx.strokeStyle = '#222';
-                    ctx.lineWidth = 4;
-                    ctx.beginPath();
-                    ctx.moveTo(-40, 0);
-                    ctx.lineTo(40, 0);
-                    ctx.stroke();
-                    ctx.restore();
-
-                    // Tail rotor
-                    ctx.save();
-                    ctx.translate(drawX + 90, drawY + 35);
-                    ctx.rotate(this.rotorAngle * 2);
-                    ctx.strokeStyle = '#222';
-                    ctx.lineWidth = 2;
-                    ctx.beginPath();
-                    ctx.moveTo(0, -8);
-                    ctx.lineTo(0, 8);
-                    ctx.stroke();
-                    ctx.restore();
-
-                    // Skids
-                    ctx.strokeStyle = '#222';
-                    ctx.lineWidth = 3;
-                    ctx.beginPath();
-                    ctx.moveTo(drawX + 15, drawY + 55);
-                    ctx.lineTo(drawX + 75, drawY + 55);
-                    ctx.stroke();
-
-                } else if (this.vehicleType === 'airplane') {
-                    // Fuselage
-                    ctx.save();
-                    ctx.translate(drawX + this.width/2, drawY + this.height/2);
-                    ctx.rotate(this.tilt);
-
-                    ctx.fillStyle = this.color;
-                    ctx.fillRect(-this.width/2, -10, this.width, 20);
-
-                    // Wings
-                    ctx.fillStyle = '#4a6a8a';
-                    ctx.fillRect(-20, -30, 40, 60);
-
-                    // Cockpit
-                    ctx.fillStyle = '#4a8090';
-                    ctx.fillRect(this.width/2 - 30, -8, 20, 16);
-
-                    // Nose
-                    ctx.fillStyle = '#3a5a7a';
-                    ctx.beginPath();
-                    ctx.moveTo(this.width/2, -5);
-                    ctx.lineTo(this.width/2 + 15, 0);
-                    ctx.lineTo(this.width/2, 5);
-                    ctx.fill();
-
-                    // Tail fin
-                    ctx.fillStyle = '#4a6a8a';
-                    ctx.fillRect(-this.width/2 - 5, -15, 10, 30);
-
-                    ctx.restore();
-
-                    // Propeller (spinning)
-                    ctx.save();
-                    ctx.translate(drawX + this.width/2 + 15, drawY + this.height/2);
-                    ctx.rotate(this.rotorAngle || Date.now() * 0.05);
-                    ctx.strokeStyle = '#333';
-                    ctx.lineWidth = 3;
-                    ctx.globalAlpha = 0.5;
-                    ctx.beginPath();
-                    ctx.moveTo(-12, 0);
-                    ctx.lineTo(12, 0);
-                    ctx.stroke();
-                    ctx.globalAlpha = 1;
-                    ctx.restore();
                 }
             }
         }
@@ -2050,19 +1603,16 @@
             }
 
             draw() {
-                const drawX = this.x - camera.x;
-                const drawY = this.y - camera.y;
-
                 // Base
                 ctx.fillStyle = '#555';
-                ctx.fillRect(drawX, drawY, this.width, this.height);
+                ctx.fillRect(this.x, this.y, this.width, this.height);
                 ctx.strokeStyle = '#222';
                 ctx.lineWidth = 3;
-                ctx.strokeRect(drawX, drawY, this.width, this.height);
+                ctx.strokeRect(this.x, this.y, this.width, this.height);
 
                 // Barrel
                 ctx.fillStyle = '#333';
-                ctx.fillRect(drawX + this.width, drawY + this.height/2 - 5, 40, 10);
+                ctx.fillRect(this.x + this.width, this.y + this.height/2 - 5, 40, 10);
             }
         }
 
@@ -2080,20 +1630,17 @@
             draw() {
                 if (!this.active) return;
 
-                const drawX = this.x - camera.x;
-                const drawY = this.y - camera.y;
-
                 ctx.fillStyle = '#ffaa00';
-                ctx.fillRect(drawX, drawY, this.width, this.height);
+                ctx.fillRect(this.x, this.y, this.width, this.height);
                 ctx.strokeStyle = '#000';
                 ctx.lineWidth = 2;
-                ctx.strokeRect(drawX, drawY, this.width, this.height);
+                ctx.strokeRect(this.x, this.y, this.width, this.height);
 
                 // Icon
                 ctx.fillStyle = '#000';
                 ctx.font = '16px Arial';
                 ctx.textAlign = 'center';
-                ctx.fillText(this.type.icon, drawX + this.width/2, drawY + this.height/2 + 5);
+                ctx.fillText(this.type.icon, this.x + this.width/2, this.y + this.height/2 + 5);
 
                 // Floating animation
                 this.y += Math.sin(Date.now() * 0.003) * 0.1;
@@ -2355,7 +1902,7 @@
                 ctx.fillStyle = p.color;
                 ctx.globalAlpha = p.life;
                 ctx.beginPath();
-                ctx.arc(p.x - camera.x, p.y - camera.y, p.size, 0, Math.PI * 2);
+                ctx.arc(p.x, p.y, p.size, 0, Math.PI * 2);
                 ctx.fill();
             }
             ctx.globalAlpha = 1;
@@ -2386,239 +1933,88 @@
                 interact: 'enter'
             }, 'PLAYER 2');
 
-            // Create platforms - Much larger map
+            // Create platforms
             platforms = [
-                { x: 0, y: WORLD_HEIGHT - 50, width: WORLD_WIDTH, height: 50 }, // Ground
-
-                // Left side
-                { x: 200, y: 1100, width: 300, height: 20 },
-                { x: 100, y: 900, width: 200, height: 20 },
-                { x: 350, y: 700, width: 250, height: 20 },
-                { x: 150, y: 500, width: 200, height: 20 },
-                { x: 400, y: 300, width: 180, height: 20 },
-
-                // Center-left
-                { x: 700, y: 1000, width: 300, height: 20 },
-                { x: 650, y: 800, width: 200, height: 20 },
-                { x: 800, y: 600, width: 250, height: 20 },
-                { x: 700, y: 400, width: 200, height: 20 },
-                { x: 850, y: 200, width: 180, height: 20 },
-
-                // Center
-                { x: 1400, y: 1100, width: 400, height: 20 },
-                { x: 1300, y: 900, width: 300, height: 20 },
-                { x: 1500, y: 700, width: 250, height: 20 },
-                { x: 1350, y: 500, width: 300, height: 20 },
-                { x: 1600, y: 300, width: 200, height: 20 },
-
-                // Center-right
-                { x: 2100, y: 1000, width: 300, height: 20 },
-                { x: 2200, y: 800, width: 250, height: 20 },
-                { x: 2050, y: 600, width: 200, height: 20 },
-                { x: 2300, y: 400, width: 250, height: 20 },
-                { x: 2150, y: 200, width: 200, height: 20 },
-
-                // Right side
-                { x: 2700, y: 1100, width: 300, height: 20 },
-                { x: 2800, y: 900, width: 250, height: 20 },
-                { x: 2650, y: 700, width: 300, height: 20 },
-                { x: 2900, y: 500, width: 200, height: 20 },
-                { x: 2750, y: 300, width: 250, height: 20 },
-
-                // High platforms
-                { x: 600, y: 150, width: 200, height: 20 },
-                { x: 1750, y: 100, width: 250, height: 20 },
-                { x: 2800, y: 150, width: 200, height: 20 }
+                { x: 0, y: canvas.height - 50, width: canvas.width, height: 50 }, // Ground
+                { x: 200, y: 600, width: 200, height: 20 },
+                { x: 600, y: 500, width: 200, height: 20 },
+                { x: 1000, y: 600, width: 200, height: 20 },
+                { x: 400, y: 400, width: 150, height: 20 },
+                { x: 850, y: 350, width: 150, height: 20 },
+                { x: 100, y: 300, width: 100, height: 20 },
+                { x: 1200, y: 300, width: 100, height: 20 }
             ];
 
-            // Create ladders - More across the map
+            // Create ladders
             ladders = [
-                // Left
-                { x: 150, y: 500, width: 30, height: 400 },
-                { x: 350, y: 700, width: 30, height: 400 },
-                { x: 500, y: 300, width: 30, height: 400 },
-
-                // Center-left
-                { x: 700, y: 400, width: 30, height: 600 },
-                { x: 850, y: 600, width: 30, height: 400 },
-
-                // Center
-                { x: 1350, y: 500, width: 30, height: 600 },
-                { x: 1600, y: 300, width: 30, height: 400 },
-                { x: 1750, y: 100, width: 30, height: 600 },
-
-                // Center-right
-                { x: 2100, y: 600, width: 30, height: 400 },
-                { x: 2300, y: 400, width: 30, height: 600 },
-
-                // Right
-                { x: 2700, y: 700, width: 30, height: 400 },
-                { x: 2900, y: 500, width: 30, height: 500 },
-                { x: 3050, y: 300, width: 30, height: 700 }
+                { x: 150, y: 300, width: 30, height: 300 },
+                { x: 750, y: 350, width: 30, height: 250 },
+                { x: 1100, y: 300, width: 30, height: 300 }
             ];
 
-            // Create vehicles - Ground and air
+            // Create vehicles
             vehicles = [
-                // Ground vehicles
-                new Vehicle(300, WORLD_HEIGHT - 110, 'tank'),
-                new Vehicle(900, WORLD_HEIGHT - 90, 'jeep'),
-                new Vehicle(1600, WORLD_HEIGHT - 110, 'tank'),
-                new Vehicle(2400, WORLD_HEIGHT - 90, 'jeep'),
-                new Vehicle(3000, WORLD_HEIGHT - 110, 'tank'),
-
-                // Helicopters
-                new Vehicle(600, 400, 'helicopter'),
-                new Vehicle(1750, 300, 'helicopter'),
-                new Vehicle(2800, 500, 'helicopter'),
-
-                // Airplanes
-                new Vehicle(400, 200, 'airplane'),
-                new Vehicle(1900, 250, 'airplane'),
-                new Vehicle(3100, 300, 'airplane')
+                new Vehicle(300, canvas.height - 110, 'tank'),
+                new Vehicle(900, canvas.height - 90, 'jeep')
             ];
 
-            // Create structures - Turrets across the map
+            // Create structures
             structures = [
-                new Structure(500, WORLD_HEIGHT - 100, 'turret'),
-                new Structure(1200, 1050, 'turret'),
-                new Structure(850, 150, 'turret'),
-                new Structure(1800, 650, 'turret'),
-                new Structure(2300, 350, 'turret'),
-                new Structure(2900, WORLD_HEIGHT - 100, 'turret'),
-                new Structure(3200, 250, 'turret')
+                new Structure(500, canvas.height - 100, 'turret'),
+                new Structure(1300, 250, 'turret')
             ];
 
-            // Create weapon pickups - Spread across the map
+            // Create weapon pickups
             weapons = [
-                // Left side
-                new WeaponPickup(250, 850, WEAPON_TYPES.RIFLE),
-                new WeaponPickup(350, 650, WEAPON_TYPES.SHOTGUN),
-                new WeaponPickup(150, 450, WEAPON_TYPES.SNIPER),
-                new WeaponPickup(450, 250, WEAPON_TYPES.GRENADE),
-
-                // Center-left
-                new WeaponPickup(750, 950, WEAPON_TYPES.MACHINE_GUN),
-                new WeaponPickup(800, 550, WEAPON_TYPES.LASER),
-                new WeaponPickup(850, 150, WEAPON_TYPES.ROCKET),
-
-                // Center
-                new WeaponPickup(1400, 1050, WEAPON_TYPES.RIFLE),
-                new WeaponPickup(1500, 650, WEAPON_TYPES.FLAMETHROWER),
-                new WeaponPickup(1600, 250, WEAPON_TYPES.SHOTGUN),
-                new WeaponPickup(1750, 50, WEAPON_TYPES.SNIPER),
-
-                // Center-right
-                new WeaponPickup(2100, 950, WEAPON_TYPES.MACHINE_GUN),
-                new WeaponPickup(2200, 750, WEAPON_TYPES.ROCKET),
-                new WeaponPickup(2300, 350, WEAPON_TYPES.LASER),
-
-                // Right side
-                new WeaponPickup(2700, 1050, WEAPON_TYPES.SHOTGUN),
-                new WeaponPickup(2800, 850, WEAPON_TYPES.GRENADE),
-                new WeaponPickup(2900, 450, WEAPON_TYPES.FLAMETHROWER),
-                new WeaponPickup(3100, 250, WEAPON_TYPES.RIFLE)
+                new WeaponPickup(400, 380, WEAPON_TYPES.RIFLE),
+                new WeaponPickup(850, 330, WEAPON_TYPES.SHOTGUN),
+                new WeaponPickup(700, 480, WEAPON_TYPES.SNIPER),
+                new WeaponPickup(200, 580, WEAPON_TYPES.ROCKET),
+                new WeaponPickup(1000, 580, WEAPON_TYPES.MACHINE_GUN),
+                new WeaponPickup(100, 280, WEAPON_TYPES.LASER),
+                new WeaponPickup(1200, 280, WEAPON_TYPES.FLAMETHROWER),
+                new WeaponPickup(600, 380, WEAPON_TYPES.GRENADE)
             ];
 
-            // Create health pickups - Spread across the map
+            // Create health pickups
             healthPickups = [
-                new HealthPickup(200, 1050, 50),
-                new HealthPickup(350, 850, 30),
-                new HealthPickup(700, 900, 50),
-                new HealthPickup(800, 550, 75),
-                new HealthPickup(1400, 1050, 50),
-                new HealthPickup(1500, 650, 30),
-                new HealthPickup(1750, 50, 75),
-                new HealthPickup(2100, 950, 50),
-                new HealthPickup(2300, 350, 30),
-                new HealthPickup(2800, 850, 50),
-                new HealthPickup(3000, WORLD_HEIGHT - 100, 75),
-                new HealthPickup(1750, 700, 30)
+                new HealthPickup(300, 560, 50),
+                new HealthPickup(1100, 560, 50),
+                new HealthPickup(500, 360, 30),
+                new HealthPickup(900, 310, 30),
+                new HealthPickup(700, canvas.height - 100, 75)
             ];
 
-            // Create ammo pickups - Spread across the map
+            // Create ammo pickups
             ammoPickups = [
-                new AmmoPickup(300, 1050),
-                new AmmoPickup(450, 650),
-                new AmmoPickup(800, 950),
-                new AmmoPickup(650, 750),
-                new AmmoPickup(1300, 850),
-                new AmmoPickup(1600, 650),
-                new AmmoPickup(1800, 250),
-                new AmmoPickup(2050, 550),
-                new AmmoPickup(2400, 900),
-                new AmmoPickup(2700, 1050),
-                new AmmoPickup(2900, 650),
-                new AmmoPickup(3200, 450)
+                new AmmoPickup(250, 560),
+                new AmmoPickup(950, 560),
+                new AmmoPickup(700, 450),
+                new AmmoPickup(450, 360)
             ];
 
-            // Create power-ups - Spread across the map
+            // Create power-ups
             powerUps = [
-                new PowerUp(250, 450, 'speed'),
-                new PowerUp(500, 250, 'shield'),
-                new PowerUp(850, 550, 'damage'),
-                new PowerUp(700, 350, 'rapid'),
-                new PowerUp(1350, 450, 'speed'),
-                new PowerUp(1750, 250, 'shield'),
-                new PowerUp(2150, 150, 'damage'),
-                new PowerUp(2300, 750, 'rapid'),
-                new PowerUp(2750, 250, 'speed'),
-                new PowerUp(3000, 450, 'shield')
+                new PowerUp(150, 260, 'speed'),
+                new PowerUp(1250, 260, 'speed'),
+                new PowerUp(700, 360, 'shield'),
+                new PowerUp(350, 560, 'damage'),
+                new PowerUp(1050, 560, 'rapid')
             ];
 
-            // Create destructible objects - Spread across the map
+            // Create destructible objects
             destructibles = [
-                // Left
-                new DestructibleObject(250, WORLD_HEIGHT - 100, 50, 50, 'crate'),
-                new DestructibleObject(350, WORLD_HEIGHT - 100, 50, 50, 'barrel'),
-                new DestructibleObject(200, 1050, 50, 50, 'crate'),
-                new DestructibleObject(300, 850, 50, 50, 'barrel'),
-                new DestructibleObject(400, 650, 50, 50, 'crate'),
-
-                // Center-left
-                new DestructibleObject(700, WORLD_HEIGHT - 100, 50, 50, 'barrel'),
-                new DestructibleObject(800, 950, 50, 50, 'crate'),
-                new DestructibleObject(750, 750, 50, 50, 'barrel'),
-                new DestructibleObject(850, 550, 50, 50, 'crate'),
-
-                // Center
-                new DestructibleObject(1400, 1050, 50, 50, 'crate'),
-                new DestructibleObject(1500, WORLD_HEIGHT - 100, 50, 50, 'barrel'),
-                new DestructibleObject(1600, 850, 50, 50, 'crate'),
-                new DestructibleObject(1700, 650, 50, 50, 'barrel'),
-                new DestructibleObject(1750, 450, 50, 50, 'crate'),
-
-                // Center-right
-                new DestructibleObject(2100, 950, 50, 50, 'barrel'),
-                new DestructibleObject(2200, 750, 50, 50, 'crate'),
-                new DestructibleObject(2300, WORLD_HEIGHT - 100, 50, 50, 'barrel'),
-                new DestructibleObject(2400, 550, 50, 50, 'crate'),
-
-                // Right
-                new DestructibleObject(2700, 1050, 50, 50, 'crate'),
-                new DestructibleObject(2800, WORLD_HEIGHT - 100, 50, 50, 'barrel'),
-                new DestructibleObject(2900, 850, 50, 50, 'crate'),
-                new DestructibleObject(3000, 650, 50, 50, 'barrel'),
-                new DestructibleObject(3100, 450, 50, 50, 'crate'),
-                new DestructibleObject(3200, WORLD_HEIGHT - 100, 50, 50, 'barrel')
+                new DestructibleObject(500, canvas.height - 100, 50, 50, 'crate'),
+                new DestructibleObject(800, canvas.height - 100, 50, 50, 'barrel'),
+                new DestructibleObject(650, 450, 50, 50, 'crate'),
+                new DestructibleObject(550, 450, 50, 50, 'barrel'),
+                new DestructibleObject(300, 550, 50, 50, 'crate'),
+                new DestructibleObject(1100, 550, 50, 50, 'crate'),
+                new DestructibleObject(450, 350, 50, 50, 'barrel'),
+                new DestructibleObject(950, 300, 50, 50, 'barrel'),
+                new DestructibleObject(200, 250, 50, 50, 'crate'),
+                new DestructibleObject(1150, 250, 50, 50, 'crate')
             ];
-        }
-
-        // Update camera
-        function updateCamera() {
-            // Follow midpoint between players
-            const midX = (player1.x + player2.x) / 2;
-            const midY = (player1.y + player2.y) / 2;
-
-            camera.targetX = midX - VIEWPORT_WIDTH / 2;
-            camera.targetY = midY - VIEWPORT_HEIGHT / 2;
-
-            // Smoothly move camera
-            camera.x += (camera.targetX - camera.x) * camera.smoothing;
-            camera.y += (camera.targetY - camera.y) * camera.smoothing;
-
-            // Clamp camera to world bounds
-            camera.x = Math.max(0, Math.min(camera.x, WORLD_WIDTH - VIEWPORT_WIDTH));
-            camera.y = Math.max(0, Math.min(camera.y, WORLD_HEIGHT - VIEWPORT_HEIGHT));
         }
 
         // Update game
@@ -2627,9 +2023,6 @@
 
             player1.update(deltaTime);
             player2.update(deltaTime);
-
-            // Update camera
-            updateCamera();
 
             // Update bullets
             for (let i = bullets.length - 1; i >= 0; i--) {
@@ -2693,30 +2086,26 @@
             ctx.fillStyle = gradient;
             ctx.fillRect(0, 0, canvas.width, canvas.height);
 
-            // Draw platforms with camera offset
+            // Draw platforms
             ctx.fillStyle = '#654321';
             for (let platform of platforms) {
-                const drawX = platform.x - camera.x;
-                const drawY = platform.y - camera.y;
-                ctx.fillRect(drawX, drawY, platform.width, platform.height);
+                ctx.fillRect(platform.x, platform.y, platform.width, platform.height);
                 ctx.strokeStyle = '#4a3319';
                 ctx.lineWidth = 2;
-                ctx.strokeRect(drawX, drawY, platform.width, platform.height);
+                ctx.strokeRect(platform.x, platform.y, platform.width, platform.height);
             }
 
-            // Draw ladders with camera offset
+            // Draw ladders
             ctx.strokeStyle = '#8b7355';
             ctx.lineWidth = 3;
             for (let ladder of ladders) {
-                const drawX = ladder.x - camera.x;
-                const drawY = ladder.y - camera.y;
-                for (let y = 0; y < ladder.height; y += 15) {
+                for (let y = ladder.y; y < ladder.y + ladder.height; y += 15) {
                     ctx.beginPath();
-                    ctx.moveTo(drawX, drawY + y);
-                    ctx.lineTo(drawX + ladder.width, drawY + y);
+                    ctx.moveTo(ladder.x, y);
+                    ctx.lineTo(ladder.x + ladder.width, y);
                     ctx.stroke();
                 }
-                ctx.strokeRect(drawX, drawY, ladder.width, ladder.height);
+                ctx.strokeRect(ladder.x, ladder.y, ladder.width, ladder.height);
             }
 
             // Draw structures
@@ -2766,18 +2155,18 @@
             player1.draw();
             player2.draw();
 
-            // Draw interaction prompts with camera offset
+            // Draw interaction prompts
             if (player1.nearbyInteractable) {
                 ctx.fillStyle = 'rgba(0, 255, 0, 0.7)';
                 ctx.font = '14px Courier New';
                 ctx.textAlign = 'center';
-                ctx.fillText('[E] Interact', player1.x - camera.x + player1.width/2, player1.y - camera.y - 10);
+                ctx.fillText('[E] Interact', player1.x + player1.width/2, player1.y - 10);
             }
             if (player2.nearbyInteractable) {
                 ctx.fillStyle = 'rgba(255, 0, 0, 0.7)';
                 ctx.font = '14px Courier New';
                 ctx.textAlign = 'center';
-                ctx.fillText('[ENTER] Interact', player2.x - camera.x + player2.width/2, player2.y - camera.y - 10);
+                ctx.fillText('[ENTER] Interact', player2.x + player2.width/2, player2.y - 10);
             }
         }
 
