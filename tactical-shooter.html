@@ -978,7 +978,10 @@
             }
 
             shootArtillery() {
-                const bulletX = this.inVehicle.x + this.inVehicle.width;
+                // Determine direction from turret angle
+                const direction = this.inVehicle.turretAngle === 0 ? 1 : -1; // 1 for right, -1 for left
+
+                const bulletX = this.inVehicle.x + this.inVehicle.width / 2;
                 const bulletY = this.inVehicle.y + 20;
 
                 // Calculate angle based on charge time (30-80 degrees)
@@ -993,7 +996,7 @@
                 const maxSpeed = 25;
                 const speed = minSpeed + (maxSpeed - minSpeed) * chargeRatio;
 
-                const vx = Math.cos(angleRad) * speed;
+                const vx = Math.cos(angleRad) * speed * direction;
                 const vy = -Math.sin(angleRad) * speed;
 
                 const artilleryWeapon = {
@@ -1016,7 +1019,7 @@
 
                 playShootSound('ROCKET');
                 playExplosionSound();
-                this.inVehicle.vx -= 8; // Strong recoil pushes tank back
+                this.inVehicle.vx -= 8 * direction; // Strong recoil pushes tank back
             }
 
             shootFromVehicle() {
@@ -1407,8 +1410,16 @@
 
                 // Check vehicle hits
                 for (let vehicle of vehicles) {
-                    if (this.x > vehicle.x && this.x < vehicle.x + vehicle.width &&
+                    if (!vehicle.destroyed &&
+                        this.x > vehicle.x && this.x < vehicle.x + vehicle.width &&
                         this.y > vehicle.y && this.y < vehicle.y + vehicle.height) {
+
+                        // Don't damage vehicle if owner is inside it
+                        if (this.owner && this.owner.inVehicle === vehicle) {
+                            continue;
+                        }
+
+                        vehicle.takeDamage(this.damage, this.owner);
 
                         if (this.weapon.explosive) {
                             createExplosion(this.x, this.y, this.weapon.explosionRadius);
@@ -1661,10 +1672,14 @@
 
                 // Hit detection with vehicles
                 for (let vehicle of vehicles) {
-                    if (this.x > vehicle.x && this.x < vehicle.x + vehicle.width &&
+                    if (!vehicle.destroyed &&
+                        this.x > vehicle.x && this.x < vehicle.x + vehicle.width &&
                         this.y > vehicle.y && this.y < vehicle.y + vehicle.height) {
-                        this.explode();
-                        return true;
+                        // Don't hit vehicle if owner is inside
+                        if (this.owner && this.owner.inVehicle !== vehicle) {
+                            this.explode();
+                            return true;
+                        }
                     }
                 }
 
@@ -1704,6 +1719,26 @@
                         const distance = Math.sqrt(dx*dx + dy*dy);
                         if (distance < this.weapon.explosionRadius) {
                             obj.takeDamage(this.damage * 0.7);
+                        }
+                    }
+                }
+
+                // Damage vehicles in radius
+                for (let vehicle of vehicles) {
+                    if (!vehicle.destroyed) {
+                        const dx = this.x - (vehicle.x + vehicle.width/2);
+                        const dy = this.y - (vehicle.y + vehicle.height/2);
+                        const distance = Math.sqrt(dx*dx + dy*dy);
+
+                        if (distance < this.weapon.explosionRadius) {
+                            // Don't damage vehicle if owner is inside it
+                            if (this.owner && this.owner.inVehicle === vehicle) {
+                                continue;
+                            }
+
+                            const damageMultiplier = 1 - (distance / this.weapon.explosionRadius);
+                            const damage = this.damage * damageMultiplier;
+                            vehicle.takeDamage(damage, this.owner);
                         }
                     }
                 }
@@ -1753,6 +1788,8 @@
                 this.vehicleType = vehicleType;
                 this.vx = 0;
                 this.vy = 0;
+                this.turretAngle = 0; // For tank turret rotation
+                this.destroyed = false;
 
                 if (vehicleType === 'tank') {
                     this.width = 80;
@@ -1760,12 +1797,16 @@
                     this.color = '#4a6741';
                     this.maxSpeed = 3;
                     this.canFly = false;
+                    this.health = 300;
+                    this.maxHealth = 300;
                 } else if (vehicleType === 'jeep') {
                     this.width = 70;
                     this.height = 40;
                     this.color = '#8b7355';
                     this.maxSpeed = 7;
                     this.canFly = false;
+                    this.health = 150;
+                    this.maxHealth = 150;
                 } else if (vehicleType === 'airplane') {
                     this.width = 90;
                     this.height = 40;
@@ -1774,6 +1815,8 @@
                     this.canFly = true;
                     this.minAltitude = 100; // Minimum flying height
                     this.maxAltitude = 300; // Maximum flying height
+                    this.health = 200;
+                    this.maxHealth = 200;
                 } else if (vehicleType === 'helicopter') {
                     this.width = 80;
                     this.height = 50;
@@ -1783,10 +1826,14 @@
                     this.minAltitude = 50;
                     this.maxAltitude = 400;
                     this.rotorAngle = 0;
+                    this.health = 250;
+                    this.maxHealth = 250;
                 }
             }
 
             update(controls, deltaTime) {
+                if (this.destroyed) return;
+
                 if (this.canFly) {
                     // Flying vehicle controls
                     if (keys[controls.left]) {
@@ -1832,9 +1879,17 @@
                     // Ground vehicle controls
                     if (keys[controls.left]) {
                         this.vx = -this.maxSpeed;
+                        // Rotate turret left for tank
+                        if (this.vehicleType === 'tank') {
+                            this.turretAngle = Math.PI; // 180 degrees (pointing left)
+                        }
                     }
                     if (keys[controls.right]) {
                         this.vx = this.maxSpeed;
+                        // Rotate turret right for tank
+                        if (this.vehicleType === 'tank') {
+                            this.turretAngle = 0; // 0 degrees (pointing right)
+                        }
                     }
 
                     this.vx *= 0.9;
@@ -1846,7 +1901,48 @@
                 }
             }
 
+            takeDamage(damage, attacker) {
+                if (this.destroyed) return;
+
+                this.health -= damage;
+                playHitSound();
+
+                if (this.health <= 0) {
+                    this.destroy(attacker);
+                }
+            }
+
+            destroy(attacker) {
+                this.destroyed = true;
+                this.health = 0;
+
+                // Eject any player in the vehicle
+                if (player1.inVehicle === this) {
+                    player1.inVehicle = null;
+                }
+                if (player2.inVehicle === this) {
+                    player2.inVehicle = null;
+                }
+
+                // Create big explosion
+                createExplosion(this.x + this.width / 2, this.y + this.height / 2, 120);
+                playExplosionSound();
+
+                if (attacker) {
+                    addKillMessage(`${attacker.name} destroyed a ${this.vehicleType.toUpperCase()}!`);
+                    attacker.score += 200;
+                }
+
+                // Respawn vehicle after 30 seconds
+                setTimeout(() => {
+                    this.health = this.maxHealth;
+                    this.destroyed = false;
+                }, 30000);
+            }
+
             draw() {
+                if (this.destroyed) return;
+
                 ctx.fillStyle = this.color;
                 ctx.fillRect(this.x, this.y, this.width, this.height);
                 ctx.strokeStyle = '#000';
@@ -1854,13 +1950,23 @@
                 ctx.strokeRect(this.x, this.y, this.width, this.height);
 
                 if (this.vehicleType === 'tank') {
-                    // Turret
-                    ctx.fillStyle = '#3a5631';
-                    ctx.fillRect(this.x + 20, this.y - 15, 40, 20);
+                    // Turret (rotates based on movement)
+                    ctx.save();
+                    ctx.translate(this.x + this.width / 2, this.y + this.height / 2 - 5);
+                    ctx.rotate(this.turretAngle);
 
-                    // Cannon
+                    ctx.fillStyle = '#3a5631';
+                    ctx.fillRect(-20, -10, 40, 20);
+                    ctx.strokeStyle = '#000';
+                    ctx.lineWidth = 3;
+                    ctx.strokeRect(-20, -10, 40, 20);
+
+                    // Cannon (points in turret direction)
                     ctx.fillStyle = '#2a4621';
-                    ctx.fillRect(this.x + 60, this.y - 5, 30, 8);
+                    ctx.fillRect(20, -4, 30, 8);
+                    ctx.strokeRect(20, -4, 30, 8);
+
+                    ctx.restore();
 
                     // Tracks
                     ctx.fillStyle = '#222';
@@ -1954,6 +2060,29 @@
                     ctx.fillStyle = '#222';
                     ctx.fillRect(this.x + 15, this.y + this.height, 20, 3);
                     ctx.fillRect(this.x + 45, this.y + this.height, 20, 3);
+                }
+
+                // Health bar for all vehicles
+                if (this.health < this.maxHealth) {
+                    const barWidth = this.width;
+                    const barHeight = 6;
+                    const barX = this.x;
+                    const barY = this.y - 15;
+
+                    // Background
+                    ctx.fillStyle = '#333';
+                    ctx.fillRect(barX, barY, barWidth, barHeight);
+
+                    // Health bar
+                    const healthPercent = this.health / this.maxHealth;
+                    const healthColor = healthPercent > 0.5 ? '#00ff00' : (healthPercent > 0.25 ? '#ffaa00' : '#ff0000');
+                    ctx.fillStyle = healthColor;
+                    ctx.fillRect(barX, barY, barWidth * healthPercent, barHeight);
+
+                    // Border
+                    ctx.strokeStyle = '#000';
+                    ctx.lineWidth = 2;
+                    ctx.strokeRect(barX, barY, barWidth, barHeight);
                 }
             }
         }
@@ -2321,137 +2450,208 @@
                 interact: 'enter'
             }, 'PLAYER 2');
 
-            // Create platforms (expanded for larger map)
+            // Create platforms (redesigned for better accessibility)
             platforms = [
                 { x: 0, y: canvas.height - 80, width: canvas.width, height: 80 }, // Ground
-                // Left section
-                { x: 200, y: 1100, width: 300, height: 20 },
-                { x: 150, y: 900, width: 250, height: 20 },
-                { x: 100, y: 600, width: 200, height: 20 },
-                { x: 500, y: 800, width: 300, height: 20 },
+
+                // Left section - staggered platforms with clear access
+                { x: 150, y: 1150, width: 350, height: 20 },
+                { x: 100, y: 950, width: 300, height: 20 },
+                { x: 200, y: 750, width: 350, height: 20 },
+                { x: 100, y: 550, width: 250, height: 20 },
+                { x: 300, y: 350, width: 300, height: 20 },
+
                 // Center-left section
-                { x: 800, y: 1000, width: 300, height: 20 },
-                { x: 900, y: 700, width: 200, height: 20 },
-                { x: 700, y: 500, width: 250, height: 20 },
-                { x: 1100, y: 600, width: 200, height: 20 },
-                // Center section
-                { x: 1300, y: 1100, width: 300, height: 20 },
-                { x: 1400, y: 800, width: 300, height: 20 },
-                { x: 1500, y: 500, width: 200, height: 20 },
-                { x: 1250, y: 350, width: 250, height: 20 },
+                { x: 650, y: 1150, width: 350, height: 20 },
+                { x: 700, y: 950, width: 300, height: 20 },
+                { x: 750, y: 750, width: 300, height: 20 },
+                { x: 650, y: 550, width: 250, height: 20 },
+                { x: 800, y: 350, width: 300, height: 20 },
+
+                // Center section - tall tower
+                { x: 1200, y: 1150, width: 400, height: 20 },
+                { x: 1250, y: 950, width: 300, height: 20 },
+                { x: 1300, y: 750, width: 300, height: 20 },
+                { x: 1250, y: 550, width: 300, height: 20 },
+                { x: 1350, y: 350, width: 250, height: 20 },
+                { x: 1400, y: 150, width: 200, height: 20 }, // High sniper platform
+
                 // Center-right section
-                { x: 1800, y: 1000, width: 300, height: 20 },
-                { x: 1900, y: 700, width: 250, height: 20 },
-                { x: 1700, y: 600, width: 200, height: 20 },
-                { x: 2000, y: 450, width: 200, height: 20 },
+                { x: 1750, y: 1150, width: 350, height: 20 },
+                { x: 1700, y: 950, width: 300, height: 20 },
+                { x: 1800, y: 750, width: 300, height: 20 },
+                { x: 1750, y: 550, width: 250, height: 20 },
+                { x: 1850, y: 350, width: 300, height: 20 },
+
                 // Right section
-                { x: 2200, y: 1100, width: 300, height: 20 },
-                { x: 2300, y: 900, width: 250, height: 20 },
-                { x: 2400, y: 600, width: 200, height: 20 },
-                { x: 2100, y: 800, width: 300, height: 20 }
+                { x: 2200, y: 1150, width: 350, height: 20 },
+                { x: 2250, y: 950, width: 300, height: 20 },
+                { x: 2200, y: 750, width: 350, height: 20 },
+                { x: 2300, y: 550, width: 250, height: 20 },
+                { x: 2200, y: 350, width: 300, height: 20 }
             ];
 
-            // Create ladders (expanded for larger map)
+            // Create ladders (redesigned for platform access)
             ladders = [
-                { x: 250, y: 600, width: 30, height: 500 },
-                { x: 600, y: 800, width: 30, height: 300 },
-                { x: 950, y: 700, width: 30, height: 300 },
-                { x: 1300, y: 500, width: 30, height: 600 },
-                { x: 1650, y: 600, width: 30, height: 400 },
-                { x: 2000, y: 450, width: 30, height: 550 },
-                { x: 2350, y: 600, width: 30, height: 500 }
+                // Left section
+                { x: 250, y: 350, width: 30, height: 970 }, // Main left ladder
+                { x: 400, y: 750, width: 30, height: 400 }, // Secondary left
+
+                // Center-left section
+                { x: 750, y: 350, width: 30, height: 970 }, // Main center-left ladder
+                { x: 900, y: 750, width: 30, height: 400 }, // Secondary center-left
+
+                // Center section - tall tower ladder
+                { x: 1350, y: 150, width: 30, height: 1170 }, // Main tower ladder (goes to top)
+                { x: 1500, y: 550, width: 30, height: 600 }, // Secondary tower
+
+                // Center-right section
+                { x: 1850, y: 350, width: 30, height: 970 }, // Main center-right ladder
+                { x: 1950, y: 750, width: 30, height: 400 }, // Secondary center-right
+
+                // Right section
+                { x: 2350, y: 350, width: 30, height: 970 }, // Main right ladder
+                { x: 2450, y: 750, width: 30, height: 400 }  // Secondary right
             ];
 
-            // Create vehicles (expanded for larger map)
+            // Create vehicles (strategic placement)
             vehicles = [
-                new Vehicle(400, canvas.height - 160, 'tank'),
-                new Vehicle(1200, canvas.height - 140, 'jeep'),
-                new Vehicle(2000, canvas.height - 160, 'tank'),
-                new Vehicle(800, 300, 'airplane'),
-                new Vehicle(1600, 350, 'helicopter'),
-                new Vehicle(2200, 250, 'airplane')
+                new Vehicle(500, canvas.height - 160, 'tank'),
+                new Vehicle(1400, canvas.height - 140, 'jeep'),
+                new Vehicle(2300, canvas.height - 160, 'tank'),
+                new Vehicle(600, 300, 'airplane'),
+                new Vehicle(1400, 250, 'helicopter'),
+                new Vehicle(2100, 300, 'airplane')
             ];
 
-            // Create structures (expanded for larger map)
+            // Create structures (defensive positions)
             structures = [
-                new Structure(600, canvas.height - 150, 'turret'),
-                new Structure(1400, canvas.height - 150, 'turret'),
-                new Structure(2100, canvas.height - 150, 'turret'),
-                new Structure(1250, 300, 'turret'),
-                new Structure(2000, 400, 'turret')
+                new Structure(900, canvas.height - 150, 'turret'),
+                new Structure(1900, canvas.height - 150, 'turret'),
+                new Structure(550, 730, 'turret'),
+                new Structure(1350, 330, 'turret'),
+                new Structure(2150, 730, 'turret')
             ];
 
-            // Create weapon pickups (expanded for larger map)
+            // Create weapon pickups (smart placement on platforms)
             weapons = [
-                new WeaponPickup(300, 1080, WEAPON_TYPES.RIFLE),
-                new WeaponPickup(750, 480, WEAPON_TYPES.SHOTGUN),
-                new WeaponPickup(1000, 680, WEAPON_TYPES.SNIPER),
-                new WeaponPickup(200, 880, WEAPON_TYPES.ROCKET),
-                new WeaponPickup(1450, 780, WEAPON_TYPES.MACHINE_GUN),
-                new WeaponPickup(1550, 480, WEAPON_TYPES.LASER),
-                new WeaponPickup(1900, 680, WEAPON_TYPES.FLAMETHROWER),
-                new WeaponPickup(2250, 1080, WEAPON_TYPES.GRENADE),
-                new WeaponPickup(850, 980, WEAPON_TYPES.ROCKET),
-                new WeaponPickup(1850, 980, WEAPON_TYPES.SNIPER),
-                new WeaponPickup(1250, 330, WEAPON_TYPES.LASER),
-                new WeaponPickup(2450, 580, WEAPON_TYPES.MACHINE_GUN)
+                // Ground level
+                new WeaponPickup(300, 1280, WEAPON_TYPES.RIFLE),
+                new WeaponPickup(1400, 1280, WEAPON_TYPES.SHOTGUN),
+                new WeaponPickup(2400, 1280, WEAPON_TYPES.MACHINE_GUN),
+
+                // Low platforms
+                new WeaponPickup(250, 1130, WEAPON_TYPES.RIFLE),
+                new WeaponPickup(800, 1130, WEAPON_TYPES.FLAMETHROWER),
+                new WeaponPickup(1350, 1130, WEAPON_TYPES.GRENADE),
+                new WeaponPickup(1900, 1130, WEAPON_TYPES.SHOTGUN),
+                new WeaponPickup(2300, 1130, WEAPON_TYPES.ROCKET),
+
+                // Mid platforms
+                new WeaponPickup(150, 730, WEAPON_TYPES.LASER),
+                new WeaponPickup(850, 730, WEAPON_TYPES.ROCKET),
+                new WeaponPickup(1400, 730, WEAPON_TYPES.MACHINE_GUN),
+                new WeaponPickup(1950, 730, WEAPON_TYPES.LASER),
+                new WeaponPickup(2350, 730, WEAPON_TYPES.GRENADE),
+
+                // High platforms (best weapons)
+                new WeaponPickup(350, 330, WEAPON_TYPES.SNIPER),
+                new WeaponPickup(900, 330, WEAPON_TYPES.SNIPER),
+                new WeaponPickup(1450, 130, WEAPON_TYPES.SNIPER), // Top of tower
+                new WeaponPickup(2000, 330, WEAPON_TYPES.LASER),
+                new WeaponPickup(2350, 330, WEAPON_TYPES.ROCKET)
             ];
 
-            // Create health pickups (expanded for larger map)
+            // Create health pickups (strategic placement on platforms)
             healthPickups = [
-                new HealthPickup(350, 1080, 50),
-                new HealthPickup(700, 780, 50),
-                new HealthPickup(1050, 980, 50),
-                new HealthPickup(1450, 1080, 75),
-                new HealthPickup(1750, 580, 50),
-                new HealthPickup(2150, 780, 50),
-                new HealthPickup(2350, 1080, 50),
-                new HealthPickup(1500, 480, 30),
-                new HealthPickup(950, 680, 30),
-                new HealthPickup(1400, canvas.height - 150, 75)
+                // Ground level
+                new HealthPickup(600, 1280, 50),
+                new HealthPickup(1000, 1280, 50),
+                new HealthPickup(2000, 1280, 50),
+
+                // Low platforms
+                new HealthPickup(350, 1130, 50),
+                new HealthPickup(750, 1130, 50),
+                new HealthPickup(1300, 1130, 75),
+                new HealthPickup(1850, 1130, 50),
+                new HealthPickup(2400, 1130, 50),
+
+                // Mid platforms
+                new HealthPickup(200, 930, 30),
+                new HealthPickup(800, 930, 30),
+                new HealthPickup(1400, 930, 50),
+                new HealthPickup(1900, 930, 30),
+                new HealthPickup(2350, 930, 30),
+
+                // High platforms
+                new HealthPickup(250, 530, 30),
+                new HealthPickup(750, 530, 30),
+                new HealthPickup(1400, 530, 50),
+                new HealthPickup(1950, 530, 30),
+                new HealthPickup(2400, 530, 30)
             ];
 
-            // Create ammo pickups (expanded for larger map)
+            // Create ammo pickups (placed near weapon spawns)
             ammoPickups = [
-                new AmmoPickup(400, 1080),
-                new AmmoPickup(800, 780),
-                new AmmoPickup(1150, 580),
-                new AmmoPickup(1500, 780),
-                new AmmoPickup(1850, 980),
-                new AmmoPickup(2200, 1080),
-                new AmmoPickup(1300, 1080),
-                new AmmoPickup(2000, 430)
+                new AmmoPickup(500, 1280),
+                new AmmoPickup(1500, 1280),
+                new AmmoPickup(450, 1130),
+                new AmmoPickup(900, 1130),
+                new AmmoPickup(1450, 1130),
+                new AmmoPickup(2000, 1130),
+                new AmmoPickup(300, 730),
+                new AmmoPickup(950, 730),
+                new AmmoPickup(1500, 730),
+                new AmmoPickup(2050, 730),
+                new AmmoPickup(450, 330),
+                new AmmoPickup(1500, 330)
             ];
 
-            // Create power-ups (expanded for larger map)
+            // Create power-ups (strategic high-value locations)
             powerUps = [
-                new PowerUp(250, 580, 'speed'),
-                new PowerUp(900, 680, 'shield'),
-                new PowerUp(1400, 780, 'damage'),
-                new PowerUp(1700, 580, 'rapid'),
-                new PowerUp(2100, 780, 'speed'),
-                new PowerUp(2450, 580, 'shield'),
-                new PowerUp(1250, 330, 'damage'),
-                new PowerUp(600, 780, 'rapid')
+                // Mid-level platforms (contested areas)
+                new PowerUp(250, 730, 'speed'),
+                new PowerUp(900, 730, 'shield'),
+                new PowerUp(1500, 730, 'damage'),
+                new PowerUp(2050, 730, 'rapid'),
+                new PowerUp(2450, 730, 'speed'),
+
+                // High platforms (risk/reward)
+                new PowerUp(200, 330, 'shield'),
+                new PowerUp(850, 330, 'damage'),
+                new PowerUp(1450, 330, 'rapid'),
+                new PowerUp(2100, 330, 'shield'),
+
+                // Top of tower (highest risk/reward)
+                new PowerUp(1450, 130, 'damage')
             ];
 
-            // Create destructible objects (expanded for larger map)
+            // Create destructible objects (cover and obstacles)
             destructibles = [
-                new DestructibleObject(450, canvas.height - 150, 50, 50, 'crate'),
-                new DestructibleObject(550, canvas.height - 150, 50, 50, 'barrel'),
-                new DestructibleObject(850, 980, 50, 50, 'crate'),
-                new DestructibleObject(950, 980, 50, 50, 'barrel'),
-                new DestructibleObject(250, 1080, 50, 50, 'crate'),
-                new DestructibleObject(650, 780, 50, 50, 'barrel'),
-                new DestructibleObject(1350, 1080, 50, 50, 'crate'),
-                new DestructibleObject(1550, 1080, 50, 50, 'barrel'),
-                new DestructibleObject(1800, 980, 50, 50, 'crate'),
-                new DestructibleObject(1900, 980, 50, 50, 'barrel'),
-                new DestructibleObject(2300, 1080, 50, 50, 'crate'),
-                new DestructibleObject(2500, 1080, 50, 50, 'barrel'),
-                new DestructibleObject(1100, canvas.height - 150, 50, 50, 'barrel'),
-                new DestructibleObject(1650, canvas.height - 150, 50, 50, 'crate'),
-                new DestructibleObject(2200, canvas.height - 150, 50, 50, 'barrel')
+                // Ground level cover
+                new DestructibleObject(700, canvas.height - 130, 50, 50, 'crate'),
+                new DestructibleObject(800, canvas.height - 130, 50, 50, 'barrel'),
+                new DestructibleObject(1600, canvas.height - 130, 50, 50, 'crate'),
+                new DestructibleObject(1700, canvas.height - 130, 50, 50, 'barrel'),
+
+                // Platform obstacles
+                new DestructibleObject(200, 1130, 50, 50, 'crate'),
+                new DestructibleObject(700, 1130, 50, 50, 'barrel'),
+                new DestructibleObject(1250, 1130, 50, 50, 'crate'),
+                new DestructibleObject(1800, 1130, 50, 50, 'barrel'),
+                new DestructibleObject(2250, 1130, 50, 50, 'crate'),
+
+                new DestructibleObject(150, 930, 50, 50, 'barrel'),
+                new DestructibleObject(750, 930, 50, 50, 'crate'),
+                new DestructibleObject(1300, 930, 50, 50, 'barrel'),
+                new DestructibleObject(1800, 930, 50, 50, 'crate'),
+                new DestructibleObject(2300, 930, 50, 50, 'barrel'),
+
+                new DestructibleObject(250, 730, 50, 50, 'crate'),
+                new DestructibleObject(800, 730, 50, 50, 'barrel'),
+                new DestructibleObject(1400, 730, 50, 50, 'crate'),
+                new DestructibleObject(1900, 730, 50, 50, 'barrel'),
+                new DestructibleObject(2300, 730, 50, 50, 'crate')
             ];
         }
 
