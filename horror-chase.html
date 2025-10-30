@@ -995,7 +995,7 @@
         // Initialize Three.js
         function initThree() {
             scene = new THREE.Scene();
-            scene.fog = new THREE.FogExp2(0x0a0a0a, 0.02);
+            scene.fog = new THREE.FogExp2(0x1a1a2e, 0.008);
 
             camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
             camera.position.set(0, 50, 50);
@@ -1009,12 +1009,12 @@
             renderer.shadowMap.enabled = true;
             renderer.shadowMap.type = THREE.PCFSoftShadowMap;
 
-            // Dark ambient lighting (increased for visibility)
-            const ambientLight = new THREE.AmbientLight(0x404050, 0.6);
+            // Brighter ambient lighting for gameplay visibility
+            const ambientLight = new THREE.AmbientLight(0x666677, 1.2);
             scene.add(ambientLight);
 
-            // Dim directional light (increased for visibility)
-            const dirLight = new THREE.DirectionalLight(0x8899aa, 0.8);
+            // Main directional light (much brighter)
+            const dirLight = new THREE.DirectionalLight(0xaabbcc, 1.5);
             dirLight.position.set(20, 40, 20);
             dirLight.castShadow = true;
             dirLight.shadow.camera.left = -60;
@@ -1025,19 +1025,27 @@
             dirLight.shadow.mapSize.height = 2048;
             scene.add(dirLight);
 
-            // Eerie colored lights (increased for atmosphere)
-            const redLight = new THREE.PointLight(0xff0000, 1.5, 40);
+            // Atmospheric colored lights
+            const redLight = new THREE.PointLight(0xff3333, 2.0, 50);
             redLight.position.set(-30, 10, -30);
             scene.add(redLight);
 
-            const greenLight = new THREE.PointLight(0x00ff88, 1.0, 40);
+            const greenLight = new THREE.PointLight(0x00ff88, 1.5, 50);
             greenLight.position.set(30, 10, 30);
             scene.add(greenLight);
 
-            // Additional overhead light for better visibility
-            const topLight = new THREE.PointLight(0x6666aa, 0.8, 60);
-            topLight.position.set(0, 30, 0);
-            scene.add(topLight);
+            // Multiple overhead lights for even coverage
+            const topLight1 = new THREE.PointLight(0x8899bb, 1.5, 70);
+            topLight1.position.set(0, 30, 0);
+            scene.add(topLight1);
+
+            const topLight2 = new THREE.PointLight(0x8899bb, 1.0, 60);
+            topLight2.position.set(-25, 25, -25);
+            scene.add(topLight2);
+
+            const topLight3 = new THREE.PointLight(0x8899bb, 1.0, 60);
+            topLight3.position.set(25, 25, 25);
+            scene.add(topLight3);
 
             createArena();
             createCharacters();
@@ -1055,10 +1063,10 @@
         }
 
         function createArena() {
-            // Floor
+            // Floor (brighter for visibility)
             const floorGeometry = new THREE.PlaneGeometry(100, 100);
             const floorMaterial = new THREE.MeshStandardMaterial({
-                color: 0x0d0d0d,
+                color: 0x2a2a3e,
                 roughness: 0.9,
                 metalness: 0.1
             });
@@ -1067,14 +1075,14 @@
             floor.receiveShadow = true;
             scene.add(floor);
 
-            // Grid for atmosphere
-            const gridHelper = new THREE.GridHelper(100, 50, 0x222222, 0x111111);
+            // Grid for atmosphere (brighter)
+            const gridHelper = new THREE.GridHelper(100, 50, 0x444466, 0x2a2a3e);
             gridHelper.position.y = 0.01;
             scene.add(gridHelper);
 
-            // Create maze-like structure
+            // Create maze-like structure (brighter walls)
             const wallMaterial = new THREE.MeshStandardMaterial({
-                color: 0x1a1a2e,
+                color: 0x3a3a5e,
                 roughness: 0.8,
                 metalness: 0.2
             });
@@ -1563,32 +1571,78 @@
         }
 
         function checkCollision(character) {
-            for (let obstacle of obstacles) {
-                const dx = character.position.x - obstacle.position.x;
-                const dz = character.position.z - obstacle.position.z;
-                const distance = Math.sqrt(dx * dx + dz * dz);
-                const minDistance = 2.5;
+            // Character size (half-extents)
+            const charHalfSize = character === maniac ? 1.0 : 0.75;
 
-                if (distance < minDistance) {
-                    const angle = Math.atan2(dz, dx);
-                    character.position.x = obstacle.position.x + Math.cos(angle) * minDistance;
-                    character.position.z = obstacle.position.z + Math.sin(angle) * minDistance;
+            for (let obstacle of obstacles) {
+                // Get obstacle dimensions from geometry
+                const obstacleGeometry = obstacle.geometry;
+                const obstacleHalfWidth = obstacleGeometry.parameters.width / 2;
+                const obstacleHalfDepth = obstacleGeometry.parameters.depth / 2;
+
+                // Calculate distances
+                const dx = Math.abs(character.position.x - obstacle.position.x);
+                const dz = Math.abs(character.position.z - obstacle.position.z);
+
+                // Check if bounding boxes overlap
+                const overlapX = dx < (charHalfSize + obstacleHalfWidth);
+                const overlapZ = dz < (charHalfSize + obstacleHalfDepth);
+
+                if (overlapX && overlapZ) {
+                    // Collision detected - push character out
+                    const overlapAmountX = (charHalfSize + obstacleHalfWidth) - dx;
+                    const overlapAmountZ = (charHalfSize + obstacleHalfDepth) - dz;
+
+                    // Push out on the axis with smallest overlap
+                    if (overlapAmountX < overlapAmountZ) {
+                        // Push out on X axis
+                        if (character.position.x < obstacle.position.x) {
+                            character.position.x -= overlapAmountX;
+                        } else {
+                            character.position.x += overlapAmountX;
+                        }
+                    } else {
+                        // Push out on Z axis
+                        if (character.position.z < obstacle.position.z) {
+                            character.position.z -= overlapAmountZ;
+                        } else {
+                            character.position.z += overlapAmountZ;
+                        }
+                    }
                 }
             }
 
-            // Check door collision
+            // Check door collision (for both locked and unlocked doors)
             for (let door of doors) {
-                if (door.isLocked) {
-                    const dx = character.position.x - door.position.x;
-                    const dz = character.position.z - door.position.z;
-                    const distance = Math.sqrt(dx * dx + dz * dz);
-                    const minDistance = 3;
+                const doorGeometry = door.geometry;
+                const doorHalfWidth = doorGeometry.parameters.width / 2;
+                const doorHalfDepth = doorGeometry.parameters.depth / 2;
 
-                    if (distance < minDistance && character === maniac) {
-                        // Maniac bounces off locked door
-                        const angle = Math.atan2(dz, dx);
-                        character.position.x = door.position.x + Math.cos(angle) * minDistance;
-                        character.position.z = door.position.z + Math.sin(angle) * minDistance;
+                const dx = Math.abs(character.position.x - door.position.x);
+                const dz = Math.abs(character.position.z - door.position.z);
+
+                const overlapX = dx < (charHalfSize + doorHalfWidth);
+                const overlapZ = dz < (charHalfSize + doorHalfDepth);
+
+                if (overlapX && overlapZ) {
+                    // Only block if door is locked
+                    if (door.isLocked) {
+                        const overlapAmountX = (charHalfSize + doorHalfWidth) - dx;
+                        const overlapAmountZ = (charHalfSize + doorHalfDepth) - dz;
+
+                        if (overlapAmountX < overlapAmountZ) {
+                            if (character.position.x < door.position.x) {
+                                character.position.x -= overlapAmountX;
+                            } else {
+                                character.position.x += overlapAmountX;
+                            }
+                        } else {
+                            if (character.position.z < door.position.z) {
+                                character.position.z -= overlapAmountZ;
+                            } else {
+                                character.position.z += overlapAmountZ;
+                            }
+                        }
                     }
                 }
             }
