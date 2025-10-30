@@ -669,6 +669,7 @@
                 this.comboTimeout = 5; // seconds to maintain combo
                 this.artilleryChargeTime = 0; // For tank artillery shooting
                 this.artilleryCharging = false;
+                this.artilleryReloadTime = 0; // Tank reload cooldown
             }
 
             update(deltaTime) {
@@ -690,20 +691,33 @@
 
                     // Tank artillery shooting (charge and release)
                     if (this.inVehicle.vehicleType === 'tank') {
-                        if (keys[this.controls.shoot]) {
-                            if (!this.artilleryCharging) {
-                                this.artilleryCharging = true;
-                                this.artilleryChargeTime = 0;
+                        // Update reload timer
+                        if (this.artilleryReloadTime > 0) {
+                            this.artilleryReloadTime = Math.max(0, this.artilleryReloadTime - deltaTime);
+                        }
+
+                        // Only allow charging if reload is complete
+                        if (this.artilleryReloadTime <= 0) {
+                            if (keys[this.controls.shoot]) {
+                                if (!this.artilleryCharging) {
+                                    this.artilleryCharging = true;
+                                    this.artilleryChargeTime = 0;
+                                }
+                                // Increase charge time (max 3 seconds)
+                                this.artilleryChargeTime = Math.min(this.artilleryChargeTime + deltaTime, 3);
+                            } else {
+                                if (this.artilleryCharging && this.artilleryChargeTime > 0) {
+                                    // Release - fire artillery shot
+                                    this.shootArtillery();
+                                    this.artilleryCharging = false;
+                                    this.artilleryChargeTime = 0;
+                                    this.artilleryReloadTime = 3; // 3 second reload time
+                                }
                             }
-                            // Increase charge time (max 3 seconds)
-                            this.artilleryChargeTime = Math.min(this.artilleryChargeTime + deltaTime, 3);
                         } else {
-                            if (this.artilleryCharging && this.artilleryChargeTime > 0) {
-                                // Release - fire artillery shot
-                                this.shootArtillery();
-                                this.artilleryCharging = false;
-                                this.artilleryChargeTime = 0;
-                            }
+                            // Reset charging if in reload
+                            this.artilleryCharging = false;
+                            this.artilleryChargeTime = 0;
                         }
                     } else {
                         // Regular shooting for other vehicles
@@ -984,16 +998,16 @@
                 const bulletX = this.inVehicle.x + this.inVehicle.width / 2;
                 const bulletY = this.inVehicle.y + 20;
 
-                // Calculate angle based on charge time (30-80 degrees)
-                const minAngle = 30;
-                const maxAngle = 80;
+                // Calculate angle based on charge time (15-45 degrees for long range)
+                const minAngle = 15;
+                const maxAngle = 45;
                 const chargeRatio = this.artilleryChargeTime / 3; // 0 to 1
                 const angle = minAngle + (maxAngle - minAngle) * chargeRatio;
                 const angleRad = (angle * Math.PI) / 180;
 
-                // Calculate velocity based on charge time (10-25 speed)
-                const minSpeed = 12;
-                const maxSpeed = 25;
+                // Calculate velocity based on charge time (20-40 speed for long range)
+                const minSpeed = 20;
+                const maxSpeed = 40;
                 const speed = minSpeed + (maxSpeed - minSpeed) * chargeRatio;
 
                 const vx = Math.cos(angleRad) * speed * direction;
@@ -1427,7 +1441,8 @@
 
                         const isExplosive = this.weapon.explosive || this.weapon.isGrenade ||
                                           this.weapon.name === 'ARTILLERY' ||
-                                          this.weapon.name === 'TANK_CANNON';
+                                          this.weapon.name === 'TANK_CANNON' ||
+                                          this.weapon.name === 'HELICOPTER_ROCKET';
                         const damaged = vehicle.takeDamage(this.damage, this.owner, isExplosive);
 
                         if (this.weapon.explosive) {
@@ -1435,10 +1450,8 @@
                             playExplosionSound();
                         }
 
-                        // Only remove bullet if vehicle was damaged or bullet is explosive
-                        if (damaged || this.weapon.explosive) {
-                            return true;
-                        }
+                        // Always remove bullet after hitting vehicle (whether it penetrated or ricocheted)
+                        return true;
                     }
                 }
 
@@ -2809,35 +2822,62 @@
             for (let vehicle of vehicles) {
                 vehicle.draw();
 
-                // Draw artillery charge indicator for tanks
+                // Draw artillery charge/reload indicator for tanks
                 if (vehicle.vehicleType === 'tank') {
                     const p = player1.inVehicle === vehicle ? player1 : (player2.inVehicle === vehicle ? player2 : null);
-                    if (p && p.artilleryCharging && p.artilleryChargeTime > 0) {
-                        const chargeRatio = p.artilleryChargeTime / 3;
+                    if (p) {
                         const barWidth = 80;
                         const barHeight = 8;
                         const barX = vehicle.x + vehicle.width / 2 - barWidth / 2;
                         const barY = vehicle.y - 30;
 
-                        // Background
-                        ctx.fillStyle = '#333';
-                        ctx.fillRect(barX, barY, barWidth, barHeight);
+                        // Show reload bar
+                        if (p.artilleryReloadTime > 0) {
+                            const reloadRatio = 1 - (p.artilleryReloadTime / 3);
 
-                        // Charge bar
-                        const chargeColor = chargeRatio < 0.33 ? '#ffff00' : (chargeRatio < 0.66 ? '#ff8800' : '#ff0000');
-                        ctx.fillStyle = chargeColor;
-                        ctx.fillRect(barX, barY, barWidth * chargeRatio, barHeight);
+                            // Background
+                            ctx.fillStyle = '#333';
+                            ctx.fillRect(barX, barY, barWidth, barHeight);
 
-                        // Border
-                        ctx.strokeStyle = '#000';
-                        ctx.lineWidth = 2;
-                        ctx.strokeRect(barX, barY, barWidth, barHeight);
+                            // Reload bar
+                            ctx.fillStyle = '#00aaff';
+                            ctx.fillRect(barX, barY, barWidth * reloadRatio, barHeight);
 
-                        // Text
-                        ctx.fillStyle = '#fff';
-                        ctx.font = 'bold 10px Courier New';
-                        ctx.textAlign = 'center';
-                        ctx.fillText('CHARGING', vehicle.x + vehicle.width / 2, barY - 5);
+                            // Border
+                            ctx.strokeStyle = '#000';
+                            ctx.lineWidth = 2;
+                            ctx.strokeRect(barX, barY, barWidth, barHeight);
+
+                            // Text
+                            ctx.fillStyle = '#fff';
+                            ctx.font = 'bold 10px Courier New';
+                            ctx.textAlign = 'center';
+                            ctx.fillText('RELOADING', vehicle.x + vehicle.width / 2, barY - 5);
+                        }
+                        // Show charge bar
+                        else if (p.artilleryCharging && p.artilleryChargeTime > 0) {
+                            const chargeRatio = p.artilleryChargeTime / 3;
+
+                            // Background
+                            ctx.fillStyle = '#333';
+                            ctx.fillRect(barX, barY, barWidth, barHeight);
+
+                            // Charge bar
+                            const chargeColor = chargeRatio < 0.33 ? '#ffff00' : (chargeRatio < 0.66 ? '#ff8800' : '#ff0000');
+                            ctx.fillStyle = chargeColor;
+                            ctx.fillRect(barX, barY, barWidth * chargeRatio, barHeight);
+
+                            // Border
+                            ctx.strokeStyle = '#000';
+                            ctx.lineWidth = 2;
+                            ctx.strokeRect(barX, barY, barWidth, barHeight);
+
+                            // Text
+                            ctx.fillStyle = '#fff';
+                            ctx.font = 'bold 10px Courier New';
+                            ctx.textAlign = 'center';
+                            ctx.fillText('CHARGING', vehicle.x + vehicle.width / 2, barY - 5);
+                        }
                     }
                 }
             }
