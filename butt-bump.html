@@ -501,24 +501,6 @@
             // Update position
             player.x += player.vx;
             player.y += player.vy;
-
-            // Bounce off walls (with dampening)
-            if (player.x < PLAYER_SIZE) {
-                player.x = PLAYER_SIZE;
-                player.vx = Math.abs(player.vx) * 0.5;
-            }
-            if (player.x > canvas.width - PLAYER_SIZE) {
-                player.x = canvas.width - PLAYER_SIZE;
-                player.vx = -Math.abs(player.vx) * 0.5;
-            }
-            if (player.y < PLAYER_SIZE) {
-                player.y = PLAYER_SIZE;
-                player.vy = Math.abs(player.vy) * 0.5;
-            }
-            if (player.y > canvas.height - PLAYER_SIZE) {
-                player.y = canvas.height - PLAYER_SIZE;
-                player.vy = -Math.abs(player.vy) * 0.5;
-            }
         }
 
         function checkCollision() {
