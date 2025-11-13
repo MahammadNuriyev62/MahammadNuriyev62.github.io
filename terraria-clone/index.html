@@ -104,12 +104,28 @@
             top: 50%;
             left: 50%;
             transform: translate(-50%, -50%);
-            background: rgba(0,0,0,0.9);
-            padding: 20px;
+            background: rgba(0,0,0,0.95);
+            padding: 30px;
             color: white;
-            border: 2px solid #666;
+            border: 2px solid #ff6b6b;
             font-size: 16px;
             z-index: 1000;
+            max-width: 600px;
+            border-radius: 8px;
+            box-shadow: 0 0 20px rgba(255,107,107,0.5);
+        }
+
+        #connectionStatus code {
+            background: rgba(255,255,255,0.1);
+            padding: 2px 8px;
+            border-radius: 3px;
+            font-family: 'Courier New', monospace;
+            color: #00ff88;
+        }
+
+        #connectionStatus ol {
+            text-align: left;
+            line-height: 1.8;
         }
 
         .hidden {
