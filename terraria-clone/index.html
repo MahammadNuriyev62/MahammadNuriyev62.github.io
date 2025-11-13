@@ -1,0 +1,157 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>TerraQuest - Local Multiplayer</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            overflow: hidden;
+            background: #000;
+            font-family: 'Courier New', monospace;
+        }
+
+        #gameCanvas {
+            display: block;
+            background: #87CEEB;
+            image-rendering: pixelated;
+            image-rendering: crisp-edges;
+        }
+
+        #ui {
+            position: fixed;
+            top: 10px;
+            left: 10px;
+            color: white;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.8);
+            font-size: 14px;
+            z-index: 100;
+            pointer-events: none;
+        }
+
+        #healthBar {
+            width: 200px;
+            height: 24px;
+            background: rgba(0,0,0,0.5);
+            border: 2px solid #fff;
+            margin-top: 5px;
+            position: relative;
+        }
+
+        #healthFill {
+            height: 100%;
+            background: linear-gradient(to bottom, #ff4444, #cc0000);
+            transition: width 0.3s;
+        }
+
+        #inventory {
+            position: fixed;
+            bottom: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            display: flex;
+            gap: 4px;
+            z-index: 100;
+        }
+
+        .inventorySlot {
+            width: 48px;
+            height: 48px;
+            background: rgba(0,0,0,0.7);
+            border: 2px solid #666;
+            color: white;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 10px;
+            flex-direction: column;
+            cursor: pointer;
+            position: relative;
+        }
+
+        .inventorySlot.selected {
+            border-color: #ffff00;
+            box-shadow: 0 0 10px #ffff00;
+        }
+
+        .inventorySlot .count {
+            position: absolute;
+            bottom: 2px;
+            right: 2px;
+            font-size: 10px;
+        }
+
+        #instructions {
+            position: fixed;
+            top: 10px;
+            right: 10px;
+            background: rgba(0,0,0,0.7);
+            padding: 15px;
+            color: white;
+            border: 2px solid #666;
+            font-size: 12px;
+            max-width: 250px;
+        }
+
+        #connectionStatus {
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: rgba(0,0,0,0.9);
+            padding: 20px;
+            color: white;
+            border: 2px solid #666;
+            font-size: 16px;
+            z-index: 1000;
+        }
+
+        .hidden {
+            display: none !important;
+        }
+    </style>
+</head>
+<body>
+    <canvas id="gameCanvas"></canvas>
+
+    <div id="connectionStatus">
+        Connecting to server...
+    </div>
+
+    <div id="ui">
+        <div>TerraQuest</div>
+        <div id="playerInfo">Health: 100/100</div>
+        <div id="healthBar">
+            <div id="healthFill" style="width: 100%"></div>
+        </div>
+        <div id="timeDisplay">Time: Day</div>
+        <div id="positionDisplay">Position: 0, 0</div>
+    </div>
+
+    <div id="inventory"></div>
+
+    <div id="instructions">
+        <h3>Controls:</h3>
+        WASD/Arrows - Move<br>
+        Space - Jump<br>
+        Left Click - Mine/Attack<br>
+        Right Click - Place Block<br>
+        1-8 - Select Item<br>
+        Mouse Wheel - Scroll Items<br>
+        <br>
+        <h3>Tips:</h3>
+        - Mine blocks for resources<br>
+        - Build structures<br>
+        - Fight enemies at night<br>
+        - Play with friends on WiFi!
+    </div>
+
+    <script src="game.js"></script>
+</body>
+</html>
