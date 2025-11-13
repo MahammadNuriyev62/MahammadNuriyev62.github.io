@@ -890,37 +890,89 @@ function drawParticles() {
 }
 
 // Network functions
+let reconnectAttempts = 0;
+const MAX_RECONNECT_ATTEMPTS = 5;
+
 function connectToServer() {
     const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
     const wsUrl = `${protocol}//${window.location.host}`;
 
-    ws = new WebSocket(wsUrl);
+    console.log('Attempting to connect to:', wsUrl);
 
-    ws.onopen = () => {
-        console.log('Connected to server');
-        connected = true;
-        document.getElementById('connectionStatus').classList.add('hidden');
-    };
+    try {
+        ws = new WebSocket(wsUrl);
 
-    ws.onmessage = (event) => {
-        const data = JSON.parse(event.data);
-        handleServerMessage(data);
-    };
+        ws.onopen = () => {
+            console.log('Connected to server');
+            connected = true;
+            reconnectAttempts = 0;
+            document.getElementById('connectionStatus').classList.add('hidden');
+        };
 
-    ws.onclose = () => {
-        console.log('Disconnected from server');
+        ws.onmessage = (event) => {
+            const data = JSON.parse(event.data);
+            handleServerMessage(data);
+        };
+
+        ws.onclose = (event) => {
+            console.log('Disconnected from server', event.code, event.reason);
+            connected = false;
+            document.getElementById('connectionStatus').classList.remove('hidden');
+
+            if (reconnectAttempts === 0) {
+                // First disconnect - show helpful message
+                document.getElementById('connectionStatus').innerHTML = `
+                    <h3 style="color: #ff6b6b; margin-bottom: 10px;">⚠️ Server Not Running</h3>
+                    <p style="margin-bottom: 10px;">To play TerraQuest, you need to start the server first:</p>
+                    <ol style="text-align: left; margin: 10px 0; padding-left: 20px;">
+                        <li>Open terminal/command prompt</li>
+                        <li>Navigate to: <code style="background: rgba(255,255,255,0.1); padding: 2px 6px;">cd terraria-clone</code></li>
+                        <li>Run: <code style="background: rgba(255,255,255,0.1); padding: 2px 6px;">npm start</code></li>
+                        <li>Refresh this page</li>
+                    </ol>
+                    <p style="font-size: 14px; color: #94a3b8;">Retrying connection... (${reconnectAttempts}/${MAX_RECONNECT_ATTEMPTS})</p>
+                `;
+            } else {
+                document.getElementById('connectionStatus').innerHTML = `
+                    <h3 style="color: #ff6b6b; margin-bottom: 10px;">Reconnecting...</h3>
+                    <p>Attempt ${reconnectAttempts}/${MAX_RECONNECT_ATTEMPTS}</p>
+                    <p style="font-size: 14px; margin-top: 10px;">Make sure the server is running with <code style="background: rgba(255,255,255,0.1); padding: 2px 6px;">npm start</code></p>
+                `;
+            }
+
+            // Try to reconnect
+            if (reconnectAttempts < MAX_RECONNECT_ATTEMPTS) {
+                reconnectAttempts++;
+                setTimeout(connectToServer, 3000);
+            } else {
+                document.getElementById('connectionStatus').innerHTML = `
+                    <h3 style="color: #ff6b6b; margin-bottom: 10px;">❌ Connection Failed</h3>
+                    <p style="margin-bottom: 15px;">Could not connect to game server.</p>
+                    <p style="margin-bottom: 10px;"><strong>To start the server:</strong></p>
+                    <ol style="text-align: left; margin: 10px 0; padding-left: 20px;">
+                        <li>Open terminal in the <code style="background: rgba(255,255,255,0.1); padding: 2px 6px;">terraria-clone</code> folder</li>
+                        <li>Run: <code style="background: rgba(255,255,255,0.1); padding: 2px 6px;">npm install</code> (first time only)</li>
+                        <li>Run: <code style="background: rgba(255,255,255,0.1); padding: 2px 6px;">npm start</code></li>
+                        <li>Wait for "server running on port 3000"</li>
+                        <li><button onclick="location.reload()" style="margin-top: 10px; padding: 10px 20px; background: #00ff88; border: none; color: #000; cursor: pointer; font-weight: bold;">Refresh Page</button></li>
+                    </ol>
+                `;
+            }
+        };
+
+        ws.onerror = (error) => {
+            console.error('WebSocket error:', error);
+            connected = false;
+        };
+    } catch (error) {
+        console.error('Failed to create WebSocket:', error);
         connected = false;
         document.getElementById('connectionStatus').classList.remove('hidden');
-        document.getElementById('connectionStatus').textContent =
-            'Disconnected. Refresh to reconnect.';
-
-        // Try to reconnect
-        setTimeout(connectToServer, 3000);
-    };
-
-    ws.onerror = (error) => {
-        console.error('WebSocket error:', error);
-    };
+        document.getElementById('connectionStatus').innerHTML = `
+            <h3 style="color: #ff6b6b;">Connection Error</h3>
+            <p>Make sure the server is running: <code style="background: rgba(255,255,255,0.1); padding: 2px 6px;">npm start</code></p>
+        `;
+    }
 }
 
 function handleServerMessage(data) {

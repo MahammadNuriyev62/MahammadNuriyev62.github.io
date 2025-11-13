@@ -14,9 +14,17 @@ A 2D sandbox game inspired by Terraria, designed for local multiplayer gaming ov
 
 ## How to Play Locally (Same WiFi)
 
-### Setup Instructions
+### Quick Start (Recommended)
 
-1. **Install Dependencies**
+**Option 1: Using Start Scripts**
+- **Windows**: Double-click `start.bat`
+- **Mac/Linux**: Run `./start.sh` in terminal
+
+The script will automatically install dependencies and show your IP address for multiplayer!
+
+**Option 2: Manual Start**
+
+1. **Install Dependencies** (first time only)
    ```bash
    cd terraria-clone
    npm install
@@ -46,9 +54,16 @@ A 2D sandbox game inspired by Terraria, designed for local multiplayer gaming ov
    Look for your local IP (usually starts with 192.168.x.x or 10.x.x.x)
 
 4. **Connect Players**
-   - Host player: Open browser and go to `http://localhost:3000`
-   - Other players on WiFi: Open browser and go to `http://[HOST_IP]:3000`
+   - **Host player**: Open browser and go to `http://localhost:3000`
+   - **Other players on WiFi**: Open browser and go to `http://[HOST_IP]:3000`
      - Example: `http://192.168.1.100:3000`
+
+### Important Notes
+
+⚠️ **The server MUST be running before opening the game in browser!**
+- If you see "Server Not Running" message, make sure you've started the server with `npm start`
+- The game will automatically try to reconnect if the connection is lost
+- You'll see step-by-step instructions in the browser if the server isn't detected
 
 ### Game Controls
 
