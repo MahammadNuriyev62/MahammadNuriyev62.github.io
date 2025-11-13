@@ -1,0 +1,939 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>VoxelCraft - Local Multiplayer</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Courier New', monospace;
+            background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+            color: #fff;
+            overflow: hidden;
+        }
+
+        #gameContainer {
+            width: 100vw;
+            height: 100vh;
+            position: relative;
+        }
+
+        #canvas {
+            width: 100%;
+            height: 100%;
+            display: block;
+        }
+
+        #ui {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+        }
+
+        #crosshair {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            width: 20px;
+            height: 20px;
+            pointer-events: none;
+        }
+
+        #crosshair::before,
+        #crosshair::after {
+            content: '';
+            position: absolute;
+            background: rgba(255, 255, 255, 0.8);
+        }
+
+        #crosshair::before {
+            width: 2px;
+            height: 20px;
+            left: 9px;
+            top: 0;
+        }
+
+        #crosshair::after {
+            width: 20px;
+            height: 2px;
+            left: 0;
+            top: 9px;
+        }
+
+        #hud {
+            position: absolute;
+            top: 20px;
+            left: 20px;
+            background: rgba(0, 0, 0, 0.7);
+            padding: 15px 20px;
+            border-radius: 10px;
+            border: 2px solid #00ff88;
+            font-size: 14px;
+            pointer-events: auto;
+            max-width: 400px;
+        }
+
+        #hud h3 {
+            color: #00ff88;
+            margin-bottom: 10px;
+            font-size: 18px;
+        }
+
+        #hud p {
+            margin: 5px 0;
+            line-height: 1.5;
+        }
+
+        #blockSelector {
+            position: absolute;
+            bottom: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            display: flex;
+            gap: 10px;
+            background: rgba(0, 0, 0, 0.8);
+            padding: 15px;
+            border-radius: 10px;
+            border: 2px solid #00ff88;
+            pointer-events: auto;
+        }
+
+        .blockOption {
+            width: 50px;
+            height: 50px;
+            cursor: pointer;
+            border: 3px solid transparent;
+            border-radius: 5px;
+            transition: all 0.2s;
+            position: relative;
+        }
+
+        .blockOption:hover {
+            transform: scale(1.1);
+            border-color: #00d4ff;
+        }
+
+        .blockOption.selected {
+            border-color: #00ff88;
+            box-shadow: 0 0 20px rgba(0, 255, 136, 0.5);
+        }
+
+        .blockOption span {
+            position: absolute;
+            bottom: -20px;
+            left: 50%;
+            transform: translateX(-50%);
+            font-size: 10px;
+            white-space: nowrap;
+            color: #00ff88;
+        }
+
+        #menuScreen {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.95);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            z-index: 1000;
+            pointer-events: auto;
+        }
+
+        #menuScreen.hidden {
+            display: none;
+        }
+
+        #menuScreen h1 {
+            font-size: 72px;
+            color: #00ff88;
+            margin-bottom: 20px;
+            text-shadow: 0 0 30px rgba(0, 255, 136, 0.5);
+        }
+
+        #menuScreen h2 {
+            font-size: 24px;
+            color: #00d4ff;
+            margin-bottom: 40px;
+        }
+
+        .menuButton {
+            padding: 15px 40px;
+            font-size: 18px;
+            font-family: 'Courier New', monospace;
+            background: transparent;
+            color: #00ff88;
+            border: 2px solid #00ff88;
+            border-radius: 5px;
+            cursor: pointer;
+            margin: 10px;
+            transition: all 0.3s;
+            min-width: 300px;
+        }
+
+        .menuButton:hover {
+            background: #00ff88;
+            color: #000;
+            box-shadow: 0 0 30px rgba(0, 255, 136, 0.5);
+        }
+
+        #roomIdInput {
+            padding: 15px;
+            font-size: 18px;
+            font-family: 'Courier New', monospace;
+            background: rgba(0, 0, 0, 0.7);
+            color: #00ff88;
+            border: 2px solid #00ff88;
+            border-radius: 5px;
+            margin: 10px;
+            min-width: 300px;
+            text-align: center;
+        }
+
+        #connectionStatus {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            background: rgba(0, 0, 0, 0.7);
+            padding: 10px 20px;
+            border-radius: 10px;
+            border: 2px solid #00ff88;
+            font-size: 14px;
+            pointer-events: none;
+        }
+
+        .status-dot {
+            display: inline-block;
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+            margin-right: 8px;
+            background: #ff0000;
+        }
+
+        .status-dot.connected {
+            background: #00ff88;
+            box-shadow: 0 0 10px rgba(0, 255, 136, 0.5);
+        }
+
+        #instructions {
+            position: absolute;
+            bottom: 20px;
+            right: 20px;
+            background: rgba(0, 0, 0, 0.7);
+            padding: 15px;
+            border-radius: 10px;
+            border: 2px solid #00d4ff;
+            font-size: 12px;
+            max-width: 250px;
+            pointer-events: none;
+        }
+
+        #instructions h4 {
+            color: #00d4ff;
+            margin-bottom: 10px;
+        }
+
+        #instructions p {
+            margin: 5px 0;
+            line-height: 1.4;
+        }
+    </style>
+</head>
+<body>
+    <div id="gameContainer">
+        <canvas id="canvas"></canvas>
+
+        <div id="ui">
+            <div id="crosshair"></div>
+
+            <div id="hud">
+                <h3>VoxelCraft</h3>
+                <p>Position: <span id="position">0, 0, 0</span></p>
+                <p>Players Online: <span id="playerCount">1</span></p>
+                <p>Room: <span id="roomDisplay">Solo</span></p>
+            </div>
+
+            <div id="connectionStatus">
+                <span class="status-dot"></span>
+                <span id="statusText">Offline</span>
+            </div>
+
+            <div id="blockSelector">
+                <div class="blockOption selected" data-block="grass" style="background: linear-gradient(to bottom, #7cfc00 0%, #228b22 100%);">
+                    <span>1</span>
+                </div>
+                <div class="blockOption" data-block="dirt" style="background: #8b4513;">
+                    <span>2</span>
+                </div>
+                <div class="blockOption" data-block="stone" style="background: #808080;">
+                    <span>3</span>
+                </div>
+                <div class="blockOption" data-block="wood" style="background: #8b4513;">
+                    <span>4</span>
+                </div>
+                <div class="blockOption" data-block="leaf" style="background: #228b22;">
+                    <span>5</span>
+                </div>
+                <div class="blockOption" data-block="sand" style="background: #f4a460;">
+                    <span>6</span>
+                </div>
+                <div class="blockOption" data-block="water" style="background: #1e90ff;">
+                    <span>7</span>
+                </div>
+            </div>
+
+            <div id="instructions">
+                <h4>Controls:</h4>
+                <p>WASD - Move</p>
+                <p>Space - Jump</p>
+                <p>Mouse - Look</p>
+                <p>Left Click - Break</p>
+                <p>Right Click - Place</p>
+                <p>1-7 - Select Block</p>
+                <p>ESC - Menu</p>
+            </div>
+        </div>
+
+        <div id="menuScreen">
+            <h1>VoxelCraft</h1>
+            <h2>Local Multiplayer Voxel Game</h2>
+            <button class="menuButton" id="singlePlayerBtn">Single Player</button>
+            <button class="menuButton" id="hostGameBtn">Host Game</button>
+            <input type="text" id="roomIdInput" placeholder="Enter Room ID to Join" style="display: none;">
+            <button class="menuButton" id="joinGameBtn">Join Game</button>
+            <div style="margin-top: 30px; padding: 20px; background: rgba(0, 255, 136, 0.1); border: 2px solid #00ff88; border-radius: 10px; max-width: 500px;">
+                <p style="color: #00ff88; font-size: 14px;">🌐 Local Multiplayer: Share your Room ID with friends on the same WiFi network!</p>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/peerjs@1.4.7/dist/peerjs.min.js"></script>
+    <script>
+        // Game Configuration
+        const CHUNK_SIZE = 16;
+        const WORLD_SIZE = 3; // 3x3 chunks
+        const BLOCK_SIZE = 1;
+        const GRAVITY = 20;
+        const JUMP_FORCE = 8;
+        const MOVE_SPEED = 5;
+        const MOUSE_SENSITIVITY = 0.002;
+
+        // Block Types
+        const BLOCK_TYPES = {
+            air: 0,
+            grass: 1,
+            dirt: 2,
+            stone: 3,
+            wood: 4,
+            leaf: 5,
+            sand: 6,
+            water: 7
+        };
+
+        const BLOCK_COLORS = {
+            1: 0x7cfc00, // grass
+            2: 0x8b4513, // dirt
+            3: 0x808080, // stone
+            4: 0x8b4513, // wood
+            5: 0x228b22, // leaf
+            6: 0xf4a460, // sand
+            7: 0x1e90ff  // water
+        };
+
+        // Game State
+        let scene, camera, renderer, canvas;
+        let world = {};
+        let players = {};
+        let currentPlayer;
+        let selectedBlock = BLOCK_TYPES.grass;
+        let isPointerLocked = false;
+        let keys = {};
+        let velocity = { x: 0, y: 0, z: 0 };
+        let canJump = false;
+
+        // Networking
+        let peer;
+        let connections = [];
+        let isHost = false;
+        let myPlayerId;
+        let roomId;
+
+        // Initialize Three.js
+        function initThree() {
+            canvas = document.getElementById('canvas');
+            scene = new THREE.Scene();
+            scene.background = new THREE.Color(0x87ceeb);
+            scene.fog = new THREE.Fog(0x87ceeb, 0, 150);
+
+            camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
+
+            renderer = new THREE.WebGLRenderer({ canvas: canvas, antialias: true });
+            renderer.setSize(window.innerWidth, window.innerHeight);
+            renderer.shadowMap.enabled = true;
+            renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+
+            // Lighting
+            const ambientLight = new THREE.AmbientLight(0xffffff, 0.6);
+            scene.add(ambientLight);
+
+            const directionalLight = new THREE.DirectionalLight(0xffffff, 0.8);
+            directionalLight.position.set(50, 100, 50);
+            directionalLight.castShadow = true;
+            directionalLight.shadow.camera.left = -50;
+            directionalLight.shadow.camera.right = 50;
+            directionalLight.shadow.camera.top = 50;
+            directionalLight.shadow.camera.bottom = -50;
+            directionalLight.shadow.mapSize.width = 2048;
+            directionalLight.shadow.mapSize.height = 2048;
+            scene.add(directionalLight);
+
+            // Initialize current player
+            currentPlayer = {
+                position: { x: 8, y: 20, z: 8 },
+                rotation: { x: 0, y: 0 },
+                id: myPlayerId,
+                mesh: null
+            };
+
+            camera.position.set(currentPlayer.position.x, currentPlayer.position.y, currentPlayer.position.z);
+
+            window.addEventListener('resize', onWindowResize);
+        }
+
+        // Generate World
+        function generateWorld() {
+            const startX = -CHUNK_SIZE * Math.floor(WORLD_SIZE / 2);
+            const startZ = -CHUNK_SIZE * Math.floor(WORLD_SIZE / 2);
+
+            for (let cx = 0; cx < WORLD_SIZE; cx++) {
+                for (let cz = 0; cz < WORLD_SIZE; cz++) {
+                    generateChunk(startX + cx * CHUNK_SIZE, startZ + cz * CHUNK_SIZE);
+                }
+            }
+        }
+
+        function generateChunk(chunkX, chunkZ) {
+            for (let x = 0; x < CHUNK_SIZE; x++) {
+                for (let z = 0; z < CHUNK_SIZE; z++) {
+                    const worldX = chunkX + x;
+                    const worldZ = chunkZ + z;
+
+                    // Simple terrain generation
+                    const height = Math.floor(
+                        Math.sin(worldX * 0.1) * 3 +
+                        Math.cos(worldZ * 0.1) * 3 +
+                        Math.sin(worldX * 0.05) * Math.cos(worldZ * 0.05) * 5 +
+                        10
+                    );
+
+                    // Generate terrain layers
+                    for (let y = 0; y <= height; y++) {
+                        let blockType;
+                        if (y === height) {
+                            blockType = BLOCK_TYPES.grass;
+                        } else if (y >= height - 3) {
+                            blockType = BLOCK_TYPES.dirt;
+                        } else {
+                            blockType = BLOCK_TYPES.stone;
+                        }
+                        setBlock(worldX, y, worldZ, blockType);
+                    }
+
+                    // Add some trees
+                    if (Math.random() > 0.97 && height > 8) {
+                        generateTree(worldX, height + 1, worldZ);
+                    }
+                }
+            }
+        }
+
+        function generateTree(x, y, z) {
+            // Trunk
+            for (let i = 0; i < 5; i++) {
+                setBlock(x, y + i, z, BLOCK_TYPES.wood);
+            }
+
+            // Leaves
+            for (let dx = -2; dx <= 2; dx++) {
+                for (let dy = 3; dy <= 6; dy++) {
+                    for (let dz = -2; dz <= 2; dz++) {
+                        if (Math.abs(dx) === 2 && Math.abs(dz) === 2) continue;
+                        if (dy === 6 && (Math.abs(dx) > 1 || Math.abs(dz) > 1)) continue;
+                        setBlock(x + dx, y + dy, z + dz, BLOCK_TYPES.leaf);
+                    }
+                }
+            }
+        }
+
+        function getBlockKey(x, y, z) {
+            return `${Math.floor(x)},${Math.floor(y)},${Math.floor(z)}`;
+        }
+
+        function setBlock(x, y, z, type) {
+            const key = getBlockKey(x, y, z);
+
+            if (type === BLOCK_TYPES.air) {
+                if (world[key]) {
+                    scene.remove(world[key]);
+                    delete world[key];
+                }
+                return;
+            }
+
+            if (!world[key]) {
+                const geometry = new THREE.BoxGeometry(BLOCK_SIZE, BLOCK_SIZE, BLOCK_SIZE);
+                const material = new THREE.MeshLambertMaterial({ color: BLOCK_COLORS[type] });
+                const mesh = new THREE.Mesh(geometry, material);
+                mesh.position.set(x, y, z);
+                mesh.castShadow = true;
+                mesh.receiveShadow = true;
+                mesh.userData.blockType = type;
+                scene.add(mesh);
+                world[key] = mesh;
+            }
+        }
+
+        function getBlock(x, y, z) {
+            const key = getBlockKey(x, y, z);
+            return world[key] ? world[key].userData.blockType : BLOCK_TYPES.air;
+        }
+
+        // Player Controls
+        function setupControls() {
+            document.addEventListener('keydown', (e) => {
+                keys[e.code] = true;
+
+                // Block selection with number keys
+                if (e.code >= 'Digit1' && e.code <= 'Digit7') {
+                    const index = parseInt(e.code.replace('Digit', '')) - 1;
+                    const blockOptions = document.querySelectorAll('.blockOption');
+                    if (blockOptions[index]) {
+                        blockOptions.forEach(opt => opt.classList.remove('selected'));
+                        blockOptions[index].classList.add('selected');
+                        selectedBlock = BLOCK_TYPES[blockOptions[index].dataset.block];
+                    }
+                }
+
+                // ESC to unlock pointer
+                if (e.code === 'Escape') {
+                    document.exitPointerLock();
+                    document.getElementById('menuScreen').classList.remove('hidden');
+                }
+            });
+
+            document.addEventListener('keyup', (e) => {
+                keys[e.code] = false;
+            });
+
+            document.addEventListener('mousemove', onMouseMove);
+            document.addEventListener('mousedown', onMouseDown);
+            document.addEventListener('contextmenu', (e) => e.preventDefault());
+
+            // Pointer lock
+            canvas.addEventListener('click', () => {
+                if (!isPointerLocked) {
+                    canvas.requestPointerLock();
+                }
+            });
+
+            document.addEventListener('pointerlockchange', () => {
+                isPointerLocked = document.pointerLockElement === canvas;
+            });
+
+            // Block selector clicks
+            document.querySelectorAll('.blockOption').forEach(option => {
+                option.addEventListener('click', (e) => {
+                    document.querySelectorAll('.blockOption').forEach(opt => opt.classList.remove('selected'));
+                    option.classList.add('selected');
+                    selectedBlock = BLOCK_TYPES[option.dataset.block];
+                });
+            });
+        }
+
+        function onMouseMove(event) {
+            if (!isPointerLocked) return;
+
+            currentPlayer.rotation.y -= event.movementX * MOUSE_SENSITIVITY;
+            currentPlayer.rotation.x -= event.movementY * MOUSE_SENSITIVITY;
+            currentPlayer.rotation.x = Math.max(-Math.PI / 2, Math.min(Math.PI / 2, currentPlayer.rotation.x));
+
+            camera.rotation.order = 'YXZ';
+            camera.rotation.y = currentPlayer.rotation.y;
+            camera.rotation.x = currentPlayer.rotation.x;
+        }
+
+        function onMouseDown(event) {
+            if (!isPointerLocked) return;
+
+            const result = raycast();
+            if (!result) return;
+
+            if (event.button === 0) { // Left click - break block
+                breakBlock(result.point.x, result.point.y, result.point.z);
+            } else if (event.button === 2) { // Right click - place block
+                placeBlock(result.point.x, result.point.y, result.point.z, result.normal);
+            }
+        }
+
+        function raycast() {
+            const raycaster = new THREE.Raycaster();
+            raycaster.setFromCamera(new THREE.Vector2(0, 0), camera);
+
+            const intersects = raycaster.intersectObjects(Object.values(world));
+            if (intersects.length > 0 && intersects[0].distance < 5) {
+                return {
+                    point: intersects[0].point,
+                    normal: intersects[0].face.normal,
+                    object: intersects[0].object
+                };
+            }
+            return null;
+        }
+
+        function breakBlock(x, y, z) {
+            const bx = Math.floor(x);
+            const by = Math.floor(y);
+            const bz = Math.floor(z);
+
+            setBlock(bx, by, bz, BLOCK_TYPES.air);
+            broadcastBlockUpdate(bx, by, bz, BLOCK_TYPES.air);
+        }
+
+        function placeBlock(x, y, z, normal) {
+            const bx = Math.floor(x + normal.x * 0.5);
+            const by = Math.floor(y + normal.y * 0.5);
+            const bz = Math.floor(z + normal.z * 0.5);
+
+            // Don't place block where player is
+            const px = Math.floor(currentPlayer.position.x);
+            const py = Math.floor(currentPlayer.position.y);
+            const pz = Math.floor(currentPlayer.position.z);
+
+            if ((bx === px && by === py && bz === pz) ||
+                (bx === px && by === py - 1 && bz === pz)) {
+                return;
+            }
+
+            setBlock(bx, by, bz, selectedBlock);
+            broadcastBlockUpdate(bx, by, bz, selectedBlock);
+        }
+
+        // Physics
+        function updatePhysics(deltaTime) {
+            const moveX = (keys['KeyD'] ? 1 : 0) - (keys['KeyA'] ? 1 : 0);
+            const moveZ = (keys['KeyS'] ? 1 : 0) - (keys['KeyW'] ? 1 : 0);
+
+            // Calculate movement direction
+            const forward = new THREE.Vector3(0, 0, -1);
+            const right = new THREE.Vector3(1, 0, 0);
+
+            forward.applyAxisAngle(new THREE.Vector3(0, 1, 0), currentPlayer.rotation.y);
+            right.applyAxisAngle(new THREE.Vector3(0, 1, 0), currentPlayer.rotation.y);
+
+            velocity.x = (forward.x * moveZ + right.x * moveX) * MOVE_SPEED;
+            velocity.z = (forward.z * moveZ + right.z * moveX) * MOVE_SPEED;
+
+            // Apply gravity
+            velocity.y -= GRAVITY * deltaTime;
+
+            // Jump
+            if (keys['Space'] && canJump) {
+                velocity.y = JUMP_FORCE;
+                canJump = false;
+            }
+
+            // Update position
+            const newPos = {
+                x: currentPlayer.position.x + velocity.x * deltaTime,
+                y: currentPlayer.position.y + velocity.y * deltaTime,
+                z: currentPlayer.position.z + velocity.z * deltaTime
+            };
+
+            // Collision detection
+            const playerBox = {
+                min: { x: newPos.x - 0.3, y: newPos.y - 1.5, z: newPos.z - 0.3 },
+                max: { x: newPos.x + 0.3, y: newPos.y + 0.3, z: newPos.z + 0.3 }
+            };
+
+            let collisionX = false, collisionY = false, collisionZ = false;
+
+            // Check collisions in each axis
+            for (let x = Math.floor(playerBox.min.x); x <= Math.ceil(playerBox.max.x); x++) {
+                for (let y = Math.floor(playerBox.min.y); y <= Math.ceil(playerBox.max.y); y++) {
+                    for (let z = Math.floor(playerBox.min.z); z <= Math.ceil(playerBox.max.z); z++) {
+                        if (getBlock(x, y, z) !== BLOCK_TYPES.air) {
+                            // X collision
+                            if (x >= playerBox.min.x && x <= playerBox.max.x) {
+                                collisionX = true;
+                            }
+                            // Y collision
+                            if (y >= playerBox.min.y && y <= playerBox.max.y) {
+                                collisionY = true;
+                                if (velocity.y < 0) {
+                                    canJump = true;
+                                    velocity.y = 0;
+                                    newPos.y = y + 1.5;
+                                }
+                            }
+                            // Z collision
+                            if (z >= playerBox.min.z && z <= playerBox.max.z) {
+                                collisionZ = true;
+                            }
+                        }
+                    }
+                }
+            }
+
+            if (!collisionX) currentPlayer.position.x = newPos.x;
+            if (!collisionY) currentPlayer.position.y = newPos.y;
+            if (!collisionZ) currentPlayer.position.z = newPos.z;
+
+            // Update camera position
+            camera.position.set(currentPlayer.position.x, currentPlayer.position.y, currentPlayer.position.z);
+
+            // Update HUD
+            document.getElementById('position').textContent =
+                `${Math.floor(currentPlayer.position.x)}, ${Math.floor(currentPlayer.position.y)}, ${Math.floor(currentPlayer.position.z)}`;
+
+            // Broadcast position to other players
+            broadcastPlayerUpdate();
+        }
+
+        // Render other players
+        function updateOtherPlayers() {
+            Object.entries(players).forEach(([id, player]) => {
+                if (id === myPlayerId) return;
+
+                if (!player.mesh) {
+                    // Create player representation
+                    const geometry = new THREE.BoxGeometry(0.6, 1.8, 0.6);
+                    const material = new THREE.MeshLambertMaterial({ color: Math.random() * 0xffffff });
+                    player.mesh = new THREE.Mesh(geometry, material);
+                    scene.add(player.mesh);
+                }
+
+                player.mesh.position.set(player.position.x, player.position.y - 0.9, player.position.z);
+            });
+        }
+
+        // Networking Functions
+        function initNetworking() {
+            myPlayerId = 'player_' + Math.random().toString(36).substr(2, 9);
+        }
+
+        function hostGame() {
+            peer = new Peer(myPlayerId);
+
+            peer.on('open', (id) => {
+                roomId = id;
+                isHost = true;
+                document.getElementById('roomDisplay').textContent = roomId;
+                updateConnectionStatus('Hosting', true);
+
+                alert(`Room ID: ${roomId}\nShare this ID with friends to join!`);
+            });
+
+            peer.on('connection', (conn) => {
+                connections.push(conn);
+                setupConnection(conn);
+            });
+
+            startGame();
+        }
+
+        function joinGame(roomIdToJoin) {
+            myPlayerId = 'player_' + Math.random().toString(36).substr(2, 9);
+            peer = new Peer(myPlayerId);
+
+            peer.on('open', () => {
+                const conn = peer.connect(roomIdToJoin);
+                connections.push(conn);
+                setupConnection(conn);
+                roomId = roomIdToJoin;
+                document.getElementById('roomDisplay').textContent = 'Joined';
+                startGame();
+            });
+        }
+
+        function setupConnection(conn) {
+            conn.on('open', () => {
+                updateConnectionStatus('Connected', true);
+                updatePlayerCount();
+
+                // Send initial world state if host
+                if (isHost) {
+                    const worldState = {};
+                    Object.entries(world).forEach(([key, mesh]) => {
+                        worldState[key] = mesh.userData.blockType;
+                    });
+                    conn.send({ type: 'worldState', data: worldState });
+                }
+            });
+
+            conn.on('data', (data) => {
+                handleNetworkMessage(data, conn);
+            });
+
+            conn.on('close', () => {
+                connections = connections.filter(c => c !== conn);
+                updatePlayerCount();
+            });
+        }
+
+        function handleNetworkMessage(data, conn) {
+            switch (data.type) {
+                case 'worldState':
+                    // Load world state from host
+                    Object.entries(data.data).forEach(([key, blockType]) => {
+                        const [x, y, z] = key.split(',').map(Number);
+                        setBlock(x, y, z, blockType);
+                    });
+                    break;
+
+                case 'playerUpdate':
+                    if (!players[data.playerId]) {
+                        players[data.playerId] = { position: {}, rotation: {} };
+                    }
+                    players[data.playerId].position = data.position;
+                    players[data.playerId].rotation = data.rotation;
+                    break;
+
+                case 'blockUpdate':
+                    setBlock(data.x, data.y, data.z, data.blockType);
+                    // Relay to other players if host
+                    if (isHost) {
+                        connections.forEach(c => {
+                            if (c !== conn) {
+                                c.send(data);
+                            }
+                        });
+                    }
+                    break;
+            }
+        }
+
+        function broadcastPlayerUpdate() {
+            const message = {
+                type: 'playerUpdate',
+                playerId: myPlayerId,
+                position: currentPlayer.position,
+                rotation: currentPlayer.rotation
+            };
+
+            connections.forEach(conn => {
+                if (conn.open) {
+                    conn.send(message);
+                }
+            });
+        }
+
+        function broadcastBlockUpdate(x, y, z, blockType) {
+            const message = {
+                type: 'blockUpdate',
+                x, y, z, blockType
+            };
+
+            connections.forEach(conn => {
+                if (conn.open) {
+                    conn.send(message);
+                }
+            });
+        }
+
+        function updateConnectionStatus(status, connected) {
+            const statusDot = document.querySelector('.status-dot');
+            const statusText = document.getElementById('statusText');
+
+            statusText.textContent = status;
+            if (connected) {
+                statusDot.classList.add('connected');
+            } else {
+                statusDot.classList.remove('connected');
+            }
+        }
+
+        function updatePlayerCount() {
+            const count = Object.keys(players).length + 1;
+            document.getElementById('playerCount').textContent = count;
+        }
+
+        // Game Loop
+        let lastTime = performance.now();
+
+        function animate() {
+            requestAnimationFrame(animate);
+
+            const currentTime = performance.now();
+            const deltaTime = (currentTime - lastTime) / 1000;
+            lastTime = currentTime;
+
+            if (isPointerLocked) {
+                updatePhysics(deltaTime);
+                updateOtherPlayers();
+            }
+
+            renderer.render(scene, camera);
+        }
+
+        function onWindowResize() {
+            camera.aspect = window.innerWidth / window.innerHeight;
+            camera.updateProjectionMatrix();
+            renderer.setSize(window.innerWidth, window.innerHeight);
+        }
+
+        function startGame() {
+            document.getElementById('menuScreen').classList.add('hidden');
+            canvas.requestPointerLock();
+        }
+
+        // Menu Events
+        document.getElementById('singlePlayerBtn').addEventListener('click', () => {
+            initNetworking();
+            updateConnectionStatus('Offline', false);
+            startGame();
+        });
+
+        document.getElementById('hostGameBtn').addEventListener('click', () => {
+            initNetworking();
+            hostGame();
+        });
+
+        document.getElementById('joinGameBtn').addEventListener('click', () => {
+            const input = document.getElementById('roomIdInput');
+            if (input.style.display === 'none') {
+                input.style.display = 'block';
+                input.focus();
+            } else {
+                const roomId = input.value.trim();
+                if (roomId) {
+                    joinGame(roomId);
+                } else {
+                    alert('Please enter a Room ID!');
+                }
+            }
+        });
+
+        // Initialize Game
+        initNetworking();
+        initThree();
+        generateWorld();
+        setupControls();
+        animate();
+    </script>
+</body>
+</html>
