@@ -338,6 +338,9 @@
                     </div>
                 </div>
                 <div id="playerList"></div>
+                <div id="hostControls" class="hidden" style="text-align: center; margin: 10px 0;">
+                    <button onclick="restartGame()" style="padding: 10px 30px;">🔄 Restart Game</button>
+                </div>
                 <div id="controls">
                     <span id="controlsText">WASD/Arrows: Move | E: Use Door | R: Lock Door (costs 1 key)</span>
                 </div>
@@ -440,7 +443,7 @@
         // Input handling
         const keys_pressed = {};
         const PLAYER_SPEED = 1.5;
-        const MONSTER_SPEED = 2.0;
+        const MONSTER_SPEED = 1.2;  // Slower than players for better balance
         const FRICTION = 0.85;
         const CATCH_DISTANCE = 35;
 
@@ -684,6 +687,43 @@
                     }
                     break;
 
+                case 'restart':
+                    // Hide game over screen
+                    document.getElementById('gameOver').style.display = 'none';
+
+                    // Update game objects from host
+                    keys.length = 0;
+                    keys.push(...data.keys);
+                    doors.length = 0;
+                    doors.push(...data.doors);
+                    traps.length = 0;
+                    traps.push(...data.traps);
+                    passages.length = 0;
+                    passages.push(...data.passages);
+
+                    // Update all players from host
+                    Object.keys(data.players).forEach(id => {
+                        if (players[id]) {
+                            players[id] = data.players[id];
+                        }
+                    });
+
+                    // Reset my player state
+                    myPlayer.isCaught = false;
+                    myPlayer.keysCollected = 0;
+                    myPlayer.stunned = false;
+                    myPlayer.stunnedUntil = 0;
+                    myPlayer.x = 60;
+                    myPlayer.y = 60;
+
+                    // Reset timer
+                    gameStartTime = Date.now();
+                    gameTime = 0;
+
+                    // Update UI
+                    updatePlayerList();
+                    break;
+
                 case 'leave':
                     delete players[data.id];
                     updatePlayerList();
@@ -714,6 +754,11 @@
 
             const role = isHost ? '👹 You are the MONSTER!' : '🏃 SURVIVE!';
             document.getElementById('roomInfo').textContent = `Room ID: ${roomId} | ${role}`;
+
+            // Show restart button only for host
+            if (isHost) {
+                document.getElementById('hostControls').classList.remove('hidden');
+            }
 
             players[myId] = myPlayer;
             updatePlayerList();
@@ -1145,6 +1190,64 @@
                 ctx.shadowBlur = 4;
                 ctx.fillText(player.name, player.x, player.y - player.radius - 3);
                 ctx.shadowBlur = 0;
+            });
+        }
+
+        // Restart game (host only)
+        function restartGame() {
+            if (!isHost) return;
+
+            // Hide game over screen
+            document.getElementById('gameOver').style.display = 'none';
+
+            // Reset game objects
+            keys.forEach(key => key.collected = false);
+            doors.forEach(door => {
+                door.open = false;
+                door.locked = false;
+            });
+            traps.forEach(trap => trap.active = true);
+            passages.forEach(passage => passage.discovered = false);
+
+            // Reset all players
+            Object.keys(players).forEach(id => {
+                players[id].isCaught = false;
+                players[id].keysCollected = 0;
+                players[id].stunned = false;
+                players[id].stunnedUntil = 0;
+
+                if (players[id].isMonster) {
+                    players[id].x = canvas.width - 60;
+                    players[id].y = canvas.height - 60;
+                } else {
+                    players[id].x = 60;
+                    players[id].y = 60;
+                }
+            });
+
+            // Reset my player
+            myPlayer.isCaught = false;
+            myPlayer.keysCollected = 0;
+            myPlayer.stunned = false;
+            myPlayer.stunnedUntil = 0;
+            myPlayer.x = canvas.width - 60;
+            myPlayer.y = canvas.height - 60;
+
+            // Reset timer
+            gameStartTime = Date.now();
+            gameTime = 0;
+
+            // Update UI
+            updatePlayerList();
+
+            // Broadcast restart to all players
+            broadcast({
+                type: 'restart',
+                keys: keys,
+                doors: doors,
+                traps: traps,
+                passages: passages,
+                players: players
             });
         }
 
