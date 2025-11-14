@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>3D Shooter - Dust Arena</title>
+    <title>Counter-Strike: de_dust2</title>
     <style>
         * {
             margin: 0;
@@ -12,7 +12,7 @@
         }
 
         body {
-            font-family: 'Arial', sans-serif;
+            font-family: 'Courier New', monospace;
             overflow: hidden;
             background: #000;
         }
@@ -21,6 +21,10 @@
             width: 100vw;
             height: 100vh;
             position: relative;
+        }
+
+        canvas {
+            display: block;
         }
 
         #hud {
@@ -39,45 +43,56 @@
             top: 50%;
             left: 50%;
             transform: translate(-50%, -50%);
-            width: 20px;
-            height: 20px;
+            width: 30px;
+            height: 30px;
+            pointer-events: none;
         }
 
         #crosshair::before,
         #crosshair::after {
             content: '';
             position: absolute;
-            background: rgba(255, 255, 255, 0.8);
+            background: #00ff00;
+            box-shadow: 0 0 5px #00ff00;
         }
 
         #crosshair::before {
             width: 2px;
-            height: 20px;
-            left: 9px;
-            top: 0;
+            height: 12px;
+            left: 14px;
+            top: 3px;
         }
 
         #crosshair::after {
-            width: 20px;
+            width: 12px;
             height: 2px;
-            left: 0;
-            top: 9px;
+            left: 3px;
+            top: 14px;
+        }
+
+        .crosshair-dot {
+            position: absolute;
+            width: 2px;
+            height: 2px;
+            background: #00ff00;
+            left: 14px;
+            top: 14px;
         }
 
         #stats {
             position: absolute;
             top: 20px;
             left: 20px;
-            background: rgba(0, 0, 0, 0.7);
-            padding: 15px 20px;
-            border: 2px solid rgba(255, 255, 255, 0.3);
+            background: rgba(0, 0, 0, 0.8);
+            padding: 20px;
+            border: 2px solid #00ff00;
             border-radius: 5px;
-            min-width: 200px;
+            min-width: 220px;
+            font-size: 16px;
         }
 
         .stat-item {
-            margin: 5px 0;
-            font-size: 16px;
+            margin: 8px 0;
             display: flex;
             justify-content: space-between;
             align-items: center;
@@ -89,7 +104,7 @@
         }
 
         .stat-value {
-            color: #0f0;
+            color: #00ff00;
             font-weight: bold;
             font-size: 18px;
         }
@@ -98,22 +113,19 @@
         .ammo-value { color: #ffaa00; }
         .score-value { color: #44ff44; }
 
-        .bar-container {
+        .health-bar-container {
             background: #222;
-            height: 10px;
+            height: 12px;
             border: 1px solid #555;
             margin-top: 5px;
             position: relative;
-            width: 150px;
-        }
-
-        .bar {
-            height: 100%;
-            transition: width 0.3s ease;
+            width: 100%;
         }
 
         .health-bar {
+            height: 100%;
             background: linear-gradient(90deg, #ff0000, #00ff00);
+            transition: width 0.3s ease;
         }
 
         #startScreen {
@@ -122,7 +134,7 @@
             left: 0;
             width: 100%;
             height: 100%;
-            background: rgba(0, 0, 0, 0.9);
+            background: rgba(0, 0, 0, 0.95);
             display: flex;
             flex-direction: column;
             justify-content: center;
@@ -132,33 +144,43 @@
         }
 
         #startScreen h1 {
-            font-size: 48px;
-            margin-bottom: 20px;
-            text-shadow: 0 0 10px #ff0000;
+            font-size: 56px;
+            margin-bottom: 10px;
+            color: #00ff00;
+            text-shadow: 0 0 20px #00ff00;
+        }
+
+        #startScreen h2 {
+            font-size: 32px;
+            margin-bottom: 30px;
+            color: #ffaa00;
         }
 
         #startScreen p {
             font-size: 18px;
-            margin: 10px 0;
+            margin: 8px 0;
             color: #aaa;
         }
 
         #startButton {
-            margin-top: 30px;
-            padding: 15px 40px;
+            margin-top: 40px;
+            padding: 18px 50px;
             font-size: 24px;
-            background: #ff0000;
-            color: white;
+            background: #00ff00;
+            color: #000;
             border: none;
             border-radius: 5px;
             cursor: pointer;
             pointer-events: all;
+            font-weight: bold;
             transition: all 0.3s ease;
+            text-transform: uppercase;
         }
 
         #startButton:hover {
-            background: #ff4444;
+            background: #44ff44;
             transform: scale(1.1);
+            box-shadow: 0 0 30px #00ff00;
         }
 
         #gameOver {
@@ -166,37 +188,43 @@
             top: 50%;
             left: 50%;
             transform: translate(-50%, -50%);
-            background: rgba(0, 0, 0, 0.9);
-            padding: 40px;
+            background: rgba(0, 0, 0, 0.95);
+            padding: 50px;
             border: 3px solid #ff0000;
             border-radius: 10px;
             text-align: center;
             display: none;
             z-index: 300;
+            pointer-events: all;
         }
 
         #gameOver h2 {
-            font-size: 36px;
+            font-size: 42px;
             color: #ff0000;
-            margin-bottom: 20px;
+            margin-bottom: 25px;
+            text-shadow: 0 0 20px #ff0000;
         }
 
         #gameOver p {
-            font-size: 20px;
+            font-size: 22px;
             color: white;
-            margin: 10px 0;
+            margin: 12px 0;
         }
 
         #restartButton {
-            margin-top: 20px;
-            padding: 10px 30px;
-            font-size: 18px;
+            margin-top: 25px;
+            padding: 12px 35px;
+            font-size: 20px;
             background: #ff0000;
             color: white;
             border: none;
             border-radius: 5px;
             cursor: pointer;
-            pointer-events: all;
+            font-weight: bold;
+        }
+
+        #restartButton:hover {
+            background: #ff4444;
         }
 
         #hitMarker {
@@ -204,8 +232,8 @@
             top: 50%;
             left: 50%;
             transform: translate(-50%, -50%);
-            width: 30px;
-            height: 30px;
+            width: 40px;
+            height: 40px;
             display: none;
             pointer-events: none;
         }
@@ -215,7 +243,7 @@
             content: '';
             position: absolute;
             width: 100%;
-            height: 2px;
+            height: 3px;
             background: #ff0000;
             top: 50%;
             left: 0;
@@ -233,67 +261,91 @@
             position: absolute;
             bottom: 20px;
             right: 20px;
-            background: rgba(0, 0, 0, 0.7);
-            padding: 15px;
-            border: 2px solid rgba(255, 255, 255, 0.3);
+            background: rgba(0, 0, 0, 0.8);
+            padding: 15px 20px;
+            border: 2px solid #00ff00;
             border-radius: 5px;
             font-size: 14px;
         }
 
         .controls-info div {
-            margin: 3px 0;
+            margin: 4px 0;
             color: #aaa;
+        }
+
+        .controls-info strong {
+            color: #00ff00;
+        }
+
+        #locationLabel {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -200%);
+            font-size: 24px;
+            color: #00ff00;
+            text-shadow: 0 0 10px #00ff00, 2px 2px 4px #000;
+            font-weight: bold;
+            opacity: 0;
+            transition: opacity 0.3s ease;
+            pointer-events: none;
         }
     </style>
 </head>
 <body>
     <div id="gameContainer">
         <div id="hud">
-            <div id="crosshair"></div>
+            <div id="crosshair">
+                <div class="crosshair-dot"></div>
+            </div>
             <div id="hitMarker"></div>
+            <div id="locationLabel"></div>
             <div id="stats">
                 <div class="stat-item">
-                    <span class="stat-label">Health:</span>
+                    <span class="stat-label">HEALTH:</span>
                     <span class="stat-value health-value" id="healthValue">100</span>
                 </div>
-                <div class="bar-container">
-                    <div class="bar health-bar" id="healthBar" style="width: 100%"></div>
+                <div class="health-bar-container">
+                    <div class="health-bar" id="healthBar" style="width: 100%"></div>
                 </div>
                 <div class="stat-item">
-                    <span class="stat-label">Ammo:</span>
+                    <span class="stat-label">AMMO:</span>
                     <span class="stat-value ammo-value" id="ammoValue">30/90</span>
                 </div>
                 <div class="stat-item">
-                    <span class="stat-label">Score:</span>
+                    <span class="stat-label">SCORE:</span>
                     <span class="stat-value score-value" id="scoreValue">0</span>
                 </div>
                 <div class="stat-item">
-                    <span class="stat-label">Bots:</span>
+                    <span class="stat-label">ENEMIES:</span>
                     <span class="stat-value" id="botsValue">0</span>
                 </div>
             </div>
 
             <div class="controls-info">
-                <div><strong>Controls:</strong></div>
-                <div>WASD - Move</div>
-                <div>Mouse - Look</div>
-                <div>Space - Jump</div>
-                <div>Left Click - Shoot</div>
+                <div><strong>CONTROLS</strong></div>
+                <div>W/A/S/D - Move</div>
+                <div>Mouse - Look Around</div>
+                <div>SPACE - Jump</div>
+                <div>LEFT CLICK - Shoot</div>
                 <div>R - Reload</div>
+                <div>ESC - Unlock Mouse</div>
             </div>
 
             <div id="gameOver">
                 <h2>GAME OVER</h2>
                 <p id="finalScore">Final Score: 0</p>
-                <button id="restartButton" onclick="location.reload()">Restart</button>
+                <button id="restartButton" onclick="location.reload()">RESTART</button>
             </div>
         </div>
 
         <div id="startScreen">
-            <h1>DUST ARENA</h1>
-            <p>Eliminate all enemy bots to win!</p>
-            <p>Watch out - they shoot back!</p>
-            <button id="startButton">START GAME</button>
+            <h1>COUNTER-STRIKE</h1>
+            <h2>de_dust2</h2>
+            <p>Eliminate all 10 terrorists to win!</p>
+            <p>Classic map layout with all iconic locations</p>
+            <p>Long A • Short A • Mid • B Tunnels • Both Sites</p>
+            <button id="startButton">Start Mission</button>
         </div>
     </div>
 
@@ -303,10 +355,11 @@
         const config = {
             player: {
                 health: 100,
-                speed: 0.15,
-                jumpPower: 0.3,
+                speed: 0.2,
+                sprintSpeed: 0.35,
+                jumpPower: 0.35,
                 height: 1.7,
-                gravity: 0.02,
+                gravity: 0.025,
                 damage: 34
             },
             weapon: {
@@ -316,13 +369,14 @@
                 fireRate: 100
             },
             bot: {
-                count: 8,
+                count: 10,
                 health: 100,
-                speed: 0.08,
-                damage: 15,
-                shootRange: 30,
-                detectionRange: 40,
-                shootInterval: 1500
+                speed: 0.1,
+                damage: 20,
+                shootRange: 35,
+                detectionRange: 45,
+                shootInterval: 1200,
+                accuracy: 0.15
             }
         };
 
@@ -330,10 +384,16 @@
         let scene, camera, renderer;
         let playerVelocity = new THREE.Vector3();
         let moveForward = false, moveBackward = false, moveLeft = false, moveRight = false;
+        let isSprinting = false;
         let canJump = false;
         let isReloading = false;
         let canShoot = true;
         let gameStarted = false;
+        let pointerLocked = false;
+
+        // Camera rotation
+        let yaw = 0;
+        let pitch = 0;
 
         // Game stats
         let health = config.player.health;
@@ -343,22 +403,21 @@
 
         // Objects
         let bots = [];
-        let bullets = [];
         let walls = [];
+        let playerCollisionObjects = [];
 
         // Raycaster for shooting
         const raycaster = new THREE.Raycaster();
-        const mouse = new THREE.Vector2(0, 0);
 
         // Initialize Three.js scene
         function init() {
             scene = new THREE.Scene();
             scene.background = new THREE.Color(0x87CEEB);
-            scene.fog = new THREE.Fog(0x87CEEB, 0, 100);
+            scene.fog = new THREE.Fog(0x87CEEB, 0, 120);
 
             // Camera (player view)
             camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
-            camera.position.set(0, config.player.height, 0);
+            camera.position.set(-40, config.player.height, -40); // CT Spawn
 
             // Renderer
             renderer = new THREE.WebGLRenderer({ antialias: true });
@@ -368,24 +427,24 @@
             document.getElementById('gameContainer').appendChild(renderer.domElement);
 
             // Lights
-            const ambientLight = new THREE.AmbientLight(0xffffff, 0.6);
+            const ambientLight = new THREE.AmbientLight(0xffffff, 0.7);
             scene.add(ambientLight);
 
-            const sunLight = new THREE.DirectionalLight(0xffffcc, 0.8);
-            sunLight.position.set(50, 100, 50);
+            const sunLight = new THREE.DirectionalLight(0xffffdd, 0.9);
+            sunLight.position.set(60, 100, 40);
             sunLight.castShadow = true;
-            sunLight.shadow.mapSize.width = 2048;
-            sunLight.shadow.mapSize.height = 2048;
+            sunLight.shadow.mapSize.width = 4096;
+            sunLight.shadow.mapSize.height = 4096;
             sunLight.shadow.camera.near = 0.5;
             sunLight.shadow.camera.far = 500;
-            sunLight.shadow.camera.left = -100;
-            sunLight.shadow.camera.right = 100;
-            sunLight.shadow.camera.top = 100;
-            sunLight.shadow.camera.bottom = -100;
+            sunLight.shadow.camera.left = -80;
+            sunLight.shadow.camera.right = 80;
+            sunLight.shadow.camera.top = 80;
+            sunLight.shadow.camera.bottom = -80;
             scene.add(sunLight);
 
-            // Create de_dust2 inspired map
-            createMap();
+            // Create authentic de_dust2 map
+            createDust2Map();
 
             // Create bots
             createBots();
@@ -393,78 +452,140 @@
             // Event listeners
             document.addEventListener('keydown', onKeyDown);
             document.addEventListener('keyup', onKeyUp);
-            document.addEventListener('click', onMouseClick);
+            document.addEventListener('mousedown', onMouseClick);
+            document.addEventListener('mousemove', onMouseMove);
             document.getElementById('startButton').addEventListener('click', startGame);
 
             // Pointer lock
             renderer.domElement.addEventListener('click', () => {
-                if (gameStarted) {
+                if (gameStarted && !pointerLocked) {
                     renderer.domElement.requestPointerLock();
                 }
             });
 
-            document.addEventListener('mousemove', onMouseMove);
+            document.addEventListener('pointerlockchange', () => {
+                pointerLocked = document.pointerLockElement === renderer.domElement;
+            });
 
             window.addEventListener('resize', onWindowResize);
 
             animate();
         }
 
-        function createMap() {
+        function createDust2Map() {
             // Ground
-            const groundGeometry = new THREE.PlaneGeometry(100, 100);
+            const groundGeometry = new THREE.PlaneGeometry(150, 150);
             const groundMaterial = new THREE.MeshStandardMaterial({
                 color: 0xD2B48C,
-                roughness: 0.8
+                roughness: 0.9
             });
             const ground = new THREE.Mesh(groundGeometry, groundMaterial);
             ground.rotation.x = -Math.PI / 2;
             ground.receiveShadow = true;
             scene.add(ground);
 
-            // Wall material (sandy color like dust2)
-            const wallMaterial = new THREE.MeshStandardMaterial({
-                color: 0xC4A777,
-                roughness: 0.9
-            });
+            // Materials
+            const wallMat = new THREE.MeshStandardMaterial({ color: 0xC4A777, roughness: 0.9 });
+            const darkWallMat = new THREE.MeshStandardMaterial({ color: 0x9B8B6B, roughness: 0.9 });
+            const doorMat = new THREE.MeshStandardMaterial({ color: 0x654321, roughness: 0.8 });
 
-            const darkWallMaterial = new THREE.MeshStandardMaterial({
-                color: 0x8B7355,
-                roughness: 0.9
-            });
+            // === OUTER BOUNDARIES ===
+            createWall(-70, 0, 0, 2, 10, 140, wallMat); // West wall
+            createWall(70, 0, 0, 2, 10, 140, wallMat);  // East wall
+            createWall(0, 0, -70, 140, 10, 2, wallMat); // North wall
+            createWall(0, 0, 70, 140, 10, 2, wallMat);  // South wall
 
-            // Outer walls
-            createWall(-50, 0, 0, 100, 8, 1, wallMaterial); // Left
-            createWall(50, 0, 0, 100, 8, 1, wallMaterial);  // Right
-            createWall(0, 0, -50, 1, 8, 100, wallMaterial); // Back
-            createWall(0, 0, 50, 1, 8, 100, wallMaterial);  // Front
+            // === CT SPAWN (bottom-left) ===
+            createBox(-50, 0.5, -50, 3, 1, 3, 0x8B4513);
+            createBox(-45, 0.5, -55, 2, 1, 2, 0x654321);
 
-            // Central plaza structure (inspired by dust2 middle area)
-            createWall(-15, 0, 0, 30, 6, 1, darkWallMaterial);
-            createWall(15, 0, 0, 30, 6, 1, darkWallMaterial);
-            createWall(0, 0, -15, 1, 6, 30, darkWallMaterial);
+            // === T SPAWN (top-right) ===
+            createBox(50, 0.5, 50, 3, 1, 3, 0x8B4513);
+            createBox(55, 0.5, 45, 2, 1, 2, 0x654321);
 
-            // Long corridor (inspired by long A)
-            createWall(-30, 0, -30, 1, 5, 30, wallMaterial);
-            createWall(-20, 0, -30, 1, 5, 30, wallMaterial);
+            // === LONG A CORRIDOR ===
+            // Long A walls
+            createWall(-25, 0, -35, 2, 6, 40, darkWallMat); // Left wall
+            createWall(-15, 0, -35, 2, 6, 40, darkWallMat); // Right wall
 
-            // Tunnel area
-            createWall(25, 0, 25, 15, 4, 1, darkWallMaterial);
-            createWall(25, 0, 35, 15, 4, 1, darkWallMaterial);
+            // The famous CAR on Long A
+            createBox(-20, 0.8, -25, 3, 1.6, 5, 0x2F4F4F);
+            createBox(-20, 0.3, -27, 2.5, 0.6, 1, 0x1a1a1a); // wheels
+            createBox(-20, 0.3, -23, 2.5, 0.6, 1, 0x1a1a1a);
 
-            // Cover boxes/crates
-            createBox(-5, 1, -5, 2, 2, 2, 0x8B4513);
-            createBox(8, 1, 8, 2, 2, 2, 0x8B4513);
-            createBox(-20, 1, 20, 3, 2, 3, 0x654321);
-            createBox(20, 1, -20, 2, 3, 2, 0x654321);
-            createBox(0, 1, 30, 4, 2, 4, 0x8B4513);
-            createBox(35, 1, 0, 2, 2, 2, 0x654321);
-            createBox(-35, 1, -10, 3, 2, 3, 0x8B4513);
+            // Long A boxes
+            createBox(-20, 1, -45, 2.5, 2, 2.5, 0x8B4513);
+            createBox(-17, 0.5, -50, 2, 1, 2, 0x654321);
 
-            // Additional cover
-            createBox(-10, 0.5, 25, 2, 1, 2, 0x696969);
-            createBox(15, 0.5, -25, 2, 1, 2, 0x696969);
-            createBox(-25, 0.5, -5, 2, 1, 2, 0x696969);
+            // === SHORT A / CATWALK ===
+            // Elevated platform
+            createWall(5, 0, -35, 15, 2, 20, wallMat); // Platform base
+            createWall(5, 1.5, -35, 2, 1, 20, darkWallMat); // Railing
+
+            // === A SITE ===
+            // A site platform (iconic elevated area)
+            createWall(-5, 0, -5, 20, 3, 20, darkWallMat);
+
+            // A site boxes
+            createBox(0, 2.5, 0, 3, 2, 3, 0x8B4513);
+            createBox(-8, 2.5, -2, 2.5, 2, 2.5, 0x654321);
+            createBox(5, 2.5, -8, 2, 2, 2, 0x8B4513);
+
+            // A site cover
+            createBox(-10, 1.5, 5, 3, 3, 2, 0x696969);
+
+            // === MID ===
+            // Mid doors structure
+            createWall(0, 0, 15, 2, 5, 8, doorMat);
+            createWall(0, 0, 5, 2, 5, 8, doorMat);
+
+            // Mid boxes
+            createBox(-8, 1, 10, 2.5, 2, 2.5, 0x8B4513);
+            createBox(8, 0.5, 8, 2, 1, 2, 0x654321);
+
+            // Mid to B connector wall
+            createWall(15, 0, 25, 2, 5, 15, darkWallMat);
+
+            // === B TUNNELS ===
+            // Upper tunnel
+            createWall(30, 0, 20, 25, 5, 2, wallMat);
+            createWall(30, 0, 10, 25, 5, 2, wallMat);
+
+            // Lower tunnel
+            createWall(30, 0, 35, 25, 5, 2, wallMat);
+            createWall(30, 0, 45, 25, 5, 2, wallMat);
+
+            // Tunnel boxes
+            createBox(35, 1, 15, 2, 2, 2, 0x654321);
+            createBox(25, 0.5, 40, 2, 1, 2, 0x8B4513);
+
+            // === B SITE ===
+            // B site walls
+            createWall(45, 0, 20, 2, 6, 30, darkWallMat);
+            createWall(30, 0, 5, 30, 6, 2, darkWallMat);
+
+            // B site platform/window
+            createWall(42, 0, 8, 8, 2.5, 6, wallMat);
+
+            // B site boxes and cover
+            createBox(35, 1, 15, 3, 2, 3, 0x8B4513);
+            createBox(40, 1.5, 22, 2.5, 3, 2.5, 0x654321);
+            createBox(48, 0.5, 12, 2, 1, 2, 0x696969);
+            createBox(32, 1, 25, 2.5, 2, 2.5, 0x8B4513);
+
+            // === ADDITIONAL COVER & DETAILS ===
+            // Mid to A connector boxes
+            createBox(-5, 0.5, 20, 2, 1, 2, 0x696969);
+            createBox(3, 1, 25, 2.5, 2, 2.5, 0x8B4513);
+
+            // CT to B route boxes
+            createBox(-20, 0.5, 30, 2, 1, 2, 0x654321);
+            createBox(-10, 1, 40, 2.5, 2, 2.5, 0x8B4513);
+
+            // Random cover throughout map
+            createBox(10, 0.5, -10, 2, 1, 2, 0x696969);
+            createBox(-30, 1, 0, 2.5, 2, 2.5, 0x654321);
+            createBox(0, 1.5, -20, 3, 3, 2, 0x8B4513);
         }
 
         function createWall(x, y, z, width, height, depth, material) {
@@ -475,6 +596,7 @@
             wall.receiveShadow = true;
             scene.add(wall);
             walls.push(wall);
+            playerCollisionObjects.push(wall);
         }
 
         function createBox(x, y, z, width, height, depth, color) {
@@ -486,18 +608,22 @@
             box.receiveShadow = true;
             scene.add(box);
             walls.push(box);
+            playerCollisionObjects.push(box);
         }
 
         function createBots() {
+            // Spawn bots at terrorist positions
             const spawnPoints = [
-                { x: -35, z: -35 },
-                { x: 35, z: -35 },
-                { x: -35, z: 35 },
-                { x: 35, z: 35 },
-                { x: -25, z: 0 },
-                { x: 25, z: 0 },
-                { x: 0, z: -25 },
-                { x: 0, z: 25 }
+                { x: 50, z: 50 },   // T spawn
+                { x: 45, z: 55 },
+                { x: 35, z: 15 },   // B site
+                { x: 40, z: 22 },
+                { x: 48, z: 12 },
+                { x: 30, z: 15 },   // B tunnels
+                { x: 35, z: 40 },
+                { x: -20, z: -30 }, // Long A
+                { x: 5, z: -35 },   // Short A
+                { x: 0, z: 0 }      // A site
             ];
 
             for (let i = 0; i < config.bot.count; i++) {
@@ -514,7 +640,7 @@
 
             // Body
             const bodyGeometry = new THREE.BoxGeometry(0.8, 1.5, 0.5);
-            const bodyMaterial = new THREE.MeshStandardMaterial({ color: 0xff0000 });
+            const bodyMaterial = new THREE.MeshStandardMaterial({ color: 0xcc3333 });
             const body = new THREE.Mesh(bodyGeometry, bodyMaterial);
             body.position.y = 0.75;
             body.castShadow = true;
@@ -528,15 +654,24 @@
             head.castShadow = true;
             group.add(head);
 
+            // Weapon indicator
+            const weaponGeometry = new THREE.BoxGeometry(0.2, 0.1, 0.8);
+            const weaponMaterial = new THREE.MeshStandardMaterial({ color: 0x111111 });
+            const weapon = new THREE.Mesh(weaponGeometry, weaponMaterial);
+            weapon.position.set(0.3, 0.8, -0.3);
+            weapon.castShadow = true;
+            group.add(weapon);
+
             group.position.set(x, 0, z);
 
             const bot = {
                 mesh: group,
                 health: config.bot.health,
                 lastShot: 0,
-                target: new THREE.Vector3(),
                 wanderAngle: Math.random() * Math.PI * 2,
-                state: 'patrol' // patrol, chase, shoot
+                state: 'patrol',
+                stuckTimer: 0,
+                lastPosition: new THREE.Vector3(x, 0, z)
             };
 
             scene.add(group);
@@ -550,71 +685,86 @@
                 const botPos = bot.mesh.position;
                 const distanceToPlayer = botPos.distanceTo(playerPos);
 
-                // Check if player is in range
+                // Check if player is in range and line of sight
                 if (distanceToPlayer < config.bot.detectionRange) {
-                    bot.state = 'chase';
+                    // Raycast to check line of sight
+                    const direction = new THREE.Vector3().subVectors(playerPos, botPos).normalize();
+                    const ray = new THREE.Raycaster(botPos.clone().setY(1.5), direction);
+                    const intersects = ray.intersectObjects(walls);
 
-                    // Face player
-                    bot.mesh.lookAt(playerPos);
+                    const hasLineOfSight = intersects.length === 0 || intersects[0].distance > distanceToPlayer;
 
-                    // Move towards player if not too close
-                    if (distanceToPlayer > config.bot.shootRange * 0.5) {
-                        const direction = new THREE.Vector3()
-                            .subVectors(playerPos, botPos)
-                            .normalize();
+                    if (hasLineOfSight) {
+                        bot.state = 'chase';
 
-                        const newPos = botPos.clone().add(
-                            direction.multiplyScalar(config.bot.speed)
-                        );
+                        // Face player
+                        bot.mesh.lookAt(new THREE.Vector3(playerPos.x, botPos.y, playerPos.z));
 
-                        // Check collision with walls
-                        if (!checkBotCollision(newPos, bot)) {
-                            bot.mesh.position.copy(newPos);
+                        // Move towards player if not too close
+                        if (distanceToPlayer > config.bot.shootRange * 0.6) {
+                            const moveDir = new THREE.Vector3()
+                                .subVectors(playerPos, botPos)
+                                .normalize();
+
+                            const newPos = botPos.clone().add(
+                                moveDir.multiplyScalar(config.bot.speed)
+                            );
+
+                            if (!checkBotCollision(newPos)) {
+                                bot.mesh.position.copy(newPos);
+                            }
                         }
-                    }
 
-                    // Shoot at player
-                    if (distanceToPlayer < config.bot.shootRange) {
-                        const now = Date.now();
-                        if (now - bot.lastShot > config.bot.shootInterval) {
-                            botShoot(bot);
-                            bot.lastShot = now;
+                        // Shoot at player
+                        if (distanceToPlayer < config.bot.shootRange) {
+                            const now = Date.now();
+                            if (now - bot.lastShot > config.bot.shootInterval) {
+                                botShoot(bot);
+                                bot.lastShot = now;
+                            }
                         }
+                    } else {
+                        patrol(bot);
                     }
                 } else {
-                    // Patrol behavior
-                    bot.state = 'patrol';
-                    bot.wanderAngle += (Math.random() - 0.5) * 0.1;
-
-                    const direction = new THREE.Vector3(
-                        Math.cos(bot.wanderAngle),
-                        0,
-                        Math.sin(bot.wanderAngle)
-                    );
-
-                    const newPos = botPos.clone().add(
-                        direction.multiplyScalar(config.bot.speed * 0.5)
-                    );
-
-                    if (!checkBotCollision(newPos, bot)) {
-                        bot.mesh.position.copy(newPos);
-                        bot.mesh.lookAt(newPos.add(direction));
-                    } else {
-                        bot.wanderAngle += Math.PI / 2;
-                    }
+                    patrol(bot);
                 }
             });
         }
 
-        function checkBotCollision(newPos, bot) {
-            for (let wall of walls) {
-                const botBox = new THREE.Box3().setFromCenterAndSize(
-                    newPos,
-                    new THREE.Vector3(0.8, 1.5, 0.5)
-                );
-                const wallBox = new THREE.Box3().setFromObject(wall);
+        function patrol(bot) {
+            bot.state = 'patrol';
+            const botPos = bot.mesh.position;
 
-                if (botBox.intersectsBox(wallBox)) {
+            bot.wanderAngle += (Math.random() - 0.5) * 0.2;
+
+            const direction = new THREE.Vector3(
+                Math.cos(bot.wanderAngle),
+                0,
+                Math.sin(bot.wanderAngle)
+            );
+
+            const newPos = botPos.clone().add(
+                direction.multiplyScalar(config.bot.speed * 0.4)
+            );
+
+            if (!checkBotCollision(newPos)) {
+                bot.mesh.position.copy(newPos);
+                bot.mesh.lookAt(newPos.clone().add(direction));
+            } else {
+                bot.wanderAngle += Math.PI / 3 + Math.random() * Math.PI / 3;
+            }
+        }
+
+        function checkBotCollision(newPos) {
+            const botBox = new THREE.Box3().setFromCenterAndSize(
+                newPos,
+                new THREE.Vector3(0.8, 1.5, 0.5)
+            );
+
+            for (let obj of playerCollisionObjects) {
+                const objBox = new THREE.Box3().setFromObject(obj);
+                if (botBox.intersectsBox(objBox)) {
                     return true;
                 }
             }
@@ -626,42 +776,36 @@
                 .subVectors(camera.position, bot.mesh.position)
                 .normalize();
 
-            // Add some inaccuracy
-            direction.x += (Math.random() - 0.5) * 0.2;
-            direction.y += (Math.random() - 0.5) * 0.2;
-            direction.z += (Math.random() - 0.5) * 0.2;
+            // Add inaccuracy
+            direction.x += (Math.random() - 0.5) * config.bot.accuracy;
+            direction.y += (Math.random() - 0.5) * config.bot.accuracy;
+            direction.z += (Math.random() - 0.5) * config.bot.accuracy;
             direction.normalize();
 
-            // Create bullet tracer
-            createBulletTracer(bot.mesh.position.clone(), direction);
+            // Muzzle flash
+            createMuzzleFlash(bot.mesh.position.clone().add(new THREE.Vector3(0, 1.5, 0)));
 
-            // Check if hit player (simplified raycast)
+            // Check if hit player
             const rayOrigin = bot.mesh.position.clone();
             rayOrigin.y += 1.5;
 
-            const ray = new THREE.Raycaster(rayOrigin, direction);
+            const ray = new THREE.Raycaster(rayOrigin, direction, 0, config.bot.shootRange);
             const intersects = ray.intersectObjects(walls);
 
-            // If no wall blocking, check distance to player
-            if (intersects.length === 0 || intersects[0].distance > rayOrigin.distanceTo(camera.position)) {
-                const distToPlayer = rayOrigin.distanceTo(camera.position);
+            const distToPlayer = rayOrigin.distanceTo(camera.position);
+
+            if (intersects.length === 0 || intersects[0].distance > distToPlayer) {
                 if (distToPlayer < config.bot.shootRange) {
-                    // Hit player!
                     takeDamage(config.bot.damage);
                 }
             }
         }
 
-        function createBulletTracer(start, direction) {
-            const geometry = new THREE.BufferGeometry().setFromPoints([
-                start,
-                start.clone().add(direction.multiplyScalar(50))
-            ]);
-            const material = new THREE.LineBasicMaterial({ color: 0xffff00, transparent: true, opacity: 0.6 });
-            const line = new THREE.Line(geometry, material);
-            scene.add(line);
-
-            setTimeout(() => scene.remove(line), 100);
+        function createMuzzleFlash(position) {
+            const flash = new THREE.PointLight(0xffaa00, 2, 5);
+            flash.position.copy(position);
+            scene.add(flash);
+            setTimeout(() => scene.remove(flash), 50);
         }
 
         function startGame() {
@@ -671,13 +815,20 @@
         }
 
         function onKeyDown(event) {
+            if (!gameStarted) return;
+
             switch (event.code) {
                 case 'KeyW': moveForward = true; break;
                 case 'KeyS': moveBackward = true; break;
                 case 'KeyA': moveLeft = true; break;
                 case 'KeyD': moveRight = true; break;
-                case 'Space': if (canJump) playerVelocity.y = config.player.jumpPower; break;
+                case 'Space':
+                    event.preventDefault();
+                    if (canJump) playerVelocity.y = config.player.jumpPower;
+                    break;
+                case 'ShiftLeft': isSprinting = true; break;
                 case 'KeyR': reload(); break;
+                case 'Escape': document.exitPointerLock(); break;
             }
         }
 
@@ -687,19 +838,27 @@
                 case 'KeyS': moveBackward = false; break;
                 case 'KeyA': moveLeft = false; break;
                 case 'KeyD': moveRight = false; break;
+                case 'ShiftLeft': isSprinting = false; break;
             }
         }
 
         function onMouseMove(event) {
-            if (document.pointerLockElement === renderer.domElement) {
-                camera.rotation.y -= event.movementX * 0.002;
-                camera.rotation.x -= event.movementY * 0.002;
-                camera.rotation.x = Math.max(-Math.PI / 2, Math.min(Math.PI / 2, camera.rotation.x));
-            }
+            if (!gameStarted || !pointerLocked) return;
+
+            const sensitivity = 0.002;
+            yaw -= event.movementX * sensitivity;
+            pitch -= event.movementY * sensitivity;
+
+            pitch = Math.max(-Math.PI / 2, Math.min(Math.PI / 2, pitch));
+
+            camera.rotation.order = 'YXZ';
+            camera.rotation.y = yaw;
+            camera.rotation.x = pitch;
         }
 
         function onMouseClick(event) {
-            if (gameStarted && document.pointerLockElement === renderer.domElement) {
+            if (!gameStarted) return;
+            if (event.button === 0 && pointerLocked) {
                 shoot();
             }
         }
@@ -713,17 +872,22 @@
 
             setTimeout(() => canShoot = true, config.weapon.fireRate);
 
+            // Muzzle flash
+            const flashPos = camera.position.clone();
+            flashPos.add(camera.getWorldDirection(new THREE.Vector3()).multiplyScalar(0.5));
+            createMuzzleFlash(flashPos);
+
             // Raycasting for hit detection
-            raycaster.setFromCamera(mouse, camera);
+            raycaster.setFromCamera(new THREE.Vector2(0, 0), camera);
             const intersects = raycaster.intersectObjects([...walls, ...bots.map(b => b.mesh)], true);
 
             if (intersects.length > 0) {
-                const hit = intersects[0].object;
+                const hit = intersects[0];
 
                 // Check if we hit a bot
                 for (let i = bots.length - 1; i >= 0; i--) {
                     const bot = bots[i];
-                    if (bot.mesh === hit.parent || bot.mesh.children.includes(hit)) {
+                    if (bot.mesh === hit.object.parent || bot.mesh.children.includes(hit.object)) {
                         showHitMarker();
                         bot.health -= config.player.damage;
 
@@ -767,6 +931,10 @@
             if (health < 0) health = 0;
             updateHealthUI();
 
+            // Flash red
+            renderer.domElement.style.border = '5px solid red';
+            setTimeout(() => renderer.domElement.style.border = 'none', 100);
+
             if (health <= 0) {
                 gameOver();
             }
@@ -775,7 +943,7 @@
         function showHitMarker() {
             const marker = document.getElementById('hitMarker');
             marker.style.display = 'block';
-            setTimeout(() => marker.style.display = 'none', 100);
+            setTimeout(() => marker.style.display = 'none', 150);
         }
 
         function updateHealthUI() {
@@ -799,26 +967,27 @@
             document.getElementById('finalScore').textContent = 'Final Score: ' + score;
             document.getElementById('gameOver').style.display = 'block';
             document.exitPointerLock();
+            gameStarted = false;
         }
 
         function victory() {
-            score += 1000; // Bonus for winning
+            score += 1000;
             updateScoreUI();
             setTimeout(() => {
-                alert('VICTORY! All bots eliminated!\nFinal Score: ' + score);
+                alert('TERRORISTS ELIMINATED!\n\nCOUNTER-TERRORISTS WIN!\n\nFinal Score: ' + score);
                 location.reload();
             }, 500);
         }
 
         function checkCollision(newPos) {
-            for (let wall of walls) {
-                const playerBox = new THREE.Box3().setFromCenterAndSize(
-                    newPos,
-                    new THREE.Vector3(0.5, config.player.height, 0.5)
-                );
-                const wallBox = new THREE.Box3().setFromObject(wall);
+            const playerBox = new THREE.Box3().setFromCenterAndSize(
+                newPos,
+                new THREE.Vector3(0.6, config.player.height, 0.6)
+            );
 
-                if (playerBox.intersectsBox(wallBox)) {
+            for (let obj of playerCollisionObjects) {
+                const objBox = new THREE.Box3().setFromObject(obj);
+                if (playerBox.intersectsBox(objBox)) {
                     return true;
                 }
             }
@@ -826,6 +995,8 @@
         }
 
         function updatePlayer() {
+            if (!gameStarted) return;
+
             // Apply gravity
             playerVelocity.y -= config.player.gravity;
 
@@ -845,25 +1016,25 @@
 
             // Movement
             const direction = new THREE.Vector3();
-            const right = new THREE.Vector3();
-
             camera.getWorldDirection(direction);
             direction.y = 0;
             direction.normalize();
 
-            right.crossVectors(camera.up, direction).normalize();
+            const right = new THREE.Vector3();
+            right.crossVectors(direction, camera.up).normalize();
 
             const moveDir = new THREE.Vector3();
 
             if (moveForward) moveDir.add(direction);
             if (moveBackward) moveDir.sub(direction);
-            if (moveLeft) moveDir.add(right);
-            if (moveRight) moveDir.sub(right);
+            if (moveLeft) moveDir.sub(right);
+            if (moveRight) moveDir.add(right);
 
             if (moveDir.length() > 0) {
                 moveDir.normalize();
+                const speed = isSprinting ? config.player.sprintSpeed : config.player.speed;
                 const nextPos = camera.position.clone().add(
-                    moveDir.multiplyScalar(config.player.speed)
+                    moveDir.multiplyScalar(speed)
                 );
 
                 if (!checkCollision(nextPos)) {
@@ -886,8 +1057,8 @@
             const delta = (time - lastTime) / 1000;
             lastTime = time;
 
+            updatePlayer();
             if (gameStarted) {
-                updatePlayer();
                 updateBots(delta);
             }
 
