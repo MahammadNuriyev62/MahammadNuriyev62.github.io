@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>WiFi Multiplayer Arena</title>
+    <title>Horror Chase - WiFi Multiplayer</title>
     <script src="https://unpkg.com/peerjs@1.5.0/dist/peerjs.min.js"></script>
     <style>
         * {
@@ -14,7 +14,7 @@
 
         body {
             font-family: 'Arial', sans-serif;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            background: linear-gradient(135deg, #1a0000 0%, #000000 50%, #1a0000 100%);
             display: flex;
             justify-content: center;
             align-items: center;
@@ -23,9 +23,10 @@
         }
 
         #gameContainer {
-            background: white;
+            background: rgba(20, 0, 0, 0.9);
+            border: 3px solid #ff0000;
             border-radius: 20px;
-            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+            box-shadow: 0 0 60px rgba(255, 0, 0, 0.5), inset 0 0 40px rgba(0, 0, 0, 0.8);
             padding: 30px;
             max-width: 900px;
             width: 90%;
@@ -36,9 +37,28 @@
         }
 
         h1 {
-            color: #667eea;
-            margin-bottom: 30px;
+            color: #ff0000;
+            margin-bottom: 20px;
             font-size: 2.5em;
+            text-shadow: 0 0 20px #ff0000, 0 0 40px #ff0000;
+            animation: flicker 3s infinite;
+        }
+
+        @keyframes flicker {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.8; }
+            55% { opacity: 1; }
+            60% { opacity: 0.9; }
+        }
+
+        .warning {
+            color: #ffaa00;
+            font-size: 0.9em;
+            margin-bottom: 20px;
+            padding: 10px;
+            background: rgba(255, 170, 0, 0.1);
+            border: 1px solid #ffaa00;
+            border-radius: 5px;
         }
 
         .button-group {
@@ -49,34 +69,38 @@
         }
 
         button {
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            background: linear-gradient(135deg, #990000 0%, #ff0000 100%);
             color: white;
-            border: none;
+            border: 2px solid #ff0000;
             padding: 15px 40px;
             font-size: 18px;
-            border-radius: 50px;
+            border-radius: 10px;
             cursor: pointer;
-            transition: transform 0.2s, box-shadow 0.2s;
+            transition: all 0.3s;
             font-weight: bold;
+            text-shadow: 0 0 10px #000;
+            box-shadow: 0 0 20px rgba(255, 0, 0, 0.5);
         }
 
         button:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 10px 20px rgba(0,0,0,0.2);
-        }
-
-        button:active {
-            transform: translateY(0);
+            transform: scale(1.05);
+            box-shadow: 0 0 30px rgba(255, 0, 0, 0.8);
         }
 
         input {
             padding: 15px;
             font-size: 16px;
-            border: 2px solid #667eea;
+            border: 2px solid #ff0000;
             border-radius: 10px;
             width: 300px;
             margin: 10px;
             text-align: center;
+            background: rgba(0, 0, 0, 0.5);
+            color: #fff;
+        }
+
+        input::placeholder {
+            color: #999;
         }
 
         #gameArea {
@@ -84,34 +108,67 @@
         }
 
         #gameCanvas {
-            border: 3px solid #667eea;
+            border: 3px solid #ff0000;
             border-radius: 10px;
             display: block;
             margin: 20px auto;
-            background: #f0f0f0;
+            background: #0a0a0a;
+            box-shadow: 0 0 30px rgba(255, 0, 0, 0.3), inset 0 0 50px rgba(0, 0, 0, 0.9);
         }
 
         #info {
             text-align: center;
             margin-bottom: 20px;
+            color: #fff;
         }
 
         #roomInfo {
-            background: #667eea;
+            background: linear-gradient(135deg, #990000, #660000);
             color: white;
             padding: 15px;
             border-radius: 10px;
             margin: 10px 0;
             font-size: 18px;
             font-weight: bold;
+            border: 2px solid #ff0000;
+            box-shadow: 0 0 20px rgba(255, 0, 0, 0.3);
+        }
+
+        #gameStats {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 10px;
+            margin: 10px 0;
+        }
+
+        .stat-box {
+            background: rgba(0, 0, 0, 0.5);
+            border: 2px solid #ff0000;
+            padding: 10px;
+            border-radius: 8px;
+            text-align: center;
+        }
+
+        .stat-label {
+            font-size: 0.85em;
+            color: #999;
+            text-transform: uppercase;
+        }
+
+        .stat-value {
+            font-size: 1.8em;
+            font-weight: bold;
+            color: #ff0000;
+            margin-top: 5px;
         }
 
         #playerList {
-            background: #f8f9fa;
+            background: rgba(0, 0, 0, 0.5);
             padding: 15px;
             border-radius: 10px;
             margin: 10px 0;
             text-align: left;
+            border: 2px solid #ff0000;
         }
 
         .player-item {
@@ -119,19 +176,41 @@
             align-items: center;
             margin: 8px 0;
             font-size: 16px;
+            padding: 5px;
+            border-radius: 5px;
+            background: rgba(255, 255, 255, 0.05);
         }
 
-        .player-color {
-            width: 20px;
-            height: 20px;
+        .player-status {
+            width: 24px;
+            height: 24px;
             border-radius: 50%;
             margin-right: 10px;
             border: 2px solid #333;
         }
 
+        .status-monster {
+            background: #ff0000;
+            box-shadow: 0 0 10px #ff0000;
+            animation: pulse 1s infinite;
+        }
+
+        .status-alive {
+            background: #00ff00;
+        }
+
+        .status-caught {
+            background: #666;
+        }
+
+        @keyframes pulse {
+            0%, 100% { transform: scale(1); }
+            50% { transform: scale(1.2); }
+        }
+
         #controls {
             text-align: center;
-            color: #666;
+            color: #999;
             margin-top: 15px;
             font-size: 14px;
         }
@@ -148,40 +227,75 @@
         }
 
         .status-success {
-            background: #d4edda;
-            color: #155724;
+            background: rgba(0, 255, 0, 0.2);
+            color: #00ff00;
+            border: 1px solid #00ff00;
         }
 
         .status-error {
-            background: #f8d7da;
-            color: #721c24;
+            background: rgba(255, 0, 0, 0.2);
+            color: #ff6666;
+            border: 1px solid #ff0000;
         }
 
         .status-info {
-            background: #d1ecf1;
-            color: #0c5460;
+            background: rgba(255, 170, 0, 0.2);
+            color: #ffaa00;
+            border: 1px solid #ffaa00;
         }
 
         #joinSection {
             margin-top: 20px;
             padding-top: 20px;
-            border-top: 2px solid #e0e0e0;
+            border-top: 2px solid #660000;
+        }
+
+        #gameOver {
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: rgba(0, 0, 0, 0.95);
+            border: 3px solid #ff0000;
+            border-radius: 20px;
+            padding: 40px;
+            text-align: center;
+            display: none;
+            z-index: 1000;
+            box-shadow: 0 0 50px rgba(255, 0, 0, 0.8);
+        }
+
+        #gameOver h2 {
+            color: #ff0000;
+            font-size: 3em;
+            margin-bottom: 20px;
+            text-shadow: 0 0 20px #ff0000;
+        }
+
+        #gameOver p {
+            color: #fff;
+            font-size: 1.5em;
+            margin: 10px 0;
         }
     </style>
 </head>
 <body>
     <div id="gameContainer">
         <div id="menu">
-            <h1>🎮 WiFi Multiplayer Arena</h1>
+            <h1>👻 HORROR CHASE 👹</h1>
+            <div class="warning">
+                ⚠️ Host becomes the MONSTER and must catch all players!<br>
+                Players: RUN and SURVIVE as long as you can!
+            </div>
 
             <div class="button-group">
-                <button onclick="createRoom()">Create Room (Host)</button>
+                <button onclick="createRoom()">🔴 Create Room (Be the Monster)</button>
             </div>
 
             <div id="joinSection">
                 <input type="text" id="roomIdInput" placeholder="Enter Room ID to Join">
                 <br>
-                <button onclick="joinRoom()">Join Room</button>
+                <button onclick="joinRoom()">🏃 Join & Survive</button>
             </div>
 
             <div id="status" class="hidden"></div>
@@ -190,13 +304,33 @@
         <div id="gameArea">
             <div id="info">
                 <div id="roomInfo"></div>
+                <div id="gameStats">
+                    <div class="stat-box">
+                        <div class="stat-label">Time</div>
+                        <div class="stat-value" id="timer">0:00</div>
+                    </div>
+                    <div class="stat-box">
+                        <div class="stat-label">Alive</div>
+                        <div class="stat-value" id="aliveCount">0</div>
+                    </div>
+                    <div class="stat-box">
+                        <div class="stat-label">Caught</div>
+                        <div class="stat-value" id="caughtCount">0</div>
+                    </div>
+                </div>
                 <div id="playerList"></div>
                 <div id="controls">
-                    Use Arrow Keys or WASD to move • Bump into other players!
+                    <span id="controlsText">Use Arrow Keys or WASD to move</span>
                 </div>
             </div>
             <canvas id="gameCanvas" width="800" height="600"></canvas>
         </div>
+    </div>
+
+    <div id="gameOver">
+        <h2 id="gameOverTitle">GAME OVER</h2>
+        <p id="gameOverMessage"></p>
+        <p id="gameOverStats"></p>
     </div>
 
     <script>
@@ -206,10 +340,10 @@
         let isHost = false;
         let myId = null;
         let roomId = null;
+        let gameStartTime = 0;
+        let gameTime = 0;
 
         const players = {};
-        const PLAYER_COLORS = ['#FF6B6B', '#4ECDC4', '#45B7D1', '#FFA07A', '#98D8C8', '#F7DC6F', '#BB8FCE', '#85C1E2', '#F8B739', '#52C77B'];
-        let colorIndex = 0;
 
         // Canvas setup
         const canvas = document.getElementById('gameCanvas');
@@ -221,15 +355,19 @@
             y: 300,
             vx: 0,
             vy: 0,
-            radius: 20,
-            color: PLAYER_COLORS[0],
-            name: 'Player'
+            radius: 15,
+            color: '#00ff00',
+            name: 'Player',
+            isCaught: false,
+            isMonster: false
         };
 
         // Input handling
         const keys = {};
-        const SPEED = 3;
-        const FRICTION = 0.9;
+        const PLAYER_SPEED = 2.5;
+        const MONSTER_SPEED = 3.5;
+        const FRICTION = 0.88;
+        const CATCH_DISTANCE = 45;
 
         document.addEventListener('keydown', (e) => {
             keys[e.key.toLowerCase()] = true;
@@ -239,7 +377,7 @@
             keys[e.key.toLowerCase()] = false;
         });
 
-        // Create room (Host)
+        // Create room (Host - Monster)
         function createRoom() {
             showStatus('Creating room...', 'info');
 
@@ -249,14 +387,15 @@
                 myId = id;
                 roomId = id;
                 isHost = true;
-                myPlayer.color = PLAYER_COLORS[colorIndex++ % PLAYER_COLORS.length];
-                myPlayer.name = 'Host';
+                myPlayer.isMonster = true;
+                myPlayer.color = '#ff0000';
+                myPlayer.radius = 25;
+                myPlayer.name = '👹 MONSTER';
                 players[myId] = { ...myPlayer };
 
-                showStatus('Room created successfully!', 'success');
+                showStatus('Room created! You are the MONSTER!', 'success');
                 startGame();
 
-                // Listen for incoming connections
                 peer.on('connection', (conn) => {
                     handleConnection(conn);
                 });
@@ -267,7 +406,7 @@
             });
         }
 
-        // Join room
+        // Join room (Player)
         function joinRoom() {
             const inputRoomId = document.getElementById('roomIdInput').value.trim();
 
@@ -284,10 +423,10 @@
                 myId = id;
                 roomId = inputRoomId;
                 isHost = false;
-                myPlayer.color = PLAYER_COLORS[colorIndex++ % PLAYER_COLORS.length];
-                myPlayer.name = 'Player ' + Math.floor(Math.random() * 1000);
+                myPlayer.isMonster = false;
+                myPlayer.color = '#00ff00';
+                myPlayer.name = 'Survivor ' + Math.floor(Math.random() * 1000);
 
-                // Connect to host
                 const conn = peer.connect(inputRoomId);
                 handleConnection(conn);
             });
@@ -304,7 +443,6 @@
             conn.on('open', () => {
                 showStatus('Connected!', 'success');
 
-                // Send my player info
                 conn.send({
                     type: 'join',
                     id: myId,
@@ -329,18 +467,15 @@
         function handleData(data, conn) {
             switch(data.type) {
                 case 'join':
-                    // New player joined
                     players[data.id] = data.player;
                     updatePlayerList();
 
-                    // If host, share all current players with the new player
                     if (isHost) {
                         conn.send({
                             type: 'playerList',
                             players: players
                         });
 
-                        // Notify all other players about the new player
                         broadcastToOthers({
                             type: 'playerJoined',
                             id: data.id,
@@ -350,23 +485,38 @@
                     break;
 
                 case 'playerList':
-                    // Received full player list from host
                     Object.assign(players, data.players);
                     players[myId] = myPlayer;
                     updatePlayerList();
                     break;
 
                 case 'playerJoined':
-                    // Another player joined
                     players[data.id] = data.player;
                     updatePlayerList();
                     break;
 
                 case 'update':
-                    // Player position update
                     if (players[data.id]) {
                         players[data.id].x = data.x;
                         players[data.id].y = data.y;
+                        players[data.id].isCaught = data.isCaught;
+                    }
+                    break;
+
+                case 'caught':
+                    if (players[data.victimId]) {
+                        players[data.victimId].isCaught = true;
+                        if (data.victimId === myId) {
+                            myPlayer.isCaught = true;
+                            showGameOver('YOU WERE CAUGHT!', 'The monster got you!', data.survivalTime);
+                        }
+                        updatePlayerList();
+                    }
+                    break;
+
+                case 'gameOver':
+                    if (!isHost) {
+                        showGameOver(data.title, data.message, data.time);
                     }
                     break;
 
@@ -377,7 +527,6 @@
             }
         }
 
-        // Broadcast to all connections except one
         function broadcastToOthers(data, except = null) {
             connections.forEach(conn => {
                 if (conn !== except && conn.open) {
@@ -386,7 +535,6 @@
             });
         }
 
-        // Broadcast to all connections
         function broadcast(data) {
             connections.forEach(conn => {
                 if (conn.open) {
@@ -400,8 +548,14 @@
             document.getElementById('menu').style.display = 'none';
             document.getElementById('gameArea').style.display = 'block';
 
-            document.getElementById('roomInfo').textContent =
-                `Room ID: ${roomId} ${isHost ? '(You are the Host)' : '(Connected)'}`;
+            const role = isHost ? '👹 You are the MONSTER!' : '🏃 SURVIVE!';
+            document.getElementById('roomInfo').textContent = `Room ID: ${roomId} | ${role}`;
+
+            if (isHost) {
+                document.getElementById('controlsText').textContent = '🔴 HUNT DOWN THE SURVIVORS!';
+            } else {
+                document.getElementById('controlsText').textContent = '🏃 RUN FOR YOUR LIFE!';
+            }
 
             players[myId] = myPlayer;
             updatePlayerList();
@@ -410,40 +564,87 @@
             myPlayer.x = Math.random() * (canvas.width - 100) + 50;
             myPlayer.y = Math.random() * (canvas.height - 100) + 50;
 
+            gameStartTime = Date.now();
             gameLoop();
         }
 
         // Update player list display
         function updatePlayerList() {
             const listEl = document.getElementById('playerList');
-            listEl.innerHTML = '<strong>Players (' + Object.keys(players).length + '):</strong><br>';
+            let aliveCount = 0;
+            let caughtCount = 0;
+
+            listEl.innerHTML = '<strong style="color: #ff0000;">Players:</strong><br>';
 
             Object.keys(players).forEach(id => {
                 const player = players[id];
                 const isMe = id === myId;
+
+                let statusClass = 'status-alive';
+                let statusText = '✓ Alive';
+
+                if (player.isMonster) {
+                    statusClass = 'status-monster';
+                    statusText = '👹 Monster';
+                } else if (player.isCaught) {
+                    statusClass = 'status-caught';
+                    statusText = '💀 Caught';
+                    caughtCount++;
+                } else {
+                    aliveCount++;
+                }
+
                 listEl.innerHTML += `
                     <div class="player-item">
-                        <div class="player-color" style="background: ${player.color}"></div>
-                        <span>${player.name}${isMe ? ' (You)' : ''}</span>
+                        <div class="player-status ${statusClass}"></div>
+                        <span style="color: ${player.isCaught ? '#666' : '#fff'}">${player.name}${isMe ? ' (You)' : ''} - ${statusText}</span>
                     </div>
                 `;
             });
+
+            document.getElementById('aliveCount').textContent = aliveCount;
+            document.getElementById('caughtCount').textContent = caughtCount;
+
+            // Check game over condition
+            if (isHost && aliveCount === 0 && Object.keys(players).length > 1) {
+                const time = formatTime(gameTime);
+                broadcast({
+                    type: 'gameOver',
+                    title: 'ALL CAUGHT!',
+                    message: 'The monster caught everyone!',
+                    time: time
+                });
+                showGameOver('VICTORY!', 'You caught all survivors!', time);
+            }
         }
 
         // Game loop
         function gameLoop() {
+            gameTime = Math.floor((Date.now() - gameStartTime) / 1000);
+            document.getElementById('timer').textContent = formatTime(gameTime);
+
             update();
             render();
             requestAnimationFrame(gameLoop);
         }
 
+        function formatTime(seconds) {
+            const mins = Math.floor(seconds / 60);
+            const secs = seconds % 60;
+            return `${mins}:${secs.toString().padStart(2, '0')}`;
+        }
+
         // Update game state
         function update() {
+            if (myPlayer.isCaught) return;
+
+            const speed = myPlayer.isMonster ? MONSTER_SPEED : PLAYER_SPEED;
+
             // Handle input
-            if (keys['arrowup'] || keys['w']) myPlayer.vy -= SPEED;
-            if (keys['arrowdown'] || keys['s']) myPlayer.vy += SPEED;
-            if (keys['arrowleft'] || keys['a']) myPlayer.vx -= SPEED;
-            if (keys['arrowright'] || keys['d']) myPlayer.vx += SPEED;
+            if (keys['arrowup'] || keys['w']) myPlayer.vy -= speed;
+            if (keys['arrowdown'] || keys['s']) myPlayer.vy += speed;
+            if (keys['arrowleft'] || keys['a']) myPlayer.vx -= speed;
+            if (keys['arrowright'] || keys['d']) myPlayer.vx += speed;
 
             // Apply friction
             myPlayer.vx *= FRICTION;
@@ -471,51 +672,61 @@
                 myPlayer.vy = 0;
             }
 
-            // Player collision
-            Object.keys(players).forEach(id => {
-                if (id !== myId) {
-                    const other = players[id];
-                    const dx = other.x - myPlayer.x;
-                    const dy = other.y - myPlayer.y;
-                    const dist = Math.sqrt(dx * dx + dy * dy);
+            // Monster catches players
+            if (isHost && myPlayer.isMonster) {
+                Object.keys(players).forEach(id => {
+                    if (id !== myId && !players[id].isCaught) {
+                        const other = players[id];
+                        const dx = other.x - myPlayer.x;
+                        const dy = other.y - myPlayer.y;
+                        const dist = Math.sqrt(dx * dx + dy * dy);
 
-                    if (dist < myPlayer.radius + other.radius) {
-                        // Simple bounce
-                        const angle = Math.atan2(dy, dx);
-                        const targetX = myPlayer.x + Math.cos(angle) * (myPlayer.radius + other.radius);
-                        const targetY = myPlayer.y + Math.sin(angle) * (myPlayer.radius + other.radius);
-
-                        myPlayer.x -= (targetX - other.x) * 0.5;
-                        myPlayer.y -= (targetY - other.y) * 0.5;
-
-                        myPlayer.vx *= -0.5;
-                        myPlayer.vy *= -0.5;
+                        if (dist < CATCH_DISTANCE) {
+                            players[id].isCaught = true;
+                            broadcast({
+                                type: 'caught',
+                                victimId: id,
+                                survivalTime: formatTime(gameTime)
+                            });
+                            updatePlayerList();
+                        }
                     }
-                }
-            });
+                });
+            }
 
             // Update my player in the players object
             players[myId] = { ...myPlayer };
 
-            // Send position update to peers
+            // Send position update
             if (Math.abs(myPlayer.vx) > 0.1 || Math.abs(myPlayer.vy) > 0.1 || Math.random() < 0.1) {
                 broadcast({
                     type: 'update',
                     id: myId,
                     x: myPlayer.x,
-                    y: myPlayer.y
+                    y: myPlayer.y,
+                    isCaught: myPlayer.isCaught
                 });
             }
         }
 
         // Render game
         function render() {
-            // Clear canvas
-            ctx.fillStyle = '#f0f0f0';
+            // Dark background with vignette
+            ctx.fillStyle = '#0a0a0a';
             ctx.fillRect(0, 0, canvas.width, canvas.height);
 
-            // Draw grid
-            ctx.strokeStyle = '#e0e0e0';
+            // Vignette effect
+            const gradient = ctx.createRadialGradient(
+                canvas.width / 2, canvas.height / 2, 100,
+                canvas.width / 2, canvas.height / 2, 500
+            );
+            gradient.addColorStop(0, 'rgba(0, 0, 0, 0)');
+            gradient.addColorStop(1, 'rgba(0, 0, 0, 0.7)');
+            ctx.fillStyle = gradient;
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+            // Draw subtle grid
+            ctx.strokeStyle = 'rgba(255, 0, 0, 0.05)';
             ctx.lineWidth = 1;
             for (let i = 0; i < canvas.width; i += 50) {
                 ctx.beginPath();
@@ -535,29 +746,109 @@
                 const player = players[id];
                 const isMe = id === myId;
 
-                // Shadow
-                ctx.fillStyle = 'rgba(0,0,0,0.2)';
-                ctx.beginPath();
-                ctx.arc(player.x + 3, player.y + 3, player.radius, 0, Math.PI * 2);
-                ctx.fill();
+                if (player.isCaught && !player.isMonster) {
+                    // Caught player (faded)
+                    ctx.fillStyle = 'rgba(100, 100, 100, 0.5)';
+                    ctx.beginPath();
+                    ctx.arc(player.x, player.y, player.radius, 0, Math.PI * 2);
+                    ctx.fill();
 
-                // Player circle
-                ctx.fillStyle = player.color;
-                ctx.beginPath();
-                ctx.arc(player.x, player.y, player.radius, 0, Math.PI * 2);
-                ctx.fill();
+                    ctx.strokeStyle = '#444';
+                    ctx.lineWidth = 2;
+                    ctx.stroke();
 
-                // Border
-                ctx.strokeStyle = isMe ? '#000' : '#666';
-                ctx.lineWidth = isMe ? 3 : 2;
-                ctx.stroke();
+                    // Skull emoji
+                    ctx.font = '20px Arial';
+                    ctx.textAlign = 'center';
+                    ctx.fillText('💀', player.x, player.y + 7);
+                } else if (player.isMonster) {
+                    // Monster (pulsing red with glow)
+                    const pulseSize = player.radius + Math.sin(Date.now() / 200) * 3;
+
+                    // Red glow
+                    const monsterGlow = ctx.createRadialGradient(
+                        player.x, player.y, pulseSize * 0.5,
+                        player.x, player.y, pulseSize * 2
+                    );
+                    monsterGlow.addColorStop(0, 'rgba(255, 0, 0, 0.4)');
+                    monsterGlow.addColorStop(1, 'rgba(255, 0, 0, 0)');
+                    ctx.fillStyle = monsterGlow;
+                    ctx.beginPath();
+                    ctx.arc(player.x, player.y, pulseSize * 2, 0, Math.PI * 2);
+                    ctx.fill();
+
+                    // Shadow
+                    ctx.fillStyle = 'rgba(0, 0, 0, 0.5)';
+                    ctx.beginPath();
+                    ctx.arc(player.x + 3, player.y + 3, pulseSize, 0, Math.PI * 2);
+                    ctx.fill();
+
+                    // Monster body
+                    ctx.fillStyle = '#ff0000';
+                    ctx.beginPath();
+                    ctx.arc(player.x, player.y, pulseSize, 0, Math.PI * 2);
+                    ctx.fill();
+
+                    // Border
+                    ctx.strokeStyle = '#880000';
+                    ctx.lineWidth = 3;
+                    ctx.stroke();
+
+                    // Eyes
+                    ctx.fillStyle = '#000';
+                    ctx.beginPath();
+                    ctx.arc(player.x - 8, player.y - 5, 3, 0, Math.PI * 2);
+                    ctx.arc(player.x + 8, player.y - 5, 3, 0, Math.PI * 2);
+                    ctx.fill();
+                } else {
+                    // Alive player (green with glow)
+                    // Green glow
+                    const playerGlow = ctx.createRadialGradient(
+                        player.x, player.y, player.radius * 0.5,
+                        player.x, player.y, player.radius * 1.5
+                    );
+                    playerGlow.addColorStop(0, 'rgba(0, 255, 0, 0.3)');
+                    playerGlow.addColorStop(1, 'rgba(0, 255, 0, 0)');
+                    ctx.fillStyle = playerGlow;
+                    ctx.beginPath();
+                    ctx.arc(player.x, player.y, player.radius * 1.5, 0, Math.PI * 2);
+                    ctx.fill();
+
+                    // Shadow
+                    ctx.fillStyle = 'rgba(0, 0, 0, 0.3)';
+                    ctx.beginPath();
+                    ctx.arc(player.x + 2, player.y + 2, player.radius, 0, Math.PI * 2);
+                    ctx.fill();
+
+                    // Player circle
+                    ctx.fillStyle = player.color;
+                    ctx.beginPath();
+                    ctx.arc(player.x, player.y, player.radius, 0, Math.PI * 2);
+                    ctx.fill();
+
+                    // Border
+                    ctx.strokeStyle = isMe ? '#fff' : '#00aa00';
+                    ctx.lineWidth = isMe ? 3 : 2;
+                    ctx.stroke();
+                }
 
                 // Name
-                ctx.fillStyle = '#000';
+                ctx.fillStyle = player.isMonster ? '#ff0000' : (player.isCaught ? '#666' : '#00ff00');
                 ctx.font = 'bold 12px Arial';
                 ctx.textAlign = 'center';
-                ctx.fillText(player.name, player.x, player.y - player.radius - 5);
+                ctx.shadowColor = 'rgba(0, 0, 0, 0.8)';
+                ctx.shadowBlur = 4;
+                ctx.fillText(player.name, player.x, player.y - player.radius - 8);
+                ctx.shadowBlur = 0;
             });
+        }
+
+        function showGameOver(title, message, time) {
+            const gameOverDiv = document.getElementById('gameOver');
+            document.getElementById('gameOverTitle').textContent = title;
+            document.getElementById('gameOverMessage').textContent = message;
+            document.getElementById('gameOverStats').textContent = `Survival Time: ${time}`;
+            gameOverDiv.style.display = 'block';
         }
 
         // Show status message
