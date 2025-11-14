@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Horror Chase - WiFi Multiplayer</title>
+    <title>Horror Maze Chase - WiFi Multiplayer</title>
     <script src="https://unpkg.com/peerjs@1.5.0/dist/peerjs.min.js"></script>
     <style>
         * {
@@ -28,8 +28,8 @@
             border-radius: 20px;
             box-shadow: 0 0 60px rgba(255, 0, 0, 0.5), inset 0 0 40px rgba(0, 0, 0, 0.8);
             padding: 30px;
-            max-width: 900px;
-            width: 90%;
+            max-width: 1100px;
+            width: 95%;
         }
 
         #menu {
@@ -136,7 +136,7 @@
 
         #gameStats {
             display: grid;
-            grid-template-columns: repeat(3, 1fr);
+            grid-template-columns: repeat(4, 1fr);
             gap: 10px;
             margin: 10px 0;
         }
@@ -150,13 +150,13 @@
         }
 
         .stat-label {
-            font-size: 0.85em;
+            font-size: 0.75em;
             color: #999;
             text-transform: uppercase;
         }
 
         .stat-value {
-            font-size: 1.8em;
+            font-size: 1.5em;
             font-weight: bold;
             color: #ff0000;
             margin-top: 5px;
@@ -169,21 +169,23 @@
             margin: 10px 0;
             text-align: left;
             border: 2px solid #ff0000;
+            max-height: 150px;
+            overflow-y: auto;
         }
 
         .player-item {
             display: flex;
             align-items: center;
-            margin: 8px 0;
-            font-size: 16px;
+            margin: 5px 0;
+            font-size: 14px;
             padding: 5px;
             border-radius: 5px;
             background: rgba(255, 255, 255, 0.05);
         }
 
         .player-status {
-            width: 24px;
-            height: 24px;
+            width: 20px;
+            height: 20px;
             border-radius: 50%;
             margin-right: 10px;
             border: 2px solid #333;
@@ -212,7 +214,7 @@
             text-align: center;
             color: #999;
             margin-top: 15px;
-            font-size: 14px;
+            font-size: 12px;
         }
 
         .hidden {
@@ -277,15 +279,28 @@
             font-size: 1.5em;
             margin: 10px 0;
         }
+
+        #legend {
+            background: rgba(0, 0, 0, 0.7);
+            padding: 10px;
+            border-radius: 5px;
+            font-size: 11px;
+            color: #999;
+            margin-top: 10px;
+        }
+
+        #legend span {
+            margin: 0 10px;
+        }
     </style>
 </head>
 <body>
     <div id="gameContainer">
         <div id="menu">
-            <h1>👻 HORROR CHASE 👹</h1>
+            <h1>🏰 HORROR MAZE CHASE 👹</h1>
             <div class="warning">
-                ⚠️ Host becomes the MONSTER and must catch all players!<br>
-                Players: RUN and SURVIVE as long as you can!
+                ⚠️ Navigate a deadly maze! Collect keys 🔑, avoid traps 💥, lock doors 🚪<br>
+                Monster: Hunt survivors! | Survivors: Find hidden passages and ESCAPE!
             </div>
 
             <div class="button-group">
@@ -314,16 +329,28 @@
                         <div class="stat-value" id="aliveCount">0</div>
                     </div>
                     <div class="stat-box">
+                        <div class="stat-label">Keys</div>
+                        <div class="stat-value" id="keyCount">0</div>
+                    </div>
+                    <div class="stat-box">
                         <div class="stat-label">Caught</div>
                         <div class="stat-value" id="caughtCount">0</div>
                     </div>
                 </div>
                 <div id="playerList"></div>
                 <div id="controls">
-                    <span id="controlsText">Use Arrow Keys or WASD to move</span>
+                    <span id="controlsText">WASD/Arrows: Move | E: Use Door | R: Lock Door (costs 1 key)</span>
+                </div>
+                <div id="legend">
+                    <span>🧱 Wall</span>
+                    <span>🚪 Door (Press E)</span>
+                    <span>🔒 Locked</span>
+                    <span>🔑 Key</span>
+                    <span>💥 Trap</span>
+                    <span>🌀 Hidden Passage</span>
                 </div>
             </div>
-            <canvas id="gameCanvas" width="800" height="600"></canvas>
+            <canvas id="gameCanvas" width="1000" height="700"></canvas>
         </div>
     </div>
 
@@ -344,43 +371,141 @@
         let gameTime = 0;
 
         const players = {};
+        const CELL_SIZE = 40;
 
         // Canvas setup
         const canvas = document.getElementById('gameCanvas');
         const ctx = canvas.getContext('2d');
 
+        // Map layout (1=wall, 0=empty, 2=door, 3=trap, 4=key, 5=hidden passage)
+        const map = [
+            [1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1],
+            [1,0,0,0,1,0,0,0,0,0,1,0,4,0,1,0,0,0,0,0,1,0,0,0,1],
+            [1,0,1,0,1,0,1,1,1,0,1,0,1,0,2,0,1,1,1,0,1,0,1,3,1],
+            [1,0,1,0,0,0,0,0,1,0,0,0,1,0,1,0,1,0,0,0,0,0,1,0,1],
+            [1,0,1,1,1,1,1,0,1,1,1,1,1,0,1,0,1,0,1,1,1,1,1,0,1],
+            [1,0,0,0,0,0,1,0,0,0,0,0,0,0,1,0,0,0,1,0,0,0,0,0,1],
+            [1,1,1,1,1,0,1,1,1,0,1,1,1,1,1,0,1,1,1,0,1,1,1,1,1],
+            [1,0,0,0,1,0,0,0,1,0,1,0,0,0,0,0,1,0,0,0,1,0,4,0,1],
+            [1,3,1,0,2,0,1,0,1,0,2,0,1,1,1,0,1,0,1,1,1,0,1,0,1],
+            [1,0,1,0,1,0,1,0,0,0,1,0,1,0,0,0,1,0,0,0,0,0,1,0,1],
+            [1,0,1,0,1,0,1,1,1,1,1,0,1,0,1,1,1,1,1,1,1,0,1,0,1],
+            [1,0,0,0,1,0,0,0,0,0,0,0,1,0,0,0,0,0,0,0,1,0,0,0,1],
+            [1,0,1,1,1,1,1,0,1,1,1,0,1,1,1,1,1,1,1,0,1,1,1,1,1],
+            [1,0,1,0,0,0,0,0,1,0,4,0,0,0,0,0,1,0,0,0,0,0,0,3,1],
+            [1,0,2,0,1,1,1,1,1,0,1,1,1,0,1,0,1,0,1,1,1,1,1,0,1],
+            [1,0,1,0,0,0,0,0,0,0,1,0,0,0,1,0,0,0,0,0,0,0,1,0,1],
+            [1,5,1,1,1,1,1,1,1,1,1,0,1,1,1,1,1,1,1,1,1,5,1,0,1],
+            [1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1],
+            [1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1]
+        ];
+
+        // Game objects
+        const doors = [];
+        const keys = [];
+        const traps = [];
+        const passages = [];
+
+        // Initialize map objects
+        for (let y = 0; y < map.length; y++) {
+            for (let x = 0; x < map[y].length; x++) {
+                if (map[y][x] === 2) {
+                    doors.push({ x, y, open: false, locked: false });
+                } else if (map[y][x] === 4) {
+                    keys.push({ x, y, collected: false });
+                } else if (map[y][x] === 3) {
+                    traps.push({ x, y, active: true });
+                } else if (map[y][x] === 5) {
+                    passages.push({ x, y, discovered: false });
+                }
+            }
+        }
+
         // My player
         let myPlayer = {
-            x: 400,
-            y: 300,
+            x: 60,
+            y: 60,
             vx: 0,
             vy: 0,
-            radius: 15,
+            radius: 12,
             color: '#00ff00',
             name: 'Player',
             isCaught: false,
-            isMonster: false
+            isMonster: false,
+            keysCollected: 0,
+            stunned: false,
+            stunnedUntil: 0
         };
 
         // Input handling
-        const keys = {};
-        const PLAYER_SPEED = 2.5;
-        const MONSTER_SPEED = 3.5;
-        const FRICTION = 0.88;
-        const CATCH_DISTANCE = 45;
+        const keys_pressed = {};
+        const PLAYER_SPEED = 1.5;
+        const MONSTER_SPEED = 2.0;
+        const FRICTION = 0.85;
+        const CATCH_DISTANCE = 35;
 
         document.addEventListener('keydown', (e) => {
-            keys[e.key.toLowerCase()] = true;
+            keys_pressed[e.key.toLowerCase()] = true;
+
+            // Interact with doors (E key)
+            if (e.key.toLowerCase() === 'e' && !myPlayer.isCaught) {
+                interactWithDoor();
+            }
+
+            // Lock doors (R key)
+            if (e.key.toLowerCase() === 'r' && !myPlayer.isCaught && myPlayer.keysCollected > 0) {
+                lockDoor();
+            }
         });
 
         document.addEventListener('keyup', (e) => {
-            keys[e.key.toLowerCase()] = false;
+            keys_pressed[e.key.toLowerCase()] = false;
         });
+
+        function interactWithDoor() {
+            const playerCell = {
+                x: Math.floor(myPlayer.x / CELL_SIZE),
+                y: Math.floor(myPlayer.y / CELL_SIZE)
+            };
+
+            doors.forEach((door, index) => {
+                const dist = Math.sqrt(Math.pow(door.x - playerCell.x, 2) + Math.pow(door.y - playerCell.y, 2));
+                if (dist < 2 && !door.locked) {
+                    door.open = !door.open;
+                    broadcast({
+                        type: 'doorToggle',
+                        doorIndex: index,
+                        open: door.open
+                    });
+                }
+            });
+        }
+
+        function lockDoor() {
+            const playerCell = {
+                x: Math.floor(myPlayer.x / CELL_SIZE),
+                y: Math.floor(myPlayer.y / CELL_SIZE)
+            };
+
+            doors.forEach((door, index) => {
+                const dist = Math.sqrt(Math.pow(door.x - playerCell.x, 2) + Math.pow(door.y - playerCell.y, 2));
+                if (dist < 2 && !door.locked && door.open === false) {
+                    door.locked = true;
+                    myPlayer.keysCollected--;
+                    document.getElementById('keyCount').textContent = myPlayer.keysCollected;
+
+                    broadcast({
+                        type: 'doorLock',
+                        doorIndex: index,
+                        locked: true
+                    });
+                }
+            });
+        }
 
         // Create room (Host - Monster)
         function createRoom() {
             showStatus('Creating room...', 'info');
-
             peer = new Peer();
 
             peer.on('open', (id) => {
@@ -389,8 +514,10 @@
                 isHost = true;
                 myPlayer.isMonster = true;
                 myPlayer.color = '#ff0000';
-                myPlayer.radius = 25;
+                myPlayer.radius = 18;
                 myPlayer.name = '👹 MONSTER';
+                myPlayer.x = canvas.width - 60;
+                myPlayer.y = canvas.height - 60;
                 players[myId] = { ...myPlayer };
 
                 showStatus('Room created! You are the MONSTER!', 'success');
@@ -416,7 +543,6 @@
             }
 
             showStatus('Joining room...', 'info');
-
             peer = new Peer();
 
             peer.on('open', (id) => {
@@ -473,7 +599,11 @@
                     if (isHost) {
                         conn.send({
                             type: 'playerList',
-                            players: players
+                            players: players,
+                            doors: doors,
+                            keys: keys,
+                            traps: traps,
+                            passages: passages
                         });
 
                         broadcastToOthers({
@@ -486,6 +616,14 @@
 
                 case 'playerList':
                     Object.assign(players, data.players);
+                    doors.length = 0;
+                    doors.push(...data.doors);
+                    keys.length = 0;
+                    keys.push(...data.keys);
+                    traps.length = 0;
+                    traps.push(...data.traps);
+                    passages.length = 0;
+                    passages.push(...data.passages);
                     players[myId] = myPlayer;
                     updatePlayerList();
                     break;
@@ -500,6 +638,32 @@
                         players[data.id].x = data.x;
                         players[data.id].y = data.y;
                         players[data.id].isCaught = data.isCaught;
+                        players[data.id].keysCollected = data.keysCollected;
+                        players[data.id].stunned = data.stunned;
+                    }
+                    break;
+
+                case 'doorToggle':
+                    if (doors[data.doorIndex]) {
+                        doors[data.doorIndex].open = data.open;
+                    }
+                    break;
+
+                case 'doorLock':
+                    if (doors[data.doorIndex]) {
+                        doors[data.doorIndex].locked = data.locked;
+                    }
+                    break;
+
+                case 'keyCollect':
+                    if (keys[data.keyIndex]) {
+                        keys[data.keyIndex].collected = true;
+                    }
+                    break;
+
+                case 'passageDiscover':
+                    if (passages[data.passageIndex]) {
+                        passages[data.passageIndex].discovered = true;
                     }
                     break;
 
@@ -551,18 +715,8 @@
             const role = isHost ? '👹 You are the MONSTER!' : '🏃 SURVIVE!';
             document.getElementById('roomInfo').textContent = `Room ID: ${roomId} | ${role}`;
 
-            if (isHost) {
-                document.getElementById('controlsText').textContent = '🔴 HUNT DOWN THE SURVIVORS!';
-            } else {
-                document.getElementById('controlsText').textContent = '🏃 RUN FOR YOUR LIFE!';
-            }
-
             players[myId] = myPlayer;
             updatePlayerList();
-
-            // Random starting position
-            myPlayer.x = Math.random() * (canvas.width - 100) + 50;
-            myPlayer.y = Math.random() * (canvas.height - 100) + 50;
 
             gameStartTime = Date.now();
             gameLoop();
@@ -597,13 +751,14 @@
                 listEl.innerHTML += `
                     <div class="player-item">
                         <div class="player-status ${statusClass}"></div>
-                        <span style="color: ${player.isCaught ? '#666' : '#fff'}">${player.name}${isMe ? ' (You)' : ''} - ${statusText}</span>
+                        <span style="color: ${player.isCaught ? '#666' : '#fff'}">${player.name}${isMe ? ' (You)' : ''}</span>
                     </div>
                 `;
             });
 
             document.getElementById('aliveCount').textContent = aliveCount;
             document.getElementById('caughtCount').textContent = caughtCount;
+            document.getElementById('keyCount').textContent = myPlayer.keysCollected;
 
             // Check game over condition
             if (isHost && aliveCount === 0 && Object.keys(players).length > 1) {
@@ -634,43 +789,127 @@
             return `${mins}:${secs.toString().padStart(2, '0')}`;
         }
 
+        // Collision detection
+        function canMoveTo(x, y, radius) {
+            const corners = [
+                { x: x - radius, y: y - radius },
+                { x: x + radius, y: y - radius },
+                { x: x - radius, y: y + radius },
+                { x: x + radius, y: y + radius }
+            ];
+
+            for (let corner of corners) {
+                const cellX = Math.floor(corner.x / CELL_SIZE);
+                const cellY = Math.floor(corner.y / CELL_SIZE);
+
+                if (cellY < 0 || cellY >= map.length || cellX < 0 || cellX >= map[0].length) {
+                    return false;
+                }
+
+                const cell = map[cellY][cellX];
+
+                // Wall collision
+                if (cell === 1) {
+                    return false;
+                }
+
+                // Door collision (only if closed)
+                if (cell === 2) {
+                    const door = doors.find(d => d.x === cellX && d.y === cellY);
+                    if (door && !door.open) {
+                        return false;
+                    }
+                }
+
+                // Hidden passage (acts as wall if not discovered)
+                if (cell === 5) {
+                    const passage = passages.find(p => p.x === cellX && p.y === cellY);
+                    if (passage && !passage.discovered) {
+                        return false;
+                    }
+                }
+            }
+
+            return true;
+        }
+
         // Update game state
         function update() {
             if (myPlayer.isCaught) return;
 
+            // Check if stunned
+            if (myPlayer.stunned && Date.now() < myPlayer.stunnedUntil) {
+                return;
+            } else if (myPlayer.stunned) {
+                myPlayer.stunned = false;
+            }
+
             const speed = myPlayer.isMonster ? MONSTER_SPEED : PLAYER_SPEED;
 
             // Handle input
-            if (keys['arrowup'] || keys['w']) myPlayer.vy -= speed;
-            if (keys['arrowdown'] || keys['s']) myPlayer.vy += speed;
-            if (keys['arrowleft'] || keys['a']) myPlayer.vx -= speed;
-            if (keys['arrowright'] || keys['d']) myPlayer.vx += speed;
+            if (keys_pressed['arrowup'] || keys_pressed['w']) myPlayer.vy -= speed;
+            if (keys_pressed['arrowdown'] || keys_pressed['s']) myPlayer.vy += speed;
+            if (keys_pressed['arrowleft'] || keys_pressed['a']) myPlayer.vx -= speed;
+            if (keys_pressed['arrowright'] || keys_pressed['d']) myPlayer.vx += speed;
 
             // Apply friction
             myPlayer.vx *= FRICTION;
             myPlayer.vy *= FRICTION;
 
-            // Update position
-            myPlayer.x += myPlayer.vx;
-            myPlayer.y += myPlayer.vy;
+            // Calculate new position
+            const newX = myPlayer.x + myPlayer.vx;
+            const newY = myPlayer.y + myPlayer.vy;
 
-            // Boundary collision
-            if (myPlayer.x < myPlayer.radius) {
-                myPlayer.x = myPlayer.radius;
+            // Check collisions and update position
+            if (canMoveTo(newX, myPlayer.y, myPlayer.radius)) {
+                myPlayer.x = newX;
+            } else {
                 myPlayer.vx = 0;
             }
-            if (myPlayer.x > canvas.width - myPlayer.radius) {
-                myPlayer.x = canvas.width - myPlayer.radius;
-                myPlayer.vx = 0;
-            }
-            if (myPlayer.y < myPlayer.radius) {
-                myPlayer.y = myPlayer.radius;
+
+            if (canMoveTo(myPlayer.x, newY, myPlayer.radius)) {
+                myPlayer.y = newY;
+            } else {
                 myPlayer.vy = 0;
             }
-            if (myPlayer.y > canvas.height - myPlayer.radius) {
-                myPlayer.y = canvas.height - myPlayer.radius;
-                myPlayer.vy = 0;
-            }
+
+            // Collect keys
+            const playerCell = {
+                x: Math.floor(myPlayer.x / CELL_SIZE),
+                y: Math.floor(myPlayer.y / CELL_SIZE)
+            };
+
+            keys.forEach((key, index) => {
+                if (!key.collected && key.x === playerCell.x && key.y === playerCell.y) {
+                    key.collected = true;
+                    myPlayer.keysCollected++;
+                    broadcast({
+                        type: 'keyCollect',
+                        keyIndex: index
+                    });
+                }
+            });
+
+            // Discover hidden passages
+            passages.forEach((passage, index) => {
+                const dist = Math.sqrt(Math.pow((passage.x * CELL_SIZE + CELL_SIZE/2) - myPlayer.x, 2) +
+                                     Math.pow((passage.y * CELL_SIZE + CELL_SIZE/2) - myPlayer.y, 2));
+                if (!passage.discovered && dist < 30) {
+                    passage.discovered = true;
+                    broadcast({
+                        type: 'passageDiscover',
+                        passageIndex: index
+                    });
+                }
+            });
+
+            // Check traps
+            traps.forEach(trap => {
+                if (trap.active && trap.x === playerCell.x && trap.y === playerCell.y && !myPlayer.isMonster) {
+                    myPlayer.stunned = true;
+                    myPlayer.stunnedUntil = Date.now() + 2000; // Stunned for 2 seconds
+                }
+            });
 
             // Monster catches players
             if (isHost && myPlayer.isMonster) {
@@ -704,41 +943,101 @@
                     id: myId,
                     x: myPlayer.x,
                     y: myPlayer.y,
-                    isCaught: myPlayer.isCaught
+                    isCaught: myPlayer.isCaught,
+                    keysCollected: myPlayer.keysCollected,
+                    stunned: myPlayer.stunned
                 });
             }
         }
 
         // Render game
         function render() {
-            // Dark background with vignette
+            // Dark background
             ctx.fillStyle = '#0a0a0a';
             ctx.fillRect(0, 0, canvas.width, canvas.height);
 
-            // Vignette effect
-            const gradient = ctx.createRadialGradient(
-                canvas.width / 2, canvas.height / 2, 100,
-                canvas.width / 2, canvas.height / 2, 500
-            );
-            gradient.addColorStop(0, 'rgba(0, 0, 0, 0)');
-            gradient.addColorStop(1, 'rgba(0, 0, 0, 0.7)');
-            ctx.fillStyle = gradient;
-            ctx.fillRect(0, 0, canvas.width, canvas.height);
+            // Draw map
+            for (let y = 0; y < map.length; y++) {
+                for (let x = 0; x < map[y].length; x++) {
+                    const cellType = map[y][x];
+                    const screenX = x * CELL_SIZE;
+                    const screenY = y * CELL_SIZE;
 
-            // Draw subtle grid
-            ctx.strokeStyle = 'rgba(255, 0, 0, 0.05)';
-            ctx.lineWidth = 1;
-            for (let i = 0; i < canvas.width; i += 50) {
-                ctx.beginPath();
-                ctx.moveTo(i, 0);
-                ctx.lineTo(i, canvas.height);
-                ctx.stroke();
-            }
-            for (let i = 0; i < canvas.height; i += 50) {
-                ctx.beginPath();
-                ctx.moveTo(0, i);
-                ctx.lineTo(canvas.width, i);
-                ctx.stroke();
+                    if (cellType === 1) {
+                        // Wall
+                        ctx.fillStyle = '#333';
+                        ctx.fillRect(screenX, screenY, CELL_SIZE, CELL_SIZE);
+                        ctx.strokeStyle = '#222';
+                        ctx.strokeRect(screenX, screenY, CELL_SIZE, CELL_SIZE);
+                    } else if (cellType === 2) {
+                        // Door
+                        const door = doors.find(d => d.x === x && d.y === y);
+                        if (door) {
+                            if (door.locked) {
+                                ctx.fillStyle = '#ff0000';
+                                ctx.fillRect(screenX, screenY, CELL_SIZE, CELL_SIZE);
+                                ctx.fillStyle = '#fff';
+                                ctx.font = '20px Arial';
+                                ctx.textAlign = 'center';
+                                ctx.fillText('🔒', screenX + CELL_SIZE/2, screenY + CELL_SIZE/2 + 7);
+                            } else if (door.open) {
+                                ctx.fillStyle = 'rgba(0, 100, 0, 0.3)';
+                                ctx.fillRect(screenX, screenY, CELL_SIZE, CELL_SIZE);
+                            } else {
+                                ctx.fillStyle = '#654321';
+                                ctx.fillRect(screenX, screenY, CELL_SIZE, CELL_SIZE);
+                                ctx.fillStyle = '#fff';
+                                ctx.font = '20px Arial';
+                                ctx.textAlign = 'center';
+                                ctx.fillText('🚪', screenX + CELL_SIZE/2, screenY + CELL_SIZE/2 + 7);
+                            }
+                        }
+                    } else if (cellType === 3) {
+                        // Trap
+                        const trap = traps.find(t => t.x === x && t.y === y);
+                        if (trap && trap.active) {
+                            const pulse = Math.sin(Date.now() / 300) * 0.3 + 0.7;
+                            ctx.fillStyle = `rgba(255, 100, 0, ${pulse})`;
+                            ctx.fillRect(screenX, screenY, CELL_SIZE, CELL_SIZE);
+                            ctx.fillStyle = '#fff';
+                            ctx.font = '20px Arial';
+                            ctx.textAlign = 'center';
+                            ctx.fillText('💥', screenX + CELL_SIZE/2, screenY + CELL_SIZE/2 + 7);
+                        }
+                    } else if (cellType === 4) {
+                        // Key
+                        const key = keys.find(k => k.x === x && k.y === y);
+                        if (key && !key.collected) {
+                            const float = Math.sin(Date.now() / 500 + x + y) * 3;
+                            ctx.fillStyle = '#ffff00';
+                            ctx.shadowColor = '#ffff00';
+                            ctx.shadowBlur = 15;
+                            ctx.font = '24px Arial';
+                            ctx.textAlign = 'center';
+                            ctx.fillText('🔑', screenX + CELL_SIZE/2, screenY + CELL_SIZE/2 + 7 + float);
+                            ctx.shadowBlur = 0;
+                        }
+                    } else if (cellType === 5) {
+                        // Hidden passage
+                        const passage = passages.find(p => p.x === x && p.y === y);
+                        if (passage) {
+                            if (passage.discovered) {
+                                const swirl = Date.now() / 1000;
+                                ctx.fillStyle = `rgba(100, 0, 200, 0.5)`;
+                                ctx.fillRect(screenX, screenY, CELL_SIZE, CELL_SIZE);
+                                ctx.fillStyle = '#fff';
+                                ctx.font = '20px Arial';
+                                ctx.textAlign = 'center';
+                                ctx.fillText('🌀', screenX + CELL_SIZE/2, screenY + CELL_SIZE/2 + 7);
+                            } else {
+                                ctx.fillStyle = '#333';
+                                ctx.fillRect(screenX, screenY, CELL_SIZE, CELL_SIZE);
+                                ctx.strokeStyle = '#222';
+                                ctx.strokeRect(screenX, screenY, CELL_SIZE, CELL_SIZE);
+                            }
+                        }
+                    }
+                }
             }
 
             // Draw all players
@@ -757,7 +1056,6 @@
                     ctx.lineWidth = 2;
                     ctx.stroke();
 
-                    // Skull emoji
                     ctx.font = '20px Arial';
                     ctx.textAlign = 'center';
                     ctx.fillText('💀', player.x, player.y + 7);
@@ -765,31 +1063,27 @@
                     // Monster (pulsing red with glow)
                     const pulseSize = player.radius + Math.sin(Date.now() / 200) * 3;
 
-                    // Red glow
                     const monsterGlow = ctx.createRadialGradient(
                         player.x, player.y, pulseSize * 0.5,
-                        player.x, player.y, pulseSize * 2
+                        player.x, player.y, pulseSize * 2.5
                     );
-                    monsterGlow.addColorStop(0, 'rgba(255, 0, 0, 0.4)');
+                    monsterGlow.addColorStop(0, 'rgba(255, 0, 0, 0.6)');
                     monsterGlow.addColorStop(1, 'rgba(255, 0, 0, 0)');
                     ctx.fillStyle = monsterGlow;
                     ctx.beginPath();
-                    ctx.arc(player.x, player.y, pulseSize * 2, 0, Math.PI * 2);
+                    ctx.arc(player.x, player.y, pulseSize * 2.5, 0, Math.PI * 2);
                     ctx.fill();
 
-                    // Shadow
                     ctx.fillStyle = 'rgba(0, 0, 0, 0.5)';
                     ctx.beginPath();
                     ctx.arc(player.x + 3, player.y + 3, pulseSize, 0, Math.PI * 2);
                     ctx.fill();
 
-                    // Monster body
                     ctx.fillStyle = '#ff0000';
                     ctx.beginPath();
                     ctx.arc(player.x, player.y, pulseSize, 0, Math.PI * 2);
                     ctx.fill();
 
-                    // Border
                     ctx.strokeStyle = '#880000';
                     ctx.lineWidth = 3;
                     ctx.stroke();
@@ -797,48 +1091,59 @@
                     // Eyes
                     ctx.fillStyle = '#000';
                     ctx.beginPath();
-                    ctx.arc(player.x - 8, player.y - 5, 3, 0, Math.PI * 2);
-                    ctx.arc(player.x + 8, player.y - 5, 3, 0, Math.PI * 2);
+                    ctx.arc(player.x - 6, player.y - 4, 3, 0, Math.PI * 2);
+                    ctx.arc(player.x + 6, player.y - 4, 3, 0, Math.PI * 2);
                     ctx.fill();
                 } else {
-                    // Alive player (green with glow)
-                    // Green glow
+                    // Alive player
                     const playerGlow = ctx.createRadialGradient(
                         player.x, player.y, player.radius * 0.5,
-                        player.x, player.y, player.radius * 1.5
+                        player.x, player.y, player.radius * 1.8
                     );
-                    playerGlow.addColorStop(0, 'rgba(0, 255, 0, 0.3)');
+                    playerGlow.addColorStop(0, 'rgba(0, 255, 0, 0.4)');
                     playerGlow.addColorStop(1, 'rgba(0, 255, 0, 0)');
                     ctx.fillStyle = playerGlow;
                     ctx.beginPath();
-                    ctx.arc(player.x, player.y, player.radius * 1.5, 0, Math.PI * 2);
+                    ctx.arc(player.x, player.y, player.radius * 1.8, 0, Math.PI * 2);
                     ctx.fill();
 
-                    // Shadow
                     ctx.fillStyle = 'rgba(0, 0, 0, 0.3)';
                     ctx.beginPath();
                     ctx.arc(player.x + 2, player.y + 2, player.radius, 0, Math.PI * 2);
                     ctx.fill();
 
-                    // Player circle
-                    ctx.fillStyle = player.color;
+                    // Stunned effect
+                    if (player.stunned) {
+                        ctx.fillStyle = '#ffff00';
+                        ctx.strokeStyle = '#ff0000';
+                        ctx.lineWidth = 3;
+                    } else {
+                        ctx.fillStyle = player.color;
+                        ctx.strokeStyle = isMe ? '#fff' : '#00aa00';
+                        ctx.lineWidth = isMe ? 3 : 2;
+                    }
+
                     ctx.beginPath();
                     ctx.arc(player.x, player.y, player.radius, 0, Math.PI * 2);
                     ctx.fill();
-
-                    // Border
-                    ctx.strokeStyle = isMe ? '#fff' : '#00aa00';
-                    ctx.lineWidth = isMe ? 3 : 2;
                     ctx.stroke();
+
+                    // Show key count
+                    if (player.keysCollected > 0) {
+                        ctx.fillStyle = '#ffff00';
+                        ctx.font = 'bold 10px Arial';
+                        ctx.textAlign = 'center';
+                        ctx.fillText(`🔑${player.keysCollected}`, player.x, player.y - player.radius - 12);
+                    }
                 }
 
                 // Name
                 ctx.fillStyle = player.isMonster ? '#ff0000' : (player.isCaught ? '#666' : '#00ff00');
-                ctx.font = 'bold 12px Arial';
+                ctx.font = 'bold 10px Arial';
                 ctx.textAlign = 'center';
                 ctx.shadowColor = 'rgba(0, 0, 0, 0.8)';
                 ctx.shadowBlur = 4;
-                ctx.fillText(player.name, player.x, player.y - player.radius - 8);
+                ctx.fillText(player.name, player.x, player.y - player.radius - 3);
                 ctx.shadowBlur = 0;
             });
         }
@@ -847,11 +1152,10 @@
             const gameOverDiv = document.getElementById('gameOver');
             document.getElementById('gameOverTitle').textContent = title;
             document.getElementById('gameOverMessage').textContent = message;
-            document.getElementById('gameOverStats').textContent = `Survival Time: ${time}`;
+            document.getElementById('gameOverStats').textContent = `Time: ${time} | Keys: ${myPlayer.keysCollected}`;
             gameOverDiv.style.display = 'block';
         }
 
-        // Show status message
         function showStatus(message, type) {
             const statusEl = document.getElementById('status');
             statusEl.textContent = message;
@@ -859,7 +1163,6 @@
             statusEl.classList.remove('hidden');
         }
 
-        // Cleanup on page unload
         window.addEventListener('beforeunload', () => {
             if (peer) {
                 broadcast({
