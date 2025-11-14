@@ -1,0 +1,506 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Games | Mahammad Nuriyev</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@300;400;600;700&family=Inter:wght@300;400;600;700;900&display=swap" rel="stylesheet">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        :root {
+            --primary: #00ff88;
+            --primary-dim: #00cc6e;
+            --secondary: #00d4ff;
+            --accent: #ff0080;
+            --bg-dark: #0a0e1a;
+            --bg-darker: #050810;
+            --bg-card: rgba(15, 23, 42, 0.8);
+            --text-primary: #e2e8f0;
+            --text-secondary: #94a3b8;
+            --text-dim: #64748b;
+            --border: rgba(0, 255, 136, 0.2);
+            --glow: rgba(0, 255, 136, 0.4);
+        }
+
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+            background: var(--bg-darker);
+            color: var(--text-primary);
+            line-height: 1.7;
+            overflow-x: hidden;
+            -webkit-font-smoothing: antialiased;
+        }
+
+        /* Background Effects */
+        .bg-canvas {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: 0;
+            opacity: 0.12;
+            pointer-events: none;
+        }
+
+        .bg-gradient {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: 0;
+            background: radial-gradient(circle at 20% 50%, rgba(0, 255, 136, 0.08) 0%, transparent 50%),
+                        radial-gradient(circle at 80% 80%, rgba(0, 212, 255, 0.08) 0%, transparent 50%);
+            pointer-events: none;
+        }
+
+        /* Main Container */
+        .container {
+            position: relative;
+            z-index: 10;
+            max-width: 1280px;
+            margin: 0 auto;
+            padding: 0 2rem;
+        }
+
+        /* Header */
+        header {
+            padding: 2rem 0;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-bottom: 1px solid var(--border);
+        }
+
+        .logo {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 1.2rem;
+            font-weight: 700;
+            color: var(--primary);
+            text-decoration: none;
+            letter-spacing: -0.02em;
+        }
+
+        .logo::before {
+            content: '{ ';
+            color: var(--secondary);
+        }
+
+        .logo::after {
+            content: ' }';
+            color: var(--secondary);
+        }
+
+        nav a {
+            font-family: 'JetBrains Mono', monospace;
+            color: var(--text-secondary);
+            text-decoration: none;
+            font-size: 0.9rem;
+            margin-left: 2rem;
+            transition: color 0.3s ease;
+        }
+
+        nav a:hover {
+            color: var(--primary);
+        }
+
+        nav a.active {
+            color: var(--primary);
+        }
+
+        /* Hero Section */
+        .hero {
+            min-height: 40vh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            text-align: center;
+            padding: 4rem 2rem;
+            position: relative;
+        }
+
+        .hero h1 {
+            font-size: clamp(2.5rem, 8vw, 5rem);
+            font-weight: 900;
+            margin-bottom: 1rem;
+            background: linear-gradient(135deg, var(--primary) 0%, var(--secondary) 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            letter-spacing: -0.03em;
+            line-height: 1.1;
+        }
+
+        .hero .subtitle {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: clamp(1rem, 2vw, 1.2rem);
+            color: var(--text-secondary);
+            margin-bottom: 2rem;
+            font-weight: 400;
+        }
+
+        /* Games Grid */
+        .games-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+            gap: 2rem;
+            padding: 3rem 0;
+            margin-bottom: 4rem;
+        }
+
+        .game-card {
+            background: var(--bg-card);
+            border: 2px solid var(--border);
+            padding: 2.5rem;
+            backdrop-filter: blur(20px);
+            transition: all 0.3s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+            position: relative;
+            overflow: hidden;
+            text-decoration: none;
+            display: block;
+        }
+
+        .game-card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -100%;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.05), transparent);
+            transition: left 0.5s ease;
+        }
+
+        .game-card:hover {
+            transform: translateY(-10px);
+            box-shadow: 0 20px 60px rgba(0, 255, 136, 0.2);
+        }
+
+        .game-card:hover::before {
+            left: 100%;
+        }
+
+        .game-icon {
+            font-size: 3rem;
+            margin-bottom: 1rem;
+            display: block;
+        }
+
+        .game-title {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 1.5rem;
+            font-weight: 700;
+            margin-bottom: 0.5rem;
+            transition: color 0.3s ease;
+        }
+
+        .game-description {
+            color: var(--text-secondary);
+            font-size: 0.95rem;
+            line-height: 1.6;
+            margin-bottom: 1.5rem;
+        }
+
+        .game-play {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.9rem;
+            font-weight: 600;
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+            transition: gap 0.3s ease;
+        }
+
+        .game-play::after {
+            content: '→';
+            transition: transform 0.3s ease;
+        }
+
+        .game-card:hover .game-play {
+            gap: 1rem;
+        }
+
+        .game-card:hover .game-play::after {
+            transform: translateX(5px);
+        }
+
+        /* Game-specific colors */
+        .game-card[data-game="wifi"] {
+            border-color: rgba(168, 85, 247, 0.3);
+        }
+        .game-card[data-game="wifi"]:hover {
+            border-color: #a855f7;
+            box-shadow: 0 20px 60px rgba(168, 85, 247, 0.3);
+        }
+        .game-card[data-game="wifi"] .game-title,
+        .game-card[data-game="wifi"] .game-play {
+            color: #a855f7;
+        }
+
+        .game-card[data-game="voxel"] {
+            border-color: rgba(124, 252, 0, 0.3);
+        }
+        .game-card[data-game="voxel"]:hover {
+            border-color: #7cfc00;
+            box-shadow: 0 20px 60px rgba(124, 252, 0, 0.3);
+        }
+        .game-card[data-game="voxel"] .game-title,
+        .game-card[data-game="voxel"] .game-play {
+            color: #7cfc00;
+        }
+
+        .game-card[data-game="battle"] {
+            border-color: rgba(255, 0, 128, 0.3);
+        }
+        .game-card[data-game="battle"]:hover {
+            border-color: #ff0080;
+            box-shadow: 0 20px 60px rgba(255, 0, 128, 0.3);
+        }
+        .game-card[data-game="battle"] .game-title,
+        .game-card[data-game="battle"] .game-play {
+            color: #ff0080;
+        }
+
+        .game-card[data-game="racing"] {
+            border-color: rgba(0, 212, 255, 0.3);
+        }
+        .game-card[data-game="racing"]:hover {
+            border-color: #00d4ff;
+            box-shadow: 0 20px 60px rgba(0, 212, 255, 0.3);
+        }
+        .game-card[data-game="racing"] .game-title,
+        .game-card[data-game="racing"] .game-play {
+            color: #00d4ff;
+        }
+
+        .game-card[data-game="tactical"] {
+            border-color: rgba(0, 255, 0, 0.3);
+        }
+        .game-card[data-game="tactical"]:hover {
+            border-color: #00ff00;
+            box-shadow: 0 20px 60px rgba(0, 255, 0, 0.3);
+        }
+        .game-card[data-game="tactical"] .game-title,
+        .game-card[data-game="tactical"] .game-play {
+            color: #00ff00;
+        }
+
+        .game-card[data-game="horror"] {
+            border-color: rgba(255, 0, 0, 0.3);
+        }
+        .game-card[data-game="horror"]:hover {
+            border-color: #ff0000;
+            box-shadow: 0 20px 60px rgba(255, 0, 0, 0.3);
+        }
+        .game-card[data-game="horror"] .game-title,
+        .game-card[data-game="horror"] .game-play {
+            color: #ff0000;
+        }
+
+        .game-card[data-game="shadow"] {
+            border-color: rgba(204, 0, 0, 0.3);
+        }
+        .game-card[data-game="shadow"]:hover {
+            border-color: #cc0000;
+            box-shadow: 0 20px 60px rgba(204, 0, 0, 0.3);
+        }
+        .game-card[data-game="shadow"] .game-title,
+        .game-card[data-game="shadow"] .game-play {
+            color: #cc0000;
+        }
+
+        .game-card[data-game="butt"] {
+            border-color: rgba(255, 105, 180, 0.3);
+        }
+        .game-card[data-game="butt"]:hover {
+            border-color: #ff69b4;
+            box-shadow: 0 20px 60px rgba(255, 105, 180, 0.3);
+        }
+        .game-card[data-game="butt"] .game-title,
+        .game-card[data-game="butt"] .game-play {
+            color: #ff69b4;
+        }
+
+        /* Footer */
+        footer {
+            border-top: 1px solid var(--border);
+            padding: 3rem 0;
+            text-align: center;
+            margin-top: 4rem;
+        }
+
+        .footer-content {
+            color: var(--text-dim);
+            font-size: 0.9rem;
+        }
+
+        /* Responsive */
+        @media (max-width: 768px) {
+            .hero {
+                min-height: auto;
+                padding: 3rem 1rem;
+            }
+
+            nav {
+                display: none;
+            }
+
+            .games-grid {
+                grid-template-columns: 1fr;
+                gap: 1.5rem;
+            }
+        }
+
+        /* Smooth Scrolling */
+        html {
+            scroll-behavior: smooth;
+        }
+
+        /* Selection */
+        ::selection {
+            background: var(--primary);
+            color: var(--bg-darker);
+        }
+    </style>
+</head>
+<body>
+    <!-- Background Effects -->
+    <div class="bg-gradient"></div>
+    <canvas class="bg-canvas" id="matrix-canvas"></canvas>
+
+    <!-- Header -->
+    <div class="container">
+        <header>
+            <a href="index.html" class="logo">MN</a>
+            <nav>
+                <a href="games.html" class="active">Games</a>
+                <a href="index.html#research">Research</a>
+                <a href="index.html#publications">Publications</a>
+            </nav>
+        </header>
+    </div>
+
+    <!-- Hero -->
+    <section class="hero">
+        <h1>Game Collection</h1>
+        <p class="subtitle">Play exciting multiplayer and single-player browser games</p>
+    </section>
+
+    <!-- Games Grid -->
+    <div class="container">
+        <div class="games-grid">
+            <a href="wifi-multiplayer.html" class="game-card" data-game="wifi">
+                <span class="game-icon">📡</span>
+                <h3 class="game-title">WiFi Arena</h3>
+                <p class="game-description">Fast-paced multiplayer combat arena. Connect with friends over WiFi and battle it out in real-time action.</p>
+                <span class="game-play">Play Now</span>
+            </a>
+
+            <a href="minecraft.html" class="game-card" data-game="voxel">
+                <span class="game-icon">🧱</span>
+                <h3 class="game-title">VoxelCraft</h3>
+                <p class="game-description">Build, explore, and survive in a voxel-based multiplayer world. Craft tools and create amazing structures.</p>
+                <span class="game-play">Play Now</span>
+            </a>
+
+            <a href="game.html" class="game-card" data-game="battle">
+                <span class="game-icon">⚔️</span>
+                <h3 class="game-title">Cyber Battle Arena</h3>
+                <p class="game-description">Intense cyberpunk combat arena with neon aesthetics. Master different weapons and dominate the battlefield.</p>
+                <span class="game-play">Play Now</span>
+            </a>
+
+            <a href="racing.html" class="game-card" data-game="racing">
+                <span class="game-icon">🏎️</span>
+                <h3 class="game-title">Neon Velocity</h3>
+                <p class="game-description">High-speed racing through neon-lit tracks. Drift, boost, and compete for the fastest lap times.</p>
+                <span class="game-play">Play Now</span>
+            </a>
+
+            <a href="tactical-shooter.html" class="game-card" data-game="tactical">
+                <span class="game-icon">🎯</span>
+                <h3 class="game-title">Tactical Warfare</h3>
+                <p class="game-description">Strategic first-person shooter with team-based objectives. Plan your moves and outsmart opponents.</p>
+                <span class="game-play">Play Now</span>
+            </a>
+
+            <a href="horror-chase.html" class="game-card" data-game="horror">
+                <span class="game-icon">👻</span>
+                <h3 class="game-title">Midnight Chase</h3>
+                <p class="game-description">Survive the horror as you're hunted through dark corridors. Escape the monster or become its prey.</p>
+                <span class="game-play">Play Now</span>
+            </a>
+
+            <a href="shadow-hunt.html" class="game-card" data-game="shadow">
+                <span class="game-icon">🌑</span>
+                <h3 class="game-title">Shadow Hunt</h3>
+                <p class="game-description">Multiplayer horror experience where shadows come alive. Work together to survive or hunt alone in the dark.</p>
+                <span class="game-play">Play Now</span>
+            </a>
+
+            <a href="butt-bump.html" class="game-card" data-game="butt">
+                <span class="game-icon">🍑</span>
+                <h3 class="game-title">Butt Bump Battle</h3>
+                <p class="game-description">Hilarious physics-based party game. Bump opponents off the platform using only your behind!</p>
+                <span class="game-play">Play Now</span>
+            </a>
+        </div>
+    </div>
+
+    <!-- Footer -->
+    <div class="container">
+        <footer>
+            <div class="footer-content">
+                © 2025 Mahammad Nuriyev. All rights reserved.
+            </div>
+        </footer>
+    </div>
+
+    <script>
+        // Matrix Rain
+        const matrixCanvas = document.getElementById('matrix-canvas');
+        const matrixCtx = matrixCanvas.getContext('2d');
+        matrixCanvas.width = window.innerWidth;
+        matrixCanvas.height = window.innerHeight;
+
+        const chars = '01アイウエオカキクケコサシスセソタチツテトナニヌネノハヒフヘホマミムメモヤユヨラリルレロワヲン';
+        const fontSize = 14;
+        const columns = matrixCanvas.width / fontSize;
+        const drops = Array(Math.floor(columns)).fill(1);
+
+        function drawMatrix() {
+            matrixCtx.fillStyle = 'rgba(5, 8, 16, 0.05)';
+            matrixCtx.fillRect(0, 0, matrixCanvas.width, matrixCanvas.height);
+            matrixCtx.fillStyle = '#00ff88';
+            matrixCtx.font = fontSize + 'px monospace';
+
+            for (let i = 0; i < drops.length; i++) {
+                const char = chars[Math.floor(Math.random() * chars.length)];
+                matrixCtx.fillText(char, i * fontSize, drops[i] * fontSize);
+
+                if (drops[i] * fontSize > matrixCanvas.height && Math.random() > 0.975) {
+                    drops[i] = 0;
+                }
+                drops[i]++;
+            }
+        }
+
+        setInterval(drawMatrix, 50);
+
+        // Resize handler
+        window.addEventListener('resize', () => {
+            matrixCanvas.width = window.innerWidth;
+            matrixCanvas.height = window.innerHeight;
+        });
+    </script>
+</body>
+</html>
