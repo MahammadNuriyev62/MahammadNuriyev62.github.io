@@ -1,0 +1,583 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>WiFi Multiplayer Arena</title>
+    <script src="https://unpkg.com/peerjs@1.5.0/dist/peerjs.min.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Arial', sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            overflow: hidden;
+        }
+
+        #gameContainer {
+            background: white;
+            border-radius: 20px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+            padding: 30px;
+            max-width: 900px;
+            width: 90%;
+        }
+
+        #menu {
+            text-align: center;
+        }
+
+        h1 {
+            color: #667eea;
+            margin-bottom: 30px;
+            font-size: 2.5em;
+        }
+
+        .button-group {
+            display: flex;
+            gap: 20px;
+            justify-content: center;
+            margin-bottom: 20px;
+        }
+
+        button {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            padding: 15px 40px;
+            font-size: 18px;
+            border-radius: 50px;
+            cursor: pointer;
+            transition: transform 0.2s, box-shadow 0.2s;
+            font-weight: bold;
+        }
+
+        button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 20px rgba(0,0,0,0.2);
+        }
+
+        button:active {
+            transform: translateY(0);
+        }
+
+        input {
+            padding: 15px;
+            font-size: 16px;
+            border: 2px solid #667eea;
+            border-radius: 10px;
+            width: 300px;
+            margin: 10px;
+            text-align: center;
+        }
+
+        #gameArea {
+            display: none;
+        }
+
+        #gameCanvas {
+            border: 3px solid #667eea;
+            border-radius: 10px;
+            display: block;
+            margin: 20px auto;
+            background: #f0f0f0;
+        }
+
+        #info {
+            text-align: center;
+            margin-bottom: 20px;
+        }
+
+        #roomInfo {
+            background: #667eea;
+            color: white;
+            padding: 15px;
+            border-radius: 10px;
+            margin: 10px 0;
+            font-size: 18px;
+            font-weight: bold;
+        }
+
+        #playerList {
+            background: #f8f9fa;
+            padding: 15px;
+            border-radius: 10px;
+            margin: 10px 0;
+            text-align: left;
+        }
+
+        .player-item {
+            display: flex;
+            align-items: center;
+            margin: 8px 0;
+            font-size: 16px;
+        }
+
+        .player-color {
+            width: 20px;
+            height: 20px;
+            border-radius: 50%;
+            margin-right: 10px;
+            border: 2px solid #333;
+        }
+
+        #controls {
+            text-align: center;
+            color: #666;
+            margin-top: 15px;
+            font-size: 14px;
+        }
+
+        .hidden {
+            display: none;
+        }
+
+        #status {
+            margin: 15px 0;
+            padding: 10px;
+            border-radius: 5px;
+            font-size: 14px;
+        }
+
+        .status-success {
+            background: #d4edda;
+            color: #155724;
+        }
+
+        .status-error {
+            background: #f8d7da;
+            color: #721c24;
+        }
+
+        .status-info {
+            background: #d1ecf1;
+            color: #0c5460;
+        }
+
+        #joinSection {
+            margin-top: 20px;
+            padding-top: 20px;
+            border-top: 2px solid #e0e0e0;
+        }
+    </style>
+</head>
+<body>
+    <div id="gameContainer">
+        <div id="menu">
+            <h1>🎮 WiFi Multiplayer Arena</h1>
+
+            <div class="button-group">
+                <button onclick="createRoom()">Create Room (Host)</button>
+            </div>
+
+            <div id="joinSection">
+                <input type="text" id="roomIdInput" placeholder="Enter Room ID to Join">
+                <br>
+                <button onclick="joinRoom()">Join Room</button>
+            </div>
+
+            <div id="status" class="hidden"></div>
+        </div>
+
+        <div id="gameArea">
+            <div id="info">
+                <div id="roomInfo"></div>
+                <div id="playerList"></div>
+                <div id="controls">
+                    Use Arrow Keys or WASD to move • Bump into other players!
+                </div>
+            </div>
+            <canvas id="gameCanvas" width="800" height="600"></canvas>
+        </div>
+    </div>
+
+    <script>
+        // Game state
+        let peer = null;
+        let connections = [];
+        let isHost = false;
+        let myId = null;
+        let roomId = null;
+
+        const players = {};
+        const PLAYER_COLORS = ['#FF6B6B', '#4ECDC4', '#45B7D1', '#FFA07A', '#98D8C8', '#F7DC6F', '#BB8FCE', '#85C1E2', '#F8B739', '#52C77B'];
+        let colorIndex = 0;
+
+        // Canvas setup
+        const canvas = document.getElementById('gameCanvas');
+        const ctx = canvas.getContext('2d');
+
+        // My player
+        let myPlayer = {
+            x: 400,
+            y: 300,
+            vx: 0,
+            vy: 0,
+            radius: 20,
+            color: PLAYER_COLORS[0],
+            name: 'Player'
+        };
+
+        // Input handling
+        const keys = {};
+        const SPEED = 3;
+        const FRICTION = 0.9;
+
+        document.addEventListener('keydown', (e) => {
+            keys[e.key.toLowerCase()] = true;
+        });
+
+        document.addEventListener('keyup', (e) => {
+            keys[e.key.toLowerCase()] = false;
+        });
+
+        // Create room (Host)
+        function createRoom() {
+            showStatus('Creating room...', 'info');
+
+            peer = new Peer();
+
+            peer.on('open', (id) => {
+                myId = id;
+                roomId = id;
+                isHost = true;
+                myPlayer.color = PLAYER_COLORS[colorIndex++ % PLAYER_COLORS.length];
+                myPlayer.name = 'Host';
+                players[myId] = { ...myPlayer };
+
+                showStatus('Room created successfully!', 'success');
+                startGame();
+
+                // Listen for incoming connections
+                peer.on('connection', (conn) => {
+                    handleConnection(conn);
+                });
+            });
+
+            peer.on('error', (err) => {
+                showStatus('Error: ' + err.message, 'error');
+            });
+        }
+
+        // Join room
+        function joinRoom() {
+            const inputRoomId = document.getElementById('roomIdInput').value.trim();
+
+            if (!inputRoomId) {
+                showStatus('Please enter a Room ID', 'error');
+                return;
+            }
+
+            showStatus('Joining room...', 'info');
+
+            peer = new Peer();
+
+            peer.on('open', (id) => {
+                myId = id;
+                roomId = inputRoomId;
+                isHost = false;
+                myPlayer.color = PLAYER_COLORS[colorIndex++ % PLAYER_COLORS.length];
+                myPlayer.name = 'Player ' + Math.floor(Math.random() * 1000);
+
+                // Connect to host
+                const conn = peer.connect(inputRoomId);
+                handleConnection(conn);
+            });
+
+            peer.on('error', (err) => {
+                showStatus('Error: Could not join room. Check the Room ID.', 'error');
+            });
+        }
+
+        // Handle peer connection
+        function handleConnection(conn) {
+            connections.push(conn);
+
+            conn.on('open', () => {
+                showStatus('Connected!', 'success');
+
+                // Send my player info
+                conn.send({
+                    type: 'join',
+                    id: myId,
+                    player: myPlayer
+                });
+
+                if (!isHost) {
+                    startGame();
+                }
+            });
+
+            conn.on('data', (data) => {
+                handleData(data, conn);
+            });
+
+            conn.on('close', () => {
+                connections = connections.filter(c => c !== conn);
+            });
+        }
+
+        // Handle incoming data
+        function handleData(data, conn) {
+            switch(data.type) {
+                case 'join':
+                    // New player joined
+                    players[data.id] = data.player;
+                    updatePlayerList();
+
+                    // If host, share all current players with the new player
+                    if (isHost) {
+                        conn.send({
+                            type: 'playerList',
+                            players: players
+                        });
+
+                        // Notify all other players about the new player
+                        broadcastToOthers({
+                            type: 'playerJoined',
+                            id: data.id,
+                            player: data.player
+                        }, conn);
+                    }
+                    break;
+
+                case 'playerList':
+                    // Received full player list from host
+                    Object.assign(players, data.players);
+                    players[myId] = myPlayer;
+                    updatePlayerList();
+                    break;
+
+                case 'playerJoined':
+                    // Another player joined
+                    players[data.id] = data.player;
+                    updatePlayerList();
+                    break;
+
+                case 'update':
+                    // Player position update
+                    if (players[data.id]) {
+                        players[data.id].x = data.x;
+                        players[data.id].y = data.y;
+                    }
+                    break;
+
+                case 'leave':
+                    delete players[data.id];
+                    updatePlayerList();
+                    break;
+            }
+        }
+
+        // Broadcast to all connections except one
+        function broadcastToOthers(data, except = null) {
+            connections.forEach(conn => {
+                if (conn !== except && conn.open) {
+                    conn.send(data);
+                }
+            });
+        }
+
+        // Broadcast to all connections
+        function broadcast(data) {
+            connections.forEach(conn => {
+                if (conn.open) {
+                    conn.send(data);
+                }
+            });
+        }
+
+        // Start game
+        function startGame() {
+            document.getElementById('menu').style.display = 'none';
+            document.getElementById('gameArea').style.display = 'block';
+
+            document.getElementById('roomInfo').textContent =
+                `Room ID: ${roomId} ${isHost ? '(You are the Host)' : '(Connected)'}`;
+
+            players[myId] = myPlayer;
+            updatePlayerList();
+
+            // Random starting position
+            myPlayer.x = Math.random() * (canvas.width - 100) + 50;
+            myPlayer.y = Math.random() * (canvas.height - 100) + 50;
+
+            gameLoop();
+        }
+
+        // Update player list display
+        function updatePlayerList() {
+            const listEl = document.getElementById('playerList');
+            listEl.innerHTML = '<strong>Players (' + Object.keys(players).length + '):</strong><br>';
+
+            Object.keys(players).forEach(id => {
+                const player = players[id];
+                const isMe = id === myId;
+                listEl.innerHTML += `
+                    <div class="player-item">
+                        <div class="player-color" style="background: ${player.color}"></div>
+                        <span>${player.name}${isMe ? ' (You)' : ''}</span>
+                    </div>
+                `;
+            });
+        }
+
+        // Game loop
+        function gameLoop() {
+            update();
+            render();
+            requestAnimationFrame(gameLoop);
+        }
+
+        // Update game state
+        function update() {
+            // Handle input
+            if (keys['arrowup'] || keys['w']) myPlayer.vy -= SPEED;
+            if (keys['arrowdown'] || keys['s']) myPlayer.vy += SPEED;
+            if (keys['arrowleft'] || keys['a']) myPlayer.vx -= SPEED;
+            if (keys['arrowright'] || keys['d']) myPlayer.vx += SPEED;
+
+            // Apply friction
+            myPlayer.vx *= FRICTION;
+            myPlayer.vy *= FRICTION;
+
+            // Update position
+            myPlayer.x += myPlayer.vx;
+            myPlayer.y += myPlayer.vy;
+
+            // Boundary collision
+            if (myPlayer.x < myPlayer.radius) {
+                myPlayer.x = myPlayer.radius;
+                myPlayer.vx = 0;
+            }
+            if (myPlayer.x > canvas.width - myPlayer.radius) {
+                myPlayer.x = canvas.width - myPlayer.radius;
+                myPlayer.vx = 0;
+            }
+            if (myPlayer.y < myPlayer.radius) {
+                myPlayer.y = myPlayer.radius;
+                myPlayer.vy = 0;
+            }
+            if (myPlayer.y > canvas.height - myPlayer.radius) {
+                myPlayer.y = canvas.height - myPlayer.radius;
+                myPlayer.vy = 0;
+            }
+
+            // Player collision
+            Object.keys(players).forEach(id => {
+                if (id !== myId) {
+                    const other = players[id];
+                    const dx = other.x - myPlayer.x;
+                    const dy = other.y - myPlayer.y;
+                    const dist = Math.sqrt(dx * dx + dy * dy);
+
+                    if (dist < myPlayer.radius + other.radius) {
+                        // Simple bounce
+                        const angle = Math.atan2(dy, dx);
+                        const targetX = myPlayer.x + Math.cos(angle) * (myPlayer.radius + other.radius);
+                        const targetY = myPlayer.y + Math.sin(angle) * (myPlayer.radius + other.radius);
+
+                        myPlayer.x -= (targetX - other.x) * 0.5;
+                        myPlayer.y -= (targetY - other.y) * 0.5;
+
+                        myPlayer.vx *= -0.5;
+                        myPlayer.vy *= -0.5;
+                    }
+                }
+            });
+
+            // Update my player in the players object
+            players[myId] = { ...myPlayer };
+
+            // Send position update to peers
+            if (Math.abs(myPlayer.vx) > 0.1 || Math.abs(myPlayer.vy) > 0.1 || Math.random() < 0.1) {
+                broadcast({
+                    type: 'update',
+                    id: myId,
+                    x: myPlayer.x,
+                    y: myPlayer.y
+                });
+            }
+        }
+
+        // Render game
+        function render() {
+            // Clear canvas
+            ctx.fillStyle = '#f0f0f0';
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+            // Draw grid
+            ctx.strokeStyle = '#e0e0e0';
+            ctx.lineWidth = 1;
+            for (let i = 0; i < canvas.width; i += 50) {
+                ctx.beginPath();
+                ctx.moveTo(i, 0);
+                ctx.lineTo(i, canvas.height);
+                ctx.stroke();
+            }
+            for (let i = 0; i < canvas.height; i += 50) {
+                ctx.beginPath();
+                ctx.moveTo(0, i);
+                ctx.lineTo(canvas.width, i);
+                ctx.stroke();
+            }
+
+            // Draw all players
+            Object.keys(players).forEach(id => {
+                const player = players[id];
+                const isMe = id === myId;
+
+                // Shadow
+                ctx.fillStyle = 'rgba(0,0,0,0.2)';
+                ctx.beginPath();
+                ctx.arc(player.x + 3, player.y + 3, player.radius, 0, Math.PI * 2);
+                ctx.fill();
+
+                // Player circle
+                ctx.fillStyle = player.color;
+                ctx.beginPath();
+                ctx.arc(player.x, player.y, player.radius, 0, Math.PI * 2);
+                ctx.fill();
+
+                // Border
+                ctx.strokeStyle = isMe ? '#000' : '#666';
+                ctx.lineWidth = isMe ? 3 : 2;
+                ctx.stroke();
+
+                // Name
+                ctx.fillStyle = '#000';
+                ctx.font = 'bold 12px Arial';
+                ctx.textAlign = 'center';
+                ctx.fillText(player.name, player.x, player.y - player.radius - 5);
+            });
+        }
+
+        // Show status message
+        function showStatus(message, type) {
+            const statusEl = document.getElementById('status');
+            statusEl.textContent = message;
+            statusEl.className = 'status-' + type;
+            statusEl.classList.remove('hidden');
+        }
+
+        // Cleanup on page unload
+        window.addEventListener('beforeunload', () => {
+            if (peer) {
+                broadcast({
+                    type: 'leave',
+                    id: myId
+                });
+                peer.destroy();
+            }
+        });
+    </script>
+</body>
+</html>
