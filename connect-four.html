@@ -1,0 +1,774 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Connect Four - Unbeatable AI</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Arial', sans-serif;
+            background: linear-gradient(135deg, #1e3c72 0%, #2a5298 50%, #7e22ce 100%);
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 900px;
+            width: 100%;
+            text-align: center;
+        }
+
+        h1 {
+            font-size: 3rem;
+            margin-bottom: 0.5rem;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
+        }
+
+        .subtitle {
+            font-size: 1.2rem;
+            margin-bottom: 2rem;
+            opacity: 0.9;
+        }
+
+        .game-info {
+            background: rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(10px);
+            border-radius: 15px;
+            padding: 1.5rem;
+            margin-bottom: 2rem;
+            display: flex;
+            justify-content: space-around;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 1rem;
+        }
+
+        .info-item {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+
+        .info-label {
+            font-size: 0.9rem;
+            opacity: 0.8;
+            margin-bottom: 0.5rem;
+        }
+
+        .info-value {
+            font-size: 1.5rem;
+            font-weight: bold;
+        }
+
+        .current-player {
+            font-size: 1.2rem;
+            font-weight: bold;
+            padding: 0.5rem 1.5rem;
+            border-radius: 10px;
+            background: rgba(255, 255, 255, 0.2);
+        }
+
+        .board-container {
+            background: rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(10px);
+            border-radius: 20px;
+            padding: 2rem;
+            box-shadow: 0 8px 32px rgba(0,0,0,0.2);
+            margin-bottom: 2rem;
+        }
+
+        .board {
+            display: inline-grid;
+            grid-template-columns: repeat(7, 1fr);
+            gap: 10px;
+            background: #0f172a;
+            padding: 20px;
+            border-radius: 15px;
+            box-shadow: inset 0 4px 20px rgba(0,0,0,0.5);
+        }
+
+        .cell {
+            width: 70px;
+            height: 70px;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 50%;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            position: relative;
+            box-shadow: inset 0 2px 8px rgba(0,0,0,0.3);
+        }
+
+        .cell:hover:not(.filled) {
+            background: rgba(255, 255, 255, 0.2);
+            transform: scale(1.1);
+        }
+
+        .cell.filled {
+            cursor: default;
+        }
+
+        .cell.player1 {
+            background: radial-gradient(circle, #ef4444 0%, #dc2626 100%);
+            box-shadow: 0 4px 15px rgba(239, 68, 68, 0.5),
+                        inset 0 2px 8px rgba(255, 255, 255, 0.2);
+        }
+
+        .cell.player2 {
+            background: radial-gradient(circle, #eab308 0%, #ca8a04 100%);
+            box-shadow: 0 4px 15px rgba(234, 179, 8, 0.5),
+                        inset 0 2px 8px rgba(255, 255, 255, 0.2);
+        }
+
+        .cell.winning {
+            animation: winPulse 1s ease infinite;
+        }
+
+        @keyframes winPulse {
+            0%, 100% {
+                transform: scale(1);
+                box-shadow: 0 4px 15px rgba(255, 255, 255, 0.5);
+            }
+            50% {
+                transform: scale(1.15);
+                box-shadow: 0 8px 25px rgba(255, 255, 255, 0.8);
+            }
+        }
+
+        .cell.drop-animation {
+            animation: dropPiece 0.5s ease-out;
+        }
+
+        @keyframes dropPiece {
+            0% {
+                transform: translateY(-500px);
+                opacity: 0;
+            }
+            60% {
+                transform: translateY(10px);
+            }
+            80% {
+                transform: translateY(-5px);
+            }
+            100% {
+                transform: translateY(0);
+                opacity: 1;
+            }
+        }
+
+        .result-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.8);
+            display: none;
+            align-items: center;
+            justify-content: center;
+            z-index: 1000;
+            backdrop-filter: blur(10px);
+        }
+
+        .result-overlay.show {
+            display: flex;
+            animation: fadeIn 0.5s ease;
+        }
+
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+            }
+            to {
+                opacity: 1;
+            }
+        }
+
+        .result-content {
+            background: rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(20px);
+            border: 3px solid white;
+            border-radius: 20px;
+            padding: 3rem;
+            text-align: center;
+            animation: scaleIn 0.5s ease;
+            max-width: 500px;
+        }
+
+        @keyframes scaleIn {
+            from {
+                transform: scale(0.5);
+                opacity: 0;
+            }
+            to {
+                transform: scale(1);
+                opacity: 1;
+            }
+        }
+
+        .result-title {
+            font-size: 3rem;
+            margin-bottom: 1rem;
+            font-weight: bold;
+        }
+
+        .result-message {
+            font-size: 1.5rem;
+            margin-bottom: 2rem;
+            opacity: 0.9;
+        }
+
+        .buttons {
+            display: flex;
+            gap: 1rem;
+            justify-content: center;
+            flex-wrap: wrap;
+        }
+
+        .btn {
+            padding: 1rem 2rem;
+            font-size: 1rem;
+            font-weight: bold;
+            border: 2px solid white;
+            border-radius: 10px;
+            background: rgba(255, 255, 255, 0.2);
+            color: white;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            text-decoration: none;
+            display: inline-block;
+        }
+
+        .btn:hover {
+            background: rgba(255, 255, 255, 0.3);
+            transform: translateY(-3px);
+            box-shadow: 0 5px 20px rgba(255, 255, 255, 0.3);
+        }
+
+        .btn:active {
+            transform: translateY(-1px);
+        }
+
+        .btn.primary {
+            background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%);
+            border-color: #ef4444;
+        }
+
+        .btn.primary:hover {
+            background: linear-gradient(135deg, #dc2626 0%, #b91c1c 100%);
+            box-shadow: 0 5px 20px rgba(239, 68, 68, 0.5);
+        }
+
+        .hint {
+            margin-top: 1rem;
+            font-size: 0.9rem;
+            opacity: 0.7;
+            font-style: italic;
+        }
+
+        .thinking {
+            display: none;
+            font-size: 1.1rem;
+            margin-top: 1rem;
+            padding: 1rem;
+            background: rgba(234, 179, 8, 0.2);
+            border-radius: 10px;
+            border: 2px solid rgba(234, 179, 8, 0.5);
+        }
+
+        .thinking.show {
+            display: block;
+            animation: pulse 1.5s ease infinite;
+        }
+
+        @keyframes pulse {
+            0%, 100% {
+                opacity: 1;
+            }
+            50% {
+                opacity: 0.6;
+            }
+        }
+
+        @media (max-width: 768px) {
+            h1 {
+                font-size: 2rem;
+            }
+
+            .board {
+                gap: 8px;
+                padding: 15px;
+            }
+
+            .cell {
+                width: 45px;
+                height: 45px;
+            }
+
+            .result-content {
+                padding: 2rem;
+            }
+
+            .result-title {
+                font-size: 2rem;
+            }
+
+            .result-message {
+                font-size: 1.2rem;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Connect Four</h1>
+        <p class="subtitle">Challenge the Unbeatable AI Bot</p>
+
+        <div class="game-info">
+            <div class="info-item">
+                <div class="info-label">Your Wins</div>
+                <div class="info-value" id="playerWins">0</div>
+            </div>
+            <div class="info-item">
+                <div class="current-player" id="currentPlayer">Your Turn</div>
+            </div>
+            <div class="info-item">
+                <div class="info-label">Bot Wins</div>
+                <div class="info-value" id="botWins">0</div>
+            </div>
+        </div>
+
+        <div class="board-container">
+            <div class="board" id="board"></div>
+            <div class="thinking" id="thinking">🤔 AI is thinking...</div>
+        </div>
+
+        <div class="buttons">
+            <button class="btn primary" onclick="resetGame()">New Game</button>
+            <a href="index.html" class="btn">← Back to Home</a>
+        </div>
+
+        <p class="hint">The AI uses Minimax algorithm with alpha-beta pruning. Can you beat it? 🎯</p>
+    </div>
+
+    <div class="result-overlay" id="resultOverlay">
+        <div class="result-content">
+            <div class="result-title" id="resultTitle">Game Over!</div>
+            <div class="result-message" id="resultMessage">It's a draw!</div>
+            <div class="buttons">
+                <button class="btn primary" onclick="resetGame()">Play Again</button>
+                <a href="index.html" class="btn">Back to Home</a>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const ROWS = 6;
+        const COLS = 7;
+        const PLAYER = 1;
+        const BOT = 2;
+        const EMPTY = 0;
+
+        let board = [];
+        let currentPlayer = PLAYER;
+        let gameOver = false;
+        let playerWins = 0;
+        let botWins = 0;
+
+        // Initialize the game
+        function initGame() {
+            board = Array(ROWS).fill(null).map(() => Array(COLS).fill(EMPTY));
+            currentPlayer = PLAYER;
+            gameOver = false;
+            renderBoard();
+            updateCurrentPlayer();
+        }
+
+        // Render the board
+        function renderBoard() {
+            const boardElement = document.getElementById('board');
+            boardElement.innerHTML = '';
+
+            for (let row = 0; row < ROWS; row++) {
+                for (let col = 0; col < COLS; col++) {
+                    const cell = document.createElement('div');
+                    cell.className = 'cell';
+                    cell.dataset.row = row;
+                    cell.dataset.col = col;
+
+                    if (board[row][col] === PLAYER) {
+                        cell.classList.add('player1', 'filled');
+                    } else if (board[row][col] === BOT) {
+                        cell.classList.add('player2', 'filled');
+                    }
+
+                    cell.addEventListener('click', () => handleCellClick(col));
+                    boardElement.appendChild(cell);
+                }
+            }
+        }
+
+        // Handle cell click
+        function handleCellClick(col) {
+            if (gameOver || currentPlayer === BOT) return;
+
+            const row = getLowestEmptyRow(col);
+            if (row === -1) return; // Column is full
+
+            makeMove(row, col, PLAYER);
+        }
+
+        // Get the lowest empty row in a column
+        function getLowestEmptyRow(col) {
+            for (let row = ROWS - 1; row >= 0; row--) {
+                if (board[row][col] === EMPTY) {
+                    return row;
+                }
+            }
+            return -1;
+        }
+
+        // Make a move
+        function makeMove(row, col, player) {
+            board[row][col] = player;
+            renderBoard();
+            animateDropPiece(row, col);
+
+            if (checkWin(row, col, player)) {
+                endGame(player);
+                return;
+            }
+
+            if (isBoardFull()) {
+                endGame(null);
+                return;
+            }
+
+            currentPlayer = player === PLAYER ? BOT : PLAYER;
+            updateCurrentPlayer();
+
+            if (currentPlayer === BOT) {
+                setTimeout(makeBotMove, 500);
+            }
+        }
+
+        // Animate dropping piece
+        function animateDropPiece(row, col) {
+            const cells = document.querySelectorAll('.cell');
+            const cellIndex = row * COLS + col;
+            cells[cellIndex].classList.add('drop-animation');
+            setTimeout(() => {
+                cells[cellIndex].classList.remove('drop-animation');
+            }, 500);
+        }
+
+        // Update current player display
+        function updateCurrentPlayer() {
+            const playerDisplay = document.getElementById('currentPlayer');
+            if (currentPlayer === PLAYER) {
+                playerDisplay.textContent = 'Your Turn';
+                playerDisplay.style.background = 'rgba(239, 68, 68, 0.3)';
+            } else {
+                playerDisplay.textContent = "Bot's Turn";
+                playerDisplay.style.background = 'rgba(234, 179, 8, 0.3)';
+            }
+        }
+
+        // Bot makes a move using Minimax with alpha-beta pruning
+        function makeBotMove() {
+            document.getElementById('thinking').classList.add('show');
+
+            setTimeout(() => {
+                const bestMove = getBestMove();
+                const row = getLowestEmptyRow(bestMove);
+
+                document.getElementById('thinking').classList.remove('show');
+                makeMove(row, bestMove, BOT);
+            }, 800);
+        }
+
+        // Get best move using Minimax algorithm
+        function getBestMove() {
+            let bestScore = -Infinity;
+            let bestMove = 3; // Default to center column
+
+            for (let col = 0; col < COLS; col++) {
+                const row = getLowestEmptyRow(col);
+                if (row === -1) continue;
+
+                // Try this move
+                board[row][col] = BOT;
+                const score = minimax(board, 6, -Infinity, Infinity, false);
+                board[row][col] = EMPTY;
+
+                if (score > bestScore) {
+                    bestScore = score;
+                    bestMove = col;
+                }
+            }
+
+            return bestMove;
+        }
+
+        // Minimax algorithm with alpha-beta pruning
+        function minimax(board, depth, alpha, beta, isMaximizing) {
+            // Check terminal states
+            if (depth === 0) {
+                return evaluateBoard();
+            }
+
+            // Check for immediate wins/losses
+            for (let col = 0; col < COLS; col++) {
+                const row = getLowestEmptyRow(col);
+                if (row === -1) continue;
+
+                // Check BOT win
+                board[row][col] = BOT;
+                if (checkWin(row, col, BOT)) {
+                    board[row][col] = EMPTY;
+                    return isMaximizing ? 10000 : -10000;
+                }
+                board[row][col] = EMPTY;
+
+                // Check PLAYER win
+                board[row][col] = PLAYER;
+                if (checkWin(row, col, PLAYER)) {
+                    board[row][col] = EMPTY;
+                    return isMaximizing ? -10000 : 10000;
+                }
+                board[row][col] = EMPTY;
+            }
+
+            if (isBoardFull()) {
+                return 0;
+            }
+
+            if (isMaximizing) {
+                let maxScore = -Infinity;
+                for (let col = 0; col < COLS; col++) {
+                    const row = getLowestEmptyRow(col);
+                    if (row === -1) continue;
+
+                    board[row][col] = BOT;
+                    const score = minimax(board, depth - 1, alpha, beta, false);
+                    board[row][col] = EMPTY;
+
+                    maxScore = Math.max(maxScore, score);
+                    alpha = Math.max(alpha, score);
+                    if (beta <= alpha) break; // Alpha-beta pruning
+                }
+                return maxScore;
+            } else {
+                let minScore = Infinity;
+                for (let col = 0; col < COLS; col++) {
+                    const row = getLowestEmptyRow(col);
+                    if (row === -1) continue;
+
+                    board[row][col] = PLAYER;
+                    const score = minimax(board, depth - 1, alpha, beta, true);
+                    board[row][col] = EMPTY;
+
+                    minScore = Math.min(minScore, score);
+                    beta = Math.min(beta, score);
+                    if (beta <= alpha) break; // Alpha-beta pruning
+                }
+                return minScore;
+            }
+        }
+
+        // Evaluate board position
+        function evaluateBoard() {
+            let score = 0;
+
+            // Center column preference
+            for (let row = 0; row < ROWS; row++) {
+                if (board[row][3] === BOT) score += 3;
+                if (board[row][3] === PLAYER) score -= 3;
+            }
+
+            // Evaluate all possible windows
+            score += evaluateWindows();
+
+            return score;
+        }
+
+        // Evaluate all 4-cell windows
+        function evaluateWindows() {
+            let score = 0;
+
+            // Horizontal
+            for (let row = 0; row < ROWS; row++) {
+                for (let col = 0; col <= COLS - 4; col++) {
+                    const window = [board[row][col], board[row][col + 1], board[row][col + 2], board[row][col + 3]];
+                    score += scoreWindow(window);
+                }
+            }
+
+            // Vertical
+            for (let col = 0; col < COLS; col++) {
+                for (let row = 0; row <= ROWS - 4; row++) {
+                    const window = [board[row][col], board[row + 1][col], board[row + 2][col], board[row + 3][col]];
+                    score += scoreWindow(window);
+                }
+            }
+
+            // Diagonal (positive slope)
+            for (let row = 0; row <= ROWS - 4; row++) {
+                for (let col = 0; col <= COLS - 4; col++) {
+                    const window = [board[row][col], board[row + 1][col + 1], board[row + 2][col + 2], board[row + 3][col + 3]];
+                    score += scoreWindow(window);
+                }
+            }
+
+            // Diagonal (negative slope)
+            for (let row = 3; row < ROWS; row++) {
+                for (let col = 0; col <= COLS - 4; col++) {
+                    const window = [board[row][col], board[row - 1][col + 1], board[row - 2][col + 2], board[row - 3][col + 3]];
+                    score += scoreWindow(window);
+                }
+            }
+
+            return score;
+        }
+
+        // Score a 4-cell window
+        function scoreWindow(window) {
+            let score = 0;
+            const botCount = window.filter(cell => cell === BOT).length;
+            const playerCount = window.filter(cell => cell === PLAYER).length;
+            const emptyCount = window.filter(cell => cell === EMPTY).length;
+
+            if (botCount === 4) score += 100;
+            else if (botCount === 3 && emptyCount === 1) score += 5;
+            else if (botCount === 2 && emptyCount === 2) score += 2;
+
+            if (playerCount === 3 && emptyCount === 1) score -= 4;
+            else if (playerCount === 2 && emptyCount === 2) score -= 1;
+
+            return score;
+        }
+
+        // Check if there's a win
+        function checkWin(row, col, player) {
+            // Check horizontal
+            for (let c = Math.max(0, col - 3); c <= Math.min(COLS - 4, col); c++) {
+                if (board[row][c] === player &&
+                    board[row][c + 1] === player &&
+                    board[row][c + 2] === player &&
+                    board[row][c + 3] === player) {
+                    highlightWinningCells([[row, c], [row, c + 1], [row, c + 2], [row, c + 3]]);
+                    return true;
+                }
+            }
+
+            // Check vertical
+            for (let r = Math.max(0, row - 3); r <= Math.min(ROWS - 4, row); r++) {
+                if (board[r][col] === player &&
+                    board[r + 1][col] === player &&
+                    board[r + 2][col] === player &&
+                    board[r + 3][col] === player) {
+                    highlightWinningCells([[r, col], [r + 1, col], [r + 2, col], [r + 3, col]]);
+                    return true;
+                }
+            }
+
+            // Check diagonal (positive slope)
+            for (let offset = -3; offset <= 0; offset++) {
+                const r = row + offset;
+                const c = col + offset;
+                if (r >= 0 && r <= ROWS - 4 && c >= 0 && c <= COLS - 4) {
+                    if (board[r][c] === player &&
+                        board[r + 1][c + 1] === player &&
+                        board[r + 2][c + 2] === player &&
+                        board[r + 3][c + 3] === player) {
+                        highlightWinningCells([[r, c], [r + 1, c + 1], [r + 2, c + 2], [r + 3, c + 3]]);
+                        return true;
+                    }
+                }
+            }
+
+            // Check diagonal (negative slope)
+            for (let offset = -3; offset <= 0; offset++) {
+                const r = row - offset;
+                const c = col + offset;
+                if (r >= 3 && r < ROWS && c >= 0 && c <= COLS - 4) {
+                    if (board[r][c] === player &&
+                        board[r - 1][c + 1] === player &&
+                        board[r - 2][c + 2] === player &&
+                        board[r - 3][c + 3] === player) {
+                        highlightWinningCells([[r, c], [r - 1, c + 1], [r - 2, c + 2], [r - 3, c + 3]]);
+                        return true;
+                    }
+                }
+            }
+
+            return false;
+        }
+
+        // Highlight winning cells
+        function highlightWinningCells(cells) {
+            setTimeout(() => {
+                const cellElements = document.querySelectorAll('.cell');
+                cells.forEach(([row, col]) => {
+                    const index = row * COLS + col;
+                    cellElements[index].classList.add('winning');
+                });
+            }, 100);
+        }
+
+        // Check if board is full
+        function isBoardFull() {
+            return board[0].every(cell => cell !== EMPTY);
+        }
+
+        // End game
+        function endGame(winner) {
+            gameOver = true;
+            const overlay = document.getElementById('resultOverlay');
+            const title = document.getElementById('resultTitle');
+            const message = document.getElementById('resultMessage');
+
+            if (winner === PLAYER) {
+                playerWins++;
+                document.getElementById('playerWins').textContent = playerWins;
+                title.textContent = '🎉 You Win! 🎉';
+                message.textContent = 'Congratulations! You beat the unbeatable AI!';
+            } else if (winner === BOT) {
+                botWins++;
+                document.getElementById('botWins').textContent = botWins;
+                title.textContent = '🤖 Bot Wins! 🤖';
+                message.textContent = 'The AI was too strong this time. Try again!';
+            } else {
+                title.textContent = '🤝 Draw! 🤝';
+                message.textContent = 'The board is full. Nobody wins!';
+            }
+
+            setTimeout(() => {
+                overlay.classList.add('show');
+            }, 1000);
+        }
+
+        // Reset game
+        function resetGame() {
+            document.getElementById('resultOverlay').classList.remove('show');
+            initGame();
+        }
+
+        // Initialize on load
+        initGame();
+    </script>
+</body>
+</html>
