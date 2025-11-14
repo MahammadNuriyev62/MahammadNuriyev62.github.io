@@ -525,8 +525,8 @@
 
         // Render game
         function render() {
-            // Clear canvas
-            ctx.fillStyle = '#000';
+            // Clear canvas with lighter background
+            ctx.fillStyle = '#0a0a0a';
             ctx.fillRect(0, 0, canvas.width, canvas.height);
 
             // Draw safe zone (glowing green)
@@ -545,8 +545,8 @@
             ctx.shadowBlur = 0;
 
             // Draw obstacles
-            ctx.fillStyle = '#222';
-            ctx.strokeStyle = '#444';
+            ctx.fillStyle = '#333';
+            ctx.strokeStyle = '#555';
             ctx.lineWidth = 2;
             for (const obstacle of obstacles) {
                 ctx.fillRect(obstacle.x, obstacle.y, obstacle.width, obstacle.height);
@@ -554,106 +554,92 @@
             }
 
             // Draw Hunter
-            drawPlayer(hunter, '🔪 HUNTER', 8);
+            drawPlayer(hunter, '🔪 HUNTER', 12);
 
             // Draw Survivor
-            drawPlayer(survivor, '🏃 SURVIVOR', 6);
+            drawPlayer(survivor, '🏃 SURVIVOR', 10);
 
-            // Apply darkness overlay for dramatic effect
-            const gradient = ctx.createRadialGradient(
-                survivor.x, survivor.y, 0,
-                survivor.x, survivor.y, 250
+            // Apply lighter darkness overlay for atmosphere (much less intense)
+            const darkness = ctx.createRadialGradient(
+                canvas.width / 2, canvas.height / 2, 0,
+                canvas.width / 2, canvas.height / 2, 600
             );
-            gradient.addColorStop(0, 'rgba(0, 0, 0, 0)');
-            gradient.addColorStop(0.6, 'rgba(0, 0, 0, 0.4)');
-            gradient.addColorStop(1, 'rgba(0, 0, 0, 0.85)');
+            darkness.addColorStop(0, 'rgba(0, 0, 0, 0)');
+            darkness.addColorStop(0.7, 'rgba(0, 0, 0, 0.15)');
+            darkness.addColorStop(1, 'rgba(0, 0, 0, 0.4)');
 
-            ctx.fillStyle = gradient;
+            ctx.fillStyle = darkness;
             ctx.fillRect(0, 0, canvas.width, canvas.height);
-
-            // Add slight darkness for hunter too (less intense)
-            const hunterGradient = ctx.createRadialGradient(
-                hunter.x, hunter.y, 0,
-                hunter.x, hunter.y, 350
-            );
-            hunterGradient.addColorStop(0, 'rgba(0, 0, 0, 0)');
-            hunterGradient.addColorStop(0.8, 'rgba(0, 0, 0, 0.2)');
-            hunterGradient.addColorStop(1, 'rgba(0, 0, 0, 0.5)');
-
-            ctx.fillStyle = hunterGradient;
-            ctx.fillRect(0, 0, canvas.width, canvas.height);
-
-            // Create light/visibility around players
-            ctx.globalCompositeOperation = 'destination-out';
-
-            // Survivor's light (smaller)
-            const survivorLight = ctx.createRadialGradient(
-                survivor.x, survivor.y, 0,
-                survivor.x, survivor.y, 180
-            );
-            survivorLight.addColorStop(0, 'rgba(0, 0, 0, 0.9)');
-            survivorLight.addColorStop(0.5, 'rgba(0, 0, 0, 0.5)');
-            survivorLight.addColorStop(1, 'rgba(0, 0, 0, 0)');
-
-            ctx.fillStyle = survivorLight;
-            ctx.fillRect(0, 0, canvas.width, canvas.height);
-
-            // Hunter's light (larger, red tint)
-            const hunterLight = ctx.createRadialGradient(
-                hunter.x, hunter.y, 0,
-                hunter.x, hunter.y, 280
-            );
-            hunterLight.addColorStop(0, 'rgba(0, 0, 0, 0.95)');
-            hunterLight.addColorStop(0.6, 'rgba(0, 0, 0, 0.4)');
-            hunterLight.addColorStop(1, 'rgba(0, 0, 0, 0)');
-
-            ctx.fillStyle = hunterLight;
-            ctx.fillRect(0, 0, canvas.width, canvas.height);
-
-            ctx.globalCompositeOperation = 'source-over';
         }
 
         // Draw player
         function drawPlayer(player, label, glowSize) {
+            // Large outer glow for visibility
+            ctx.shadowBlur = 40;
+            ctx.shadowColor = player.color;
+            ctx.fillStyle = player.color;
+            ctx.globalAlpha = 0.3;
+            ctx.beginPath();
+            ctx.arc(player.x, player.y, player.radius + 15, 0, Math.PI * 2);
+            ctx.fill();
+            ctx.globalAlpha = 1;
+            ctx.shadowBlur = 0;
+
             // Shadow
             ctx.fillStyle = 'rgba(0, 0, 0, 0.5)';
             ctx.beginPath();
             ctx.arc(player.x + 4, player.y + 4, player.radius, 0, Math.PI * 2);
             ctx.fill();
 
-            // Player circle
+            // Player circle (main body)
             ctx.fillStyle = player.color;
             ctx.beginPath();
             ctx.arc(player.x, player.y, player.radius, 0, Math.PI * 2);
             ctx.fill();
 
-            // Glow effect
-            ctx.strokeStyle = player.color;
-            ctx.lineWidth = 4;
-            ctx.stroke();
-            ctx.shadowBlur = glowSize * 3;
+            // Bright inner glow
+            ctx.shadowBlur = 25;
             ctx.shadowColor = player.color;
+            ctx.fillStyle = player.color;
+            ctx.beginPath();
+            ctx.arc(player.x, player.y, player.radius, 0, Math.PI * 2);
+            ctx.fill();
+            ctx.shadowBlur = 0;
+
+            // Bright outline
+            ctx.strokeStyle = player.color;
+            ctx.lineWidth = 5;
+            ctx.shadowBlur = 15;
+            ctx.shadowColor = player.color;
+            ctx.beginPath();
+            ctx.arc(player.x, player.y, player.radius, 0, Math.PI * 2);
             ctx.stroke();
             ctx.shadowBlur = 0;
 
             // Pulsing outer glow
             const time = Date.now() / 1000;
-            const pulseRadius = player.radius + 8 + Math.sin(time * 3) * 3;
+            const pulseRadius = player.radius + 10 + Math.sin(time * 3) * 4;
             ctx.strokeStyle = player.color;
-            ctx.globalAlpha = 0.3 + Math.sin(time * 3) * 0.2;
-            ctx.lineWidth = 2;
+            ctx.globalAlpha = 0.5 + Math.sin(time * 3) * 0.3;
+            ctx.lineWidth = 3;
+            ctx.shadowBlur = 20;
+            ctx.shadowColor = player.color;
             ctx.beginPath();
             ctx.arc(player.x, player.y, pulseRadius, 0, Math.PI * 2);
             ctx.stroke();
             ctx.globalAlpha = 1;
+            ctx.shadowBlur = 0;
 
-            // Label
+            // Label with bright background
+            ctx.fillStyle = 'rgba(0, 0, 0, 0.7)';
+            ctx.fillRect(player.x - 50, player.y - player.radius - 35, 100, 22);
+
             ctx.fillStyle = '#fff';
             ctx.font = 'bold 14px Courier New';
             ctx.textAlign = 'center';
             ctx.shadowBlur = 10;
             ctx.shadowColor = player.color;
-            ctx.fillText(label, player.x, player.y - player.radius - 15);
+            ctx.fillText(label, player.x, player.y - player.radius - 18);
             ctx.shadowBlur = 0;
         }
 
