@@ -1,0 +1,679 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Midnight Terror - Local Two Player Horror</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Courier New', monospace;
+            background: #000;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            overflow: hidden;
+            color: #fff;
+        }
+
+        #gameContainer {
+            background: linear-gradient(135deg, #0a0000 0%, #001a1a 100%);
+            border-radius: 20px;
+            box-shadow: 0 0 80px rgba(255, 0, 0, 0.4);
+            padding: 30px;
+            max-width: 1200px;
+            width: 95%;
+            border: 4px solid #660000;
+        }
+
+        #menu {
+            text-align: center;
+        }
+
+        h1 {
+            color: #ff0000;
+            margin-bottom: 20px;
+            font-size: 4em;
+            text-shadow: 0 0 30px rgba(255, 0, 0, 0.9), 0 0 60px rgba(255, 0, 0, 0.6);
+            letter-spacing: 5px;
+            animation: bloodDrip 3s infinite;
+        }
+
+        @keyframes bloodDrip {
+            0%, 100% {
+                text-shadow: 0 0 30px rgba(255, 0, 0, 0.9), 0 0 60px rgba(255, 0, 0, 0.6);
+            }
+            50% {
+                text-shadow: 0 5px 30px rgba(255, 0, 0, 0.9), 0 10px 60px rgba(255, 0, 0, 0.6);
+            }
+        }
+
+        .subtitle {
+            color: #888;
+            font-size: 1.3em;
+            margin-bottom: 40px;
+            letter-spacing: 2px;
+        }
+
+        button {
+            background: linear-gradient(135deg, #660000 0%, #cc0000 100%);
+            color: white;
+            border: 3px solid #ff0000;
+            padding: 20px 60px;
+            font-size: 24px;
+            border-radius: 15px;
+            cursor: pointer;
+            transition: all 0.3s;
+            font-weight: bold;
+            text-transform: uppercase;
+            letter-spacing: 3px;
+            font-family: 'Courier New', monospace;
+            box-shadow: 0 0 30px rgba(255, 0, 0, 0.4);
+            margin: 20px;
+        }
+
+        button:hover {
+            transform: translateY(-5px) scale(1.05);
+            box-shadow: 0 0 60px rgba(255, 0, 0, 0.8);
+            background: linear-gradient(135deg, #cc0000 0%, #ff0000 100%);
+        }
+
+        button:active {
+            transform: translateY(0) scale(1);
+        }
+
+        #gameArea {
+            display: none;
+        }
+
+        #gameCanvas {
+            border: 4px solid #660000;
+            border-radius: 15px;
+            display: block;
+            margin: 20px auto;
+            background: #000;
+            box-shadow: 0 0 60px rgba(0, 0, 0, 0.9), inset 0 0 80px rgba(255, 0, 0, 0.15);
+        }
+
+        #info {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+            flex-wrap: wrap;
+            gap: 15px;
+        }
+
+        .info-box {
+            background: rgba(0, 0, 0, 0.8);
+            padding: 15px 30px;
+            border-radius: 12px;
+            border: 3px solid #660000;
+            font-size: 18px;
+            font-weight: bold;
+            flex: 1;
+            min-width: 200px;
+            text-align: center;
+        }
+
+        #timer {
+            font-size: 32px;
+            color: #ffaa00;
+            text-shadow: 0 0 20px rgba(255, 170, 0, 0.9);
+        }
+
+        #controls {
+            text-align: center;
+            color: #888;
+            margin-top: 20px;
+            font-size: 16px;
+            line-height: 1.8;
+        }
+
+        .control-key {
+            display: inline-block;
+            padding: 5px 12px;
+            background: rgba(100, 100, 100, 0.3);
+            border: 2px solid #666;
+            border-radius: 5px;
+            margin: 0 3px;
+            font-weight: bold;
+        }
+
+        .hunter-key {
+            color: #ff0000;
+            border-color: #ff0000;
+        }
+
+        .survivor-key {
+            color: #00ff00;
+            border-color: #00ff00;
+        }
+
+        #gameOver {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: rgba(0, 0, 0, 0.98);
+            padding: 60px;
+            border-radius: 25px;
+            border: 4px solid #ff0000;
+            text-align: center;
+            display: none;
+            z-index: 1000;
+            box-shadow: 0 0 120px rgba(255, 0, 0, 0.6);
+            min-width: 500px;
+        }
+
+        #gameOver h2 {
+            font-size: 4em;
+            margin-bottom: 30px;
+            text-shadow: 0 0 30px currentColor;
+        }
+
+        .win {
+            color: #00ff00;
+        }
+
+        .lose {
+            color: #ff0000;
+        }
+
+        #instructions {
+            text-align: left;
+            max-width: 800px;
+            margin: 40px auto;
+            padding: 30px;
+            background: rgba(0, 0, 0, 0.5);
+            border: 2px solid #660000;
+            border-radius: 15px;
+            color: #aaa;
+            line-height: 2;
+        }
+
+        #instructions h3 {
+            color: #ff6666;
+            margin-bottom: 20px;
+            font-size: 1.5em;
+        }
+
+        .role-desc {
+            margin: 20px 0;
+            padding: 15px;
+            background: rgba(0, 0, 0, 0.4);
+            border-radius: 10px;
+        }
+
+        .hunter-color {
+            color: #ff0000;
+            font-weight: bold;
+            text-shadow: 0 0 10px rgba(255, 0, 0, 0.8);
+        }
+
+        .survivor-color {
+            color: #00ff00;
+            font-weight: bold;
+            text-shadow: 0 0 10px rgba(0, 255, 0, 0.8);
+        }
+
+        .pulse {
+            animation: pulse 2s infinite;
+        }
+
+        @keyframes pulse {
+            0%, 100% {
+                opacity: 1;
+                transform: scale(1);
+            }
+            50% {
+                opacity: 0.7;
+                transform: scale(1.05);
+            }
+        }
+    </style>
+</head>
+<body>
+    <div id="gameContainer">
+        <div id="menu">
+            <h1>🔪 MIDNIGHT TERROR 👻</h1>
+            <p class="subtitle">Local Two-Player Asymmetric Horror Game</p>
+
+            <button onclick="startGame()" class="pulse">START GAME</button>
+
+            <div id="instructions">
+                <h3>📜 How to Play:</h3>
+
+                <div class="role-desc">
+                    <p><span class="hunter-color">🔪 HUNTER (Player 1):</span></p>
+                    <p>Chase and catch the survivor before the 3-minute timer runs out!</p>
+                    <p>Controls: <span class="control-key hunter-key">W</span> <span class="control-key hunter-key">A</span> <span class="control-key hunter-key">S</span> <span class="control-key hunter-key">D</span></p>
+                    <p>Special: Faster speed, full vision, glowing red aura</p>
+                </div>
+
+                <div class="role-desc">
+                    <p><span class="survivor-color">🏃 SURVIVOR (Player 2):</span></p>
+                    <p>Survive for 3 minutes OR reach the SAFE ZONE to win!</p>
+                    <p>Controls: <span class="control-key survivor-key">↑</span> <span class="control-key survivor-key">←</span> <span class="control-key survivor-key">↓</span> <span class="control-key survivor-key">→</span> Arrow Keys</p>
+                    <p>Special: Limited vision (darkness), must avoid obstacles and hunter</p>
+                </div>
+
+                <p><strong>⚠️ Game Rules:</strong></p>
+                <ul style="margin-left: 30px;">
+                    <li>Hunter wins if they catch the survivor (touch them)</li>
+                    <li>Survivor wins if they reach the green SAFE ZONE</li>
+                    <li>Survivor wins if they survive for 3 minutes</li>
+                    <li>Navigate through the maze - avoid hitting walls!</li>
+                </ul>
+            </div>
+        </div>
+
+        <div id="gameArea">
+            <div id="info">
+                <div class="info-box">
+                    <span class="hunter-color">🔪 HUNTER: WASD</span>
+                </div>
+                <div class="info-box" id="timer">3:00</div>
+                <div class="info-box">
+                    <span class="survivor-color">🏃 SURVIVOR: ARROWS</span>
+                </div>
+            </div>
+            <canvas id="gameCanvas" width="1100" height="700"></canvas>
+            <div id="controls">
+                <span class="hunter-color">HUNTER:</span>
+                <span class="control-key hunter-key">W</span>
+                <span class="control-key hunter-key">A</span>
+                <span class="control-key hunter-key">S</span>
+                <span class="control-key hunter-key">D</span>
+                &nbsp;&nbsp;•&nbsp;&nbsp;
+                <span class="survivor-color">SURVIVOR:</span>
+                <span class="control-key survivor-key">↑</span>
+                <span class="control-key survivor-key">←</span>
+                <span class="control-key survivor-key">↓</span>
+                <span class="control-key survivor-key">→</span>
+            </div>
+        </div>
+
+        <div id="gameOver">
+            <h2 id="gameOverText"></h2>
+            <p id="gameOverDetails" style="font-size: 1.5em; margin: 30px 0; color: #aaa;"></p>
+            <button onclick="location.reload()">PLAY AGAIN</button>
+        </div>
+    </div>
+
+    <script>
+        // Canvas setup
+        const canvas = document.getElementById('gameCanvas');
+        const ctx = canvas.getContext('2d');
+
+        // Players
+        const hunter = {
+            x: 100,
+            y: 100,
+            vx: 0,
+            vy: 0,
+            radius: 18,
+            speed: 4.5,
+            color: '#ff0000'
+        };
+
+        const survivor = {
+            x: 950,
+            y: 600,
+            vx: 0,
+            vy: 0,
+            radius: 16,
+            speed: 3.8,
+            color: '#00ff00'
+        };
+
+        // Game settings
+        const FRICTION = 0.88;
+        const GAME_DURATION = 180; // 3 minutes in seconds
+        let gameTime = GAME_DURATION;
+        let gameActive = false;
+        let gameInterval = null;
+
+        // Obstacles (maze walls)
+        const obstacles = [
+            // Outer boundary walls (thicker)
+            { x: 0, y: 0, width: 1100, height: 15 },       // Top
+            { x: 0, y: 685, width: 1100, height: 15 },     // Bottom
+            { x: 0, y: 0, width: 15, height: 700 },        // Left
+            { x: 1085, y: 0, width: 15, height: 700 },     // Right
+
+            // Internal maze
+            { x: 200, y: 150, width: 25, height: 250 },
+            { x: 350, y: 300, width: 250, height: 25 },
+            { x: 700, y: 100, width: 25, height: 350 },
+            { x: 300, y: 500, width: 300, height: 25 },
+            { x: 800, y: 450, width: 200, height: 25 },
+            { x: 150, y: 350, width: 200, height: 25 },
+            { x: 500, y: 150, width: 25, height: 200 },
+            { x: 850, y: 580, width: 25, height: 120 },
+            { x: 100, y: 550, width: 150, height: 25 },
+            { x: 950, y: 250, width: 25, height: 200 },
+            { x: 450, y: 50, width: 25, height: 150 },
+            { x: 600, y: 450, width: 180, height: 25 },
+        ];
+
+        // Safe zone (survivor's goal)
+        const safeZone = {
+            x: 900,
+            y: 30,
+            width: 150,
+            height: 100
+        };
+
+        // Input handling
+        const keys = {};
+
+        document.addEventListener('keydown', (e) => {
+            keys[e.key.toLowerCase()] = true;
+            // Prevent arrow key scrolling
+            if(['ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight'].includes(e.key)) {
+                e.preventDefault();
+            }
+        });
+
+        document.addEventListener('keyup', (e) => {
+            keys[e.key.toLowerCase()] = false;
+        });
+
+        // Start game
+        function startGame() {
+            document.getElementById('menu').style.display = 'none';
+            document.getElementById('gameArea').style.display = 'block';
+
+            gameActive = true;
+            gameTime = GAME_DURATION;
+
+            // Reset player positions
+            hunter.x = 100;
+            hunter.y = 100;
+            hunter.vx = 0;
+            hunter.vy = 0;
+
+            survivor.x = 950;
+            survivor.y = 600;
+            survivor.vx = 0;
+            survivor.vy = 0;
+
+            // Start game timer
+            gameInterval = setInterval(() => {
+                gameTime--;
+                updateTimer();
+
+                if (gameTime <= 0) {
+                    endGame('SURVIVOR ESCAPED!', 'survivor', 'The survivor managed to survive for 3 minutes!');
+                }
+            }, 1000);
+
+            gameLoop();
+        }
+
+        // Update timer display
+        function updateTimer() {
+            const minutes = Math.floor(gameTime / 60);
+            const seconds = gameTime % 60;
+            document.getElementById('timer').textContent =
+                `${minutes}:${seconds.toString().padStart(2, '0')}`;
+        }
+
+        // Game loop
+        function gameLoop() {
+            if (!gameActive) return;
+
+            update();
+            render();
+            requestAnimationFrame(gameLoop);
+        }
+
+        // Update game state
+        function update() {
+            // Hunter controls (WASD)
+            if (keys['w']) hunter.vy -= hunter.speed;
+            if (keys['s']) hunter.vy += hunter.speed;
+            if (keys['a']) hunter.vx -= hunter.speed;
+            if (keys['d']) hunter.vx += hunter.speed;
+
+            // Survivor controls (Arrow keys)
+            if (keys['arrowup']) survivor.vy -= survivor.speed;
+            if (keys['arrowdown']) survivor.vy += survivor.speed;
+            if (keys['arrowleft']) survivor.vx -= survivor.speed;
+            if (keys['arrowright']) survivor.vx += survivor.speed;
+
+            // Apply friction
+            hunter.vx *= FRICTION;
+            hunter.vy *= FRICTION;
+            survivor.vx *= FRICTION;
+            survivor.vy *= FRICTION;
+
+            // Update positions
+            updatePlayerPosition(hunter);
+            updatePlayerPosition(survivor);
+
+            // Check if survivor reached safe zone
+            if (checkCircleRectCollision(survivor, safeZone)) {
+                endGame('SURVIVOR REACHED SAFETY!', 'survivor', 'The survivor made it to the safe zone!');
+            }
+
+            // Check if hunter caught survivor
+            const dx = hunter.x - survivor.x;
+            const dy = hunter.y - survivor.y;
+            const dist = Math.sqrt(dx * dx + dy * dy);
+
+            if (dist < hunter.radius + survivor.radius) {
+                endGame('HUNTER CAUGHT THE SURVIVOR!', 'hunter', 'The hunter captured their prey!');
+            }
+        }
+
+        // Update player position with collision detection
+        function updatePlayerPosition(player) {
+            const oldX = player.x;
+            const oldY = player.y;
+
+            player.x += player.vx;
+            player.y += player.vy;
+
+            // Boundary collision
+            if (player.x < player.radius) {
+                player.x = player.radius;
+                player.vx = 0;
+            }
+            if (player.x > canvas.width - player.radius) {
+                player.x = canvas.width - player.radius;
+                player.vx = 0;
+            }
+            if (player.y < player.radius) {
+                player.y = player.radius;
+                player.vy = 0;
+            }
+            if (player.y > canvas.height - player.radius) {
+                player.y = canvas.height - player.radius;
+                player.vy = 0;
+            }
+
+            // Obstacle collision
+            for (const obstacle of obstacles) {
+                if (checkCircleRectCollision(player, obstacle)) {
+                    player.x = oldX;
+                    player.y = oldY;
+                    player.vx *= -0.5;
+                    player.vy *= -0.5;
+                    break;
+                }
+            }
+        }
+
+        // Check collision between circle and rectangle
+        function checkCircleRectCollision(circle, rect) {
+            const closestX = Math.max(rect.x, Math.min(circle.x, rect.x + rect.width));
+            const closestY = Math.max(rect.y, Math.min(circle.y, rect.y + rect.height));
+
+            const distX = circle.x - closestX;
+            const distY = circle.y - closestY;
+
+            return (distX * distX + distY * distY) < (circle.radius * circle.radius);
+        }
+
+        // Render game
+        function render() {
+            // Clear canvas
+            ctx.fillStyle = '#000';
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+            // Draw safe zone (glowing green)
+            ctx.fillStyle = 'rgba(0, 255, 0, 0.25)';
+            ctx.fillRect(safeZone.x, safeZone.y, safeZone.width, safeZone.height);
+            ctx.strokeStyle = '#00ff00';
+            ctx.lineWidth = 4;
+            ctx.strokeRect(safeZone.x, safeZone.y, safeZone.width, safeZone.height);
+
+            ctx.fillStyle = '#00ff00';
+            ctx.font = 'bold 20px Courier New';
+            ctx.textAlign = 'center';
+            ctx.shadowBlur = 15;
+            ctx.shadowColor = '#00ff00';
+            ctx.fillText('SAFE ZONE', safeZone.x + safeZone.width / 2, safeZone.y + safeZone.height / 2 + 7);
+            ctx.shadowBlur = 0;
+
+            // Draw obstacles
+            ctx.fillStyle = '#222';
+            ctx.strokeStyle = '#444';
+            ctx.lineWidth = 2;
+            for (const obstacle of obstacles) {
+                ctx.fillRect(obstacle.x, obstacle.y, obstacle.width, obstacle.height);
+                ctx.strokeRect(obstacle.x, obstacle.y, obstacle.width, obstacle.height);
+            }
+
+            // Draw Hunter
+            drawPlayer(hunter, '🔪 HUNTER', 8);
+
+            // Draw Survivor
+            drawPlayer(survivor, '🏃 SURVIVOR', 6);
+
+            // Apply darkness overlay for dramatic effect
+            const gradient = ctx.createRadialGradient(
+                survivor.x, survivor.y, 0,
+                survivor.x, survivor.y, 250
+            );
+            gradient.addColorStop(0, 'rgba(0, 0, 0, 0)');
+            gradient.addColorStop(0.6, 'rgba(0, 0, 0, 0.4)');
+            gradient.addColorStop(1, 'rgba(0, 0, 0, 0.85)');
+
+            ctx.fillStyle = gradient;
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+            // Add slight darkness for hunter too (less intense)
+            const hunterGradient = ctx.createRadialGradient(
+                hunter.x, hunter.y, 0,
+                hunter.x, hunter.y, 350
+            );
+            hunterGradient.addColorStop(0, 'rgba(0, 0, 0, 0)');
+            hunterGradient.addColorStop(0.8, 'rgba(0, 0, 0, 0.2)');
+            hunterGradient.addColorStop(1, 'rgba(0, 0, 0, 0.5)');
+
+            ctx.fillStyle = hunterGradient;
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+            // Create light/visibility around players
+            ctx.globalCompositeOperation = 'destination-out';
+
+            // Survivor's light (smaller)
+            const survivorLight = ctx.createRadialGradient(
+                survivor.x, survivor.y, 0,
+                survivor.x, survivor.y, 180
+            );
+            survivorLight.addColorStop(0, 'rgba(0, 0, 0, 0.9)');
+            survivorLight.addColorStop(0.5, 'rgba(0, 0, 0, 0.5)');
+            survivorLight.addColorStop(1, 'rgba(0, 0, 0, 0)');
+
+            ctx.fillStyle = survivorLight;
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+            // Hunter's light (larger, red tint)
+            const hunterLight = ctx.createRadialGradient(
+                hunter.x, hunter.y, 0,
+                hunter.x, hunter.y, 280
+            );
+            hunterLight.addColorStop(0, 'rgba(0, 0, 0, 0.95)');
+            hunterLight.addColorStop(0.6, 'rgba(0, 0, 0, 0.4)');
+            hunterLight.addColorStop(1, 'rgba(0, 0, 0, 0)');
+
+            ctx.fillStyle = hunterLight;
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+            ctx.globalCompositeOperation = 'source-over';
+        }
+
+        // Draw player
+        function drawPlayer(player, label, glowSize) {
+            // Shadow
+            ctx.fillStyle = 'rgba(0, 0, 0, 0.5)';
+            ctx.beginPath();
+            ctx.arc(player.x + 4, player.y + 4, player.radius, 0, Math.PI * 2);
+            ctx.fill();
+
+            // Player circle
+            ctx.fillStyle = player.color;
+            ctx.beginPath();
+            ctx.arc(player.x, player.y, player.radius, 0, Math.PI * 2);
+            ctx.fill();
+
+            // Glow effect
+            ctx.strokeStyle = player.color;
+            ctx.lineWidth = 4;
+            ctx.stroke();
+            ctx.shadowBlur = glowSize * 3;
+            ctx.shadowColor = player.color;
+            ctx.stroke();
+            ctx.shadowBlur = 0;
+
+            // Pulsing outer glow
+            const time = Date.now() / 1000;
+            const pulseRadius = player.radius + 8 + Math.sin(time * 3) * 3;
+            ctx.strokeStyle = player.color;
+            ctx.globalAlpha = 0.3 + Math.sin(time * 3) * 0.2;
+            ctx.lineWidth = 2;
+            ctx.beginPath();
+            ctx.arc(player.x, player.y, pulseRadius, 0, Math.PI * 2);
+            ctx.stroke();
+            ctx.globalAlpha = 1;
+
+            // Label
+            ctx.fillStyle = '#fff';
+            ctx.font = 'bold 14px Courier New';
+            ctx.textAlign = 'center';
+            ctx.shadowBlur = 10;
+            ctx.shadowColor = player.color;
+            ctx.fillText(label, player.x, player.y - player.radius - 15);
+            ctx.shadowBlur = 0;
+        }
+
+        // End game
+        function endGame(title, winner, message) {
+            if (!gameActive) return;
+
+            gameActive = false;
+            clearInterval(gameInterval);
+
+            const gameOverDiv = document.getElementById('gameOver');
+            const gameOverText = document.getElementById('gameOverText');
+            const gameOverDetails = document.getElementById('gameOverDetails');
+
+            gameOverText.textContent = title;
+            gameOverText.className = winner === 'survivor' ? 'win' : 'lose';
+            gameOverDetails.textContent = message;
+
+            gameOverDiv.style.display = 'block';
+        }
+    </script>
+</body>
+</html>
