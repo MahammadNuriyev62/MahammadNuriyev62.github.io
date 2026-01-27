@@ -1,0 +1,1069 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Air Hockey - 2 Player</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        :root {
+            --player1-color: #00ff88;
+            --player2-color: #ff0088;
+            --puck-color: #ffffff;
+            --table-color: #1a1a2e;
+            --table-border: #16213e;
+            --center-line: rgba(255, 255, 255, 0.3);
+            --goal-color: #ffd700;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #0a0e1a 0%, #1a1a2e 50%, #16213e 100%);
+            min-height: 100vh;
+            overflow: hidden;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+
+        #menu {
+            text-align: center;
+            padding: 40px;
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 20px;
+            border: 2px solid rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(10px);
+            max-width: 500px;
+            animation: fadeIn 0.5s ease;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: scale(0.9); }
+            to { opacity: 1; transform: scale(1); }
+        }
+
+        #menu h1 {
+            font-size: 3em;
+            margin-bottom: 10px;
+            background: linear-gradient(135deg, var(--player1-color), var(--player2-color));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            text-shadow: 0 0 40px rgba(0, 255, 136, 0.5);
+        }
+
+        #menu h2 {
+            color: #888;
+            font-weight: normal;
+            margin-bottom: 30px;
+        }
+
+        .controls-info {
+            display: flex;
+            justify-content: space-around;
+            margin: 30px 0;
+            gap: 20px;
+        }
+
+        .player-controls {
+            padding: 20px;
+            border-radius: 15px;
+            flex: 1;
+        }
+
+        .player-controls.p1 {
+            background: rgba(0, 255, 136, 0.1);
+            border: 2px solid var(--player1-color);
+        }
+
+        .player-controls.p2 {
+            background: rgba(255, 0, 136, 0.1);
+            border: 2px solid var(--player2-color);
+        }
+
+        .player-controls h3 {
+            margin-bottom: 15px;
+        }
+
+        .player-controls.p1 h3 { color: var(--player1-color); }
+        .player-controls.p2 h3 { color: var(--player2-color); }
+
+        .player-controls p {
+            color: #ccc;
+            font-size: 0.9em;
+            line-height: 1.6;
+        }
+
+        .keys {
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: center;
+            gap: 5px;
+            margin-top: 10px;
+        }
+
+        .key {
+            background: rgba(255, 255, 255, 0.1);
+            padding: 8px 12px;
+            border-radius: 5px;
+            font-family: monospace;
+            color: white;
+            font-size: 0.9em;
+        }
+
+        .start-btn {
+            background: linear-gradient(135deg, var(--player1-color), var(--player2-color));
+            color: white;
+            border: none;
+            padding: 20px 60px;
+            font-size: 1.5em;
+            border-radius: 50px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            text-transform: uppercase;
+            font-weight: bold;
+            letter-spacing: 3px;
+            margin-top: 20px;
+        }
+
+        .start-btn:hover {
+            transform: scale(1.05);
+            box-shadow: 0 0 40px rgba(0, 255, 136, 0.5);
+        }
+
+        .back-link {
+            display: inline-block;
+            margin-top: 20px;
+            color: #888;
+            text-decoration: none;
+            transition: color 0.3s;
+        }
+
+        .back-link:hover {
+            color: white;
+        }
+
+        #gameContainer {
+            display: none;
+            flex-direction: column;
+            align-items: center;
+            gap: 10px;
+        }
+
+        #hud {
+            display: flex;
+            justify-content: space-between;
+            width: 100%;
+            max-width: 800px;
+            padding: 0 20px;
+        }
+
+        .score {
+            font-size: 2em;
+            font-weight: bold;
+            padding: 10px 30px;
+            border-radius: 10px;
+            min-width: 150px;
+            text-align: center;
+        }
+
+        .score.p1 {
+            color: var(--player1-color);
+            background: rgba(0, 255, 136, 0.1);
+            border: 2px solid var(--player1-color);
+        }
+
+        .score.p2 {
+            color: var(--player2-color);
+            background: rgba(255, 0, 136, 0.1);
+            border: 2px solid var(--player2-color);
+        }
+
+        #roundInfo {
+            color: white;
+            font-size: 1.2em;
+            padding: 10px 20px;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 10px;
+        }
+
+        #gameCanvas {
+            border-radius: 20px;
+            box-shadow: 0 0 50px rgba(0, 0, 0, 0.5),
+                        inset 0 0 100px rgba(0, 0, 0, 0.3);
+        }
+
+        #goalMessage {
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            font-size: 4em;
+            font-weight: bold;
+            text-shadow: 0 0 30px currentColor;
+            pointer-events: none;
+            opacity: 0;
+            transition: opacity 0.3s;
+            z-index: 100;
+        }
+
+        #gameOver {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.9);
+            justify-content: center;
+            align-items: center;
+            flex-direction: column;
+            z-index: 200;
+        }
+
+        #gameOver h1 {
+            font-size: 4em;
+            margin-bottom: 20px;
+            animation: pulse 1s infinite;
+        }
+
+        @keyframes pulse {
+            0%, 100% { transform: scale(1); }
+            50% { transform: scale(1.1); }
+        }
+
+        #gameOver.p1-wins h1 { color: var(--player1-color); }
+        #gameOver.p2-wins h1 { color: var(--player2-color); }
+
+        #gameOver p {
+            color: #888;
+            font-size: 1.5em;
+            margin-bottom: 30px;
+        }
+
+        .btn-group {
+            display: flex;
+            gap: 20px;
+        }
+
+        .game-btn {
+            background: rgba(255, 255, 255, 0.1);
+            color: white;
+            border: 2px solid rgba(255, 255, 255, 0.3);
+            padding: 15px 40px;
+            font-size: 1.2em;
+            border-radius: 10px;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+
+        .game-btn:hover {
+            background: rgba(255, 255, 255, 0.2);
+            transform: translateY(-3px);
+        }
+
+        .game-btn.primary {
+            background: linear-gradient(135deg, var(--player1-color), var(--player2-color));
+            border: none;
+        }
+
+        #countdown {
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            font-size: 8em;
+            font-weight: bold;
+            color: white;
+            text-shadow: 0 0 50px rgba(255, 255, 255, 0.5);
+            pointer-events: none;
+            opacity: 0;
+            z-index: 150;
+        }
+
+        @media (max-width: 850px) {
+            #menu {
+                margin: 20px;
+                padding: 20px;
+            }
+
+            #menu h1 {
+                font-size: 2em;
+            }
+
+            .controls-info {
+                flex-direction: column;
+            }
+
+            .score {
+                font-size: 1.2em;
+                padding: 8px 15px;
+                min-width: 100px;
+            }
+
+            #roundInfo {
+                font-size: 0.9em;
+                padding: 8px 15px;
+            }
+        }
+
+        @media (max-width: 500px) {
+            #menu h1 {
+                font-size: 1.8em;
+            }
+
+            #menu h2 {
+                font-size: 0.9em;
+            }
+
+            .player-controls {
+                padding: 15px;
+            }
+
+            .player-controls h3 {
+                font-size: 1em;
+            }
+
+            .player-controls p {
+                font-size: 0.8em;
+            }
+
+            .key {
+                padding: 5px 8px;
+                font-size: 0.8em;
+            }
+
+            .start-btn {
+                padding: 15px 40px;
+                font-size: 1.2em;
+            }
+
+            #hud {
+                padding: 0 10px;
+            }
+
+            .score {
+                font-size: 1em;
+                padding: 5px 10px;
+                min-width: 80px;
+            }
+
+            #roundInfo {
+                font-size: 0.8em;
+                padding: 5px 10px;
+            }
+
+            #goalMessage {
+                font-size: 2.5em;
+            }
+
+            #gameOver h1 {
+                font-size: 2.5em;
+            }
+
+            #gameOver p {
+                font-size: 1em;
+            }
+
+            .btn-group {
+                flex-direction: column;
+                gap: 10px;
+            }
+
+            .game-btn {
+                padding: 12px 30px;
+                font-size: 1em;
+            }
+
+            #countdown {
+                font-size: 5em;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div id="menu">
+        <h1>Air Hockey</h1>
+        <h2>2 Player Local Multiplayer</h2>
+
+        <div class="controls-info">
+            <div class="player-controls p1">
+                <h3>Player 1 (Left)</h3>
+                <p>Move your paddle</p>
+                <div class="keys">
+                    <span class="key">W</span>
+                    <span class="key">A</span>
+                    <span class="key">S</span>
+                    <span class="key">D</span>
+                </div>
+            </div>
+            <div class="player-controls p2">
+                <h3>Player 2 (Right)</h3>
+                <p>Move your paddle</p>
+                <div class="keys">
+                    <span class="key">↑</span>
+                    <span class="key">←</span>
+                    <span class="key">↓</span>
+                    <span class="key">→</span>
+                </div>
+            </div>
+        </div>
+
+        <p style="color: #888; margin-bottom: 20px;">First to 7 goals wins!</p>
+
+        <button class="start-btn" onclick="startGame()">START GAME</button>
+
+        <a href="index.html" class="back-link">← Back to Menu</a>
+    </div>
+
+    <div id="gameContainer">
+        <div id="hud">
+            <div class="score p1">P1: <span id="score1">0</span></div>
+            <div id="roundInfo">Round <span id="round">1</span></div>
+            <div class="score p2">P2: <span id="score2">0</span></div>
+        </div>
+        <canvas id="gameCanvas"></canvas>
+    </div>
+
+    <div id="goalMessage"></div>
+    <div id="countdown"></div>
+
+    <div id="gameOver">
+        <h1 id="winnerText"></h1>
+        <p id="finalScore"></p>
+        <div class="btn-group">
+            <button class="game-btn primary" onclick="startGame()">Play Again</button>
+            <button class="game-btn" onclick="backToMenu()">Main Menu</button>
+        </div>
+    </div>
+
+    <script>
+        const canvas = document.getElementById('gameCanvas');
+        const ctx = canvas.getContext('2d');
+
+        // Audio context for sound effects
+        let audioCtx = null;
+
+        function initAudio() {
+            if (!audioCtx) {
+                audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+            }
+        }
+
+        function playSound(frequency, duration, type = 'sine', volume = 0.3) {
+            if (!audioCtx) return;
+            const oscillator = audioCtx.createOscillator();
+            const gainNode = audioCtx.createGain();
+            oscillator.connect(gainNode);
+            gainNode.connect(audioCtx.destination);
+            oscillator.frequency.value = frequency;
+            oscillator.type = type;
+            gainNode.gain.setValueAtTime(volume, audioCtx.currentTime);
+            gainNode.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + duration);
+            oscillator.start();
+            oscillator.stop(audioCtx.currentTime + duration);
+        }
+
+        function playPaddleHit() {
+            playSound(400, 0.1, 'square', 0.2);
+        }
+
+        function playWallHit() {
+            playSound(200, 0.08, 'triangle', 0.15);
+        }
+
+        function playGoal() {
+            playSound(523, 0.15, 'sine', 0.4);
+            setTimeout(() => playSound(659, 0.15, 'sine', 0.4), 100);
+            setTimeout(() => playSound(784, 0.3, 'sine', 0.4), 200);
+        }
+
+        // Game constants
+        const WINNING_SCORE = 7;
+        const PADDLE_RADIUS = 40;
+        const PUCK_RADIUS = 25;
+        const PADDLE_SPEED = 8;
+        const MAX_PUCK_SPEED = 20;
+        const FRICTION = 0.995;
+        const GOAL_WIDTH_RATIO = 0.35;
+
+        // Game state
+        let gameState = {
+            player1: { x: 0, y: 0, vx: 0, vy: 0, score: 0 },
+            player2: { x: 0, y: 0, vx: 0, vy: 0, score: 0 },
+            puck: { x: 0, y: 0, vx: 0, vy: 0 },
+            particles: [],
+            trails: [],
+            round: 1,
+            paused: false,
+            gameOver: false
+        };
+
+        let keys = {};
+        let animationId = null;
+
+        // Set canvas size
+        function resizeCanvas() {
+            const maxWidth = Math.min(window.innerWidth - 40, 800);
+            const maxHeight = Math.min(window.innerHeight - 150, 500);
+            const aspectRatio = 1.6;
+
+            if (maxWidth / aspectRatio <= maxHeight) {
+                canvas.width = maxWidth;
+                canvas.height = maxWidth / aspectRatio;
+            } else {
+                canvas.height = maxHeight;
+                canvas.width = maxHeight * aspectRatio;
+            }
+        }
+
+        function resetPositions(scorer = null) {
+            const w = canvas.width;
+            const h = canvas.height;
+
+            gameState.player1.x = w * 0.15;
+            gameState.player1.y = h / 2;
+            gameState.player1.vx = 0;
+            gameState.player1.vy = 0;
+
+            gameState.player2.x = w * 0.85;
+            gameState.player2.y = h / 2;
+            gameState.player2.vx = 0;
+            gameState.player2.vy = 0;
+
+            gameState.puck.x = w / 2;
+            gameState.puck.y = h / 2;
+
+            // Give puck initial velocity toward the player who was scored on
+            const speed = 5;
+            if (scorer === 1) {
+                gameState.puck.vx = speed;
+            } else if (scorer === 2) {
+                gameState.puck.vx = -speed;
+            } else {
+                gameState.puck.vx = (Math.random() > 0.5 ? 1 : -1) * speed;
+            }
+            gameState.puck.vy = (Math.random() - 0.5) * speed;
+
+            gameState.trails = [];
+        }
+
+        function startGame() {
+            initAudio();
+            document.getElementById('menu').style.display = 'none';
+            document.getElementById('gameContainer').style.display = 'flex';
+            document.getElementById('gameOver').style.display = 'none';
+
+            resizeCanvas();
+
+            gameState.player1.score = 0;
+            gameState.player2.score = 0;
+            gameState.round = 1;
+            gameState.gameOver = false;
+            gameState.paused = false;
+            gameState.particles = [];
+
+            updateHUD();
+            resetPositions();
+            showCountdown(3);
+        }
+
+        function showCountdown(count) {
+            gameState.paused = true;
+            const countdownEl = document.getElementById('countdown');
+
+            if (count > 0) {
+                countdownEl.textContent = count;
+                countdownEl.style.opacity = '1';
+                playSound(300, 0.1, 'sine', 0.3);
+
+                setTimeout(() => {
+                    countdownEl.style.opacity = '0';
+                    setTimeout(() => showCountdown(count - 1), 200);
+                }, 600);
+            } else {
+                countdownEl.textContent = 'GO!';
+                countdownEl.style.opacity = '1';
+                playSound(600, 0.2, 'sine', 0.4);
+
+                setTimeout(() => {
+                    countdownEl.style.opacity = '0';
+                    gameState.paused = false;
+                    if (!animationId) gameLoop();
+                }, 500);
+            }
+        }
+
+        function backToMenu() {
+            document.getElementById('menu').style.display = 'block';
+            document.getElementById('gameContainer').style.display = 'none';
+            document.getElementById('gameOver').style.display = 'none';
+            if (animationId) {
+                cancelAnimationFrame(animationId);
+                animationId = null;
+            }
+        }
+
+        function updateHUD() {
+            document.getElementById('score1').textContent = gameState.player1.score;
+            document.getElementById('score2').textContent = gameState.player2.score;
+            document.getElementById('round').textContent = gameState.round;
+        }
+
+        function showGoalMessage(player) {
+            const msg = document.getElementById('goalMessage');
+            msg.textContent = `PLAYER ${player} SCORES!`;
+            msg.style.color = player === 1 ? '#00ff88' : '#ff0088';
+            msg.style.opacity = '1';
+
+            setTimeout(() => {
+                msg.style.opacity = '0';
+            }, 1500);
+        }
+
+        function checkGoal() {
+            const w = canvas.width;
+            const h = canvas.height;
+            const goalHeight = h * GOAL_WIDTH_RATIO;
+            const goalTop = (h - goalHeight) / 2;
+            const goalBottom = goalTop + goalHeight;
+            const puck = gameState.puck;
+
+            // Check if puck is in goal area (y-position)
+            if (puck.y > goalTop && puck.y < goalBottom) {
+                // Goal for player 1 (puck enters right side)
+                if (puck.x + PUCK_RADIUS >= w) {
+                    return 1;
+                }
+                // Goal for player 2 (puck enters left side)
+                if (puck.x - PUCK_RADIUS <= 0) {
+                    return 2;
+                }
+            }
+            return 0;
+        }
+
+        function createGoalParticles(x, y, color) {
+            for (let i = 0; i < 30; i++) {
+                const angle = Math.random() * Math.PI * 2;
+                const speed = Math.random() * 8 + 2;
+                gameState.particles.push({
+                    x: x,
+                    y: y,
+                    vx: Math.cos(angle) * speed,
+                    vy: Math.sin(angle) * speed,
+                    life: 1,
+                    color: color,
+                    size: Math.random() * 8 + 4
+                });
+            }
+        }
+
+        function handleGoal(scorer) {
+            playGoal();
+
+            if (scorer === 1) {
+                gameState.player1.score++;
+                createGoalParticles(canvas.width, canvas.height / 2, '#00ff88');
+            } else {
+                gameState.player2.score++;
+                createGoalParticles(0, canvas.height / 2, '#ff0088');
+            }
+
+            showGoalMessage(scorer);
+            updateHUD();
+            gameState.round++;
+
+            if (gameState.player1.score >= WINNING_SCORE || gameState.player2.score >= WINNING_SCORE) {
+                endGame();
+            } else {
+                gameState.paused = true;
+                setTimeout(() => {
+                    resetPositions(scorer);
+                    showCountdown(2);
+                }, 1500);
+            }
+        }
+
+        function endGame() {
+            gameState.gameOver = true;
+            const winner = gameState.player1.score >= WINNING_SCORE ? 1 : 2;
+
+            const gameOverEl = document.getElementById('gameOver');
+            gameOverEl.className = winner === 1 ? 'p1-wins' : 'p2-wins';
+            document.getElementById('winnerText').textContent = `PLAYER ${winner} WINS!`;
+            document.getElementById('finalScore').textContent =
+                `Final Score: ${gameState.player1.score} - ${gameState.player2.score}`;
+
+            setTimeout(() => {
+                gameOverEl.style.display = 'flex';
+            }, 500);
+        }
+
+        function handleInput() {
+            const p1 = gameState.player1;
+            const p2 = gameState.player2;
+
+            // Player 1 - WASD
+            p1.vx = 0;
+            p1.vy = 0;
+            if (keys['w'] || keys['W']) p1.vy = -PADDLE_SPEED;
+            if (keys['s'] || keys['S']) p1.vy = PADDLE_SPEED;
+            if (keys['a'] || keys['A']) p1.vx = -PADDLE_SPEED;
+            if (keys['d'] || keys['D']) p1.vx = PADDLE_SPEED;
+
+            // Player 2 - Arrow keys
+            p2.vx = 0;
+            p2.vy = 0;
+            if (keys['ArrowUp']) p2.vy = -PADDLE_SPEED;
+            if (keys['ArrowDown']) p2.vy = PADDLE_SPEED;
+            if (keys['ArrowLeft']) p2.vx = -PADDLE_SPEED;
+            if (keys['ArrowRight']) p2.vx = PADDLE_SPEED;
+        }
+
+        function updatePaddles() {
+            const w = canvas.width;
+            const h = canvas.height;
+            const p1 = gameState.player1;
+            const p2 = gameState.player2;
+
+            // Update positions
+            p1.x += p1.vx;
+            p1.y += p1.vy;
+            p2.x += p2.vx;
+            p2.y += p2.vy;
+
+            // Constrain Player 1 to left half
+            p1.x = Math.max(PADDLE_RADIUS, Math.min(w / 2 - PADDLE_RADIUS, p1.x));
+            p1.y = Math.max(PADDLE_RADIUS, Math.min(h - PADDLE_RADIUS, p1.y));
+
+            // Constrain Player 2 to right half
+            p2.x = Math.max(w / 2 + PADDLE_RADIUS, Math.min(w - PADDLE_RADIUS, p2.x));
+            p2.y = Math.max(PADDLE_RADIUS, Math.min(h - PADDLE_RADIUS, p2.y));
+        }
+
+        function updatePuck() {
+            const puck = gameState.puck;
+            const w = canvas.width;
+            const h = canvas.height;
+            const goalHeight = h * GOAL_WIDTH_RATIO;
+            const goalTop = (h - goalHeight) / 2;
+            const goalBottom = goalTop + goalHeight;
+
+            // Add trail
+            if (Math.abs(puck.vx) > 1 || Math.abs(puck.vy) > 1) {
+                gameState.trails.push({
+                    x: puck.x,
+                    y: puck.y,
+                    life: 1
+                });
+            }
+
+            // Apply friction
+            puck.vx *= FRICTION;
+            puck.vy *= FRICTION;
+
+            // Limit speed
+            const speed = Math.sqrt(puck.vx * puck.vx + puck.vy * puck.vy);
+            if (speed > MAX_PUCK_SPEED) {
+                puck.vx = (puck.vx / speed) * MAX_PUCK_SPEED;
+                puck.vy = (puck.vy / speed) * MAX_PUCK_SPEED;
+            }
+
+            // Update position
+            puck.x += puck.vx;
+            puck.y += puck.vy;
+
+            // Wall collisions (top and bottom)
+            if (puck.y - PUCK_RADIUS <= 0) {
+                puck.y = PUCK_RADIUS;
+                puck.vy = -puck.vy * 0.9;
+                playWallHit();
+            }
+            if (puck.y + PUCK_RADIUS >= h) {
+                puck.y = h - PUCK_RADIUS;
+                puck.vy = -puck.vy * 0.9;
+                playWallHit();
+            }
+
+            // Side wall collisions (not in goal areas)
+            // Left side
+            if (puck.x - PUCK_RADIUS <= 0) {
+                if (puck.y < goalTop || puck.y > goalBottom) {
+                    puck.x = PUCK_RADIUS;
+                    puck.vx = -puck.vx * 0.9;
+                    playWallHit();
+                }
+            }
+            // Right side
+            if (puck.x + PUCK_RADIUS >= w) {
+                if (puck.y < goalTop || puck.y > goalBottom) {
+                    puck.x = w - PUCK_RADIUS;
+                    puck.vx = -puck.vx * 0.9;
+                    playWallHit();
+                }
+            }
+
+            // Paddle collisions
+            checkPaddleCollision(gameState.player1);
+            checkPaddleCollision(gameState.player2);
+        }
+
+        function checkPaddleCollision(paddle) {
+            const puck = gameState.puck;
+            const dx = puck.x - paddle.x;
+            const dy = puck.y - paddle.y;
+            const dist = Math.sqrt(dx * dx + dy * dy);
+            const minDist = PADDLE_RADIUS + PUCK_RADIUS;
+
+            if (dist < minDist) {
+                // Normalize collision vector
+                const nx = dx / dist;
+                const ny = dy / dist;
+
+                // Separate puck from paddle
+                puck.x = paddle.x + nx * minDist;
+                puck.y = paddle.y + ny * minDist;
+
+                // Reflect velocity and add paddle velocity
+                const relVelX = puck.vx - paddle.vx;
+                const relVelY = puck.vy - paddle.vy;
+                const dotProduct = relVelX * nx + relVelY * ny;
+
+                puck.vx = puck.vx - 2 * dotProduct * nx + paddle.vx * 1.5;
+                puck.vy = puck.vy - 2 * dotProduct * ny + paddle.vy * 1.5;
+
+                // Add some extra oomph
+                puck.vx *= 1.1;
+                puck.vy *= 1.1;
+
+                playPaddleHit();
+
+                // Create small particle burst
+                for (let i = 0; i < 5; i++) {
+                    const angle = Math.atan2(ny, nx) + (Math.random() - 0.5) * 0.5;
+                    gameState.particles.push({
+                        x: puck.x,
+                        y: puck.y,
+                        vx: Math.cos(angle) * (Math.random() * 3 + 2),
+                        vy: Math.sin(angle) * (Math.random() * 3 + 2),
+                        life: 1,
+                        color: '#ffffff',
+                        size: Math.random() * 4 + 2
+                    });
+                }
+            }
+        }
+
+        function updateParticles() {
+            // Update particles
+            for (let i = gameState.particles.length - 1; i >= 0; i--) {
+                const p = gameState.particles[i];
+                p.x += p.vx;
+                p.y += p.vy;
+                p.life -= 0.02;
+                p.vy += 0.1; // gravity
+
+                if (p.life <= 0) {
+                    gameState.particles.splice(i, 1);
+                }
+            }
+
+            // Update trails
+            for (let i = gameState.trails.length - 1; i >= 0; i--) {
+                gameState.trails[i].life -= 0.1;
+                if (gameState.trails[i].life <= 0) {
+                    gameState.trails.splice(i, 1);
+                }
+            }
+        }
+
+        function draw() {
+            const w = canvas.width;
+            const h = canvas.height;
+            const goalHeight = h * GOAL_WIDTH_RATIO;
+            const goalTop = (h - goalHeight) / 2;
+
+            // Clear and draw table
+            ctx.fillStyle = '#1a1a2e';
+            ctx.fillRect(0, 0, w, h);
+
+            // Draw border
+            ctx.strokeStyle = '#16213e';
+            ctx.lineWidth = 8;
+            ctx.strokeRect(4, 4, w - 8, h - 8);
+
+            // Draw center line
+            ctx.strokeStyle = 'rgba(255, 255, 255, 0.2)';
+            ctx.lineWidth = 3;
+            ctx.setLineDash([15, 15]);
+            ctx.beginPath();
+            ctx.moveTo(w / 2, 0);
+            ctx.lineTo(w / 2, h);
+            ctx.stroke();
+            ctx.setLineDash([]);
+
+            // Draw center circle
+            ctx.beginPath();
+            ctx.arc(w / 2, h / 2, 60, 0, Math.PI * 2);
+            ctx.strokeStyle = 'rgba(255, 255, 255, 0.2)';
+            ctx.lineWidth = 3;
+            ctx.stroke();
+
+            // Draw goals
+            ctx.fillStyle = 'rgba(255, 215, 0, 0.3)';
+            // Left goal
+            ctx.fillRect(0, goalTop, 10, goalHeight);
+            // Right goal
+            ctx.fillRect(w - 10, goalTop, 10, goalHeight);
+
+            // Draw goal outlines
+            ctx.strokeStyle = '#ffd700';
+            ctx.lineWidth = 3;
+            ctx.beginPath();
+            ctx.moveTo(10, goalTop);
+            ctx.lineTo(0, goalTop);
+            ctx.lineTo(0, goalTop + goalHeight);
+            ctx.lineTo(10, goalTop + goalHeight);
+            ctx.stroke();
+
+            ctx.beginPath();
+            ctx.moveTo(w - 10, goalTop);
+            ctx.lineTo(w, goalTop);
+            ctx.lineTo(w, goalTop + goalHeight);
+            ctx.lineTo(w - 10, goalTop + goalHeight);
+            ctx.stroke();
+
+            // Draw puck trails
+            gameState.trails.forEach(trail => {
+                ctx.beginPath();
+                ctx.arc(trail.x, trail.y, PUCK_RADIUS * trail.life * 0.5, 0, Math.PI * 2);
+                ctx.fillStyle = `rgba(255, 255, 255, ${trail.life * 0.3})`;
+                ctx.fill();
+            });
+
+            // Draw particles
+            gameState.particles.forEach(p => {
+                ctx.beginPath();
+                ctx.arc(p.x, p.y, p.size * p.life, 0, Math.PI * 2);
+                ctx.fillStyle = p.color;
+                ctx.globalAlpha = p.life;
+                ctx.fill();
+                ctx.globalAlpha = 1;
+            });
+
+            // Draw puck
+            const puck = gameState.puck;
+            // Puck glow
+            const puckGradient = ctx.createRadialGradient(puck.x, puck.y, 0, puck.x, puck.y, PUCK_RADIUS * 1.5);
+            puckGradient.addColorStop(0, 'rgba(255, 255, 255, 0.3)');
+            puckGradient.addColorStop(1, 'rgba(255, 255, 255, 0)');
+            ctx.fillStyle = puckGradient;
+            ctx.beginPath();
+            ctx.arc(puck.x, puck.y, PUCK_RADIUS * 1.5, 0, Math.PI * 2);
+            ctx.fill();
+
+            // Puck body
+            ctx.beginPath();
+            ctx.arc(puck.x, puck.y, PUCK_RADIUS, 0, Math.PI * 2);
+            ctx.fillStyle = '#ffffff';
+            ctx.fill();
+            ctx.strokeStyle = '#cccccc';
+            ctx.lineWidth = 3;
+            ctx.stroke();
+
+            // Puck inner circle
+            ctx.beginPath();
+            ctx.arc(puck.x, puck.y, PUCK_RADIUS * 0.5, 0, Math.PI * 2);
+            ctx.strokeStyle = '#dddddd';
+            ctx.lineWidth = 2;
+            ctx.stroke();
+
+            // Draw paddles
+            drawPaddle(gameState.player1, '#00ff88');
+            drawPaddle(gameState.player2, '#ff0088');
+        }
+
+        function drawPaddle(paddle, color) {
+            // Paddle glow
+            const glowGradient = ctx.createRadialGradient(paddle.x, paddle.y, 0, paddle.x, paddle.y, PADDLE_RADIUS * 1.5);
+            glowGradient.addColorStop(0, color + '40');
+            glowGradient.addColorStop(1, color + '00');
+            ctx.fillStyle = glowGradient;
+            ctx.beginPath();
+            ctx.arc(paddle.x, paddle.y, PADDLE_RADIUS * 1.5, 0, Math.PI * 2);
+            ctx.fill();
+
+            // Paddle body
+            ctx.beginPath();
+            ctx.arc(paddle.x, paddle.y, PADDLE_RADIUS, 0, Math.PI * 2);
+            ctx.fillStyle = color;
+            ctx.fill();
+
+            // Paddle highlight
+            ctx.beginPath();
+            ctx.arc(paddle.x - 8, paddle.y - 8, PADDLE_RADIUS * 0.4, 0, Math.PI * 2);
+            ctx.fillStyle = 'rgba(255, 255, 255, 0.3)';
+            ctx.fill();
+
+            // Paddle inner ring
+            ctx.beginPath();
+            ctx.arc(paddle.x, paddle.y, PADDLE_RADIUS * 0.6, 0, Math.PI * 2);
+            ctx.strokeStyle = 'rgba(255, 255, 255, 0.5)';
+            ctx.lineWidth = 3;
+            ctx.stroke();
+        }
+
+        function gameLoop() {
+            if (gameState.gameOver) {
+                animationId = null;
+                return;
+            }
+
+            if (!gameState.paused) {
+                handleInput();
+                updatePaddles();
+                updatePuck();
+
+                const scorer = checkGoal();
+                if (scorer > 0) {
+                    handleGoal(scorer);
+                }
+            }
+
+            updateParticles();
+            draw();
+
+            animationId = requestAnimationFrame(gameLoop);
+        }
+
+        // Event listeners
+        document.addEventListener('keydown', (e) => {
+            keys[e.key] = true;
+            // Prevent arrow keys from scrolling
+            if (['ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight', ' '].includes(e.key)) {
+                e.preventDefault();
+            }
+        });
+
+        document.addEventListener('keyup', (e) => {
+            keys[e.key] = false;
+        });
+
+        window.addEventListener('resize', () => {
+            if (document.getElementById('gameContainer').style.display === 'flex') {
+                resizeCanvas();
+                resetPositions();
+            }
+        });
+
+        // Prevent context menu on right click during game
+        canvas.addEventListener('contextmenu', (e) => e.preventDefault());
+    </script>
+</body>
+</html>
