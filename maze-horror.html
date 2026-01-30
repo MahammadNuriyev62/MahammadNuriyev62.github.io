@@ -1,0 +1,1430 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>THE HUNT - Escape the Maze</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            overflow: hidden;
+            background: #000;
+            font-family: 'Segoe UI', system-ui, sans-serif;
+        }
+
+        #loadingScreen {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: #000;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            z-index: 1000;
+            transition: opacity 1s ease;
+        }
+
+        #loadingScreen.hidden {
+            opacity: 0;
+            pointer-events: none;
+        }
+
+        .loading-title {
+            font-size: 4rem;
+            font-weight: 100;
+            color: #8b0000;
+            letter-spacing: 1rem;
+            margin-bottom: 0.5rem;
+            text-shadow: 0 0 50px rgba(139, 0, 0, 0.8);
+            animation: flicker 0.5s infinite;
+        }
+
+        @keyframes flicker {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.8; }
+            75% { opacity: 0.9; }
+        }
+
+        .loading-subtitle {
+            font-size: 1rem;
+            color: rgba(255, 255, 255, 0.4);
+            letter-spacing: 0.5rem;
+            margin-bottom: 3rem;
+        }
+
+        .loading-bar-container {
+            width: 300px;
+            height: 3px;
+            background: rgba(139, 0, 0, 0.2);
+            overflow: hidden;
+        }
+
+        .loading-bar {
+            width: 0%;
+            height: 100%;
+            background: #8b0000;
+            transition: width 0.3s ease;
+            box-shadow: 0 0 20px rgba(139, 0, 0, 0.8);
+        }
+
+        .loading-text {
+            margin-top: 1.5rem;
+            color: rgba(255, 255, 255, 0.3);
+            font-size: 0.8rem;
+            letter-spacing: 0.2rem;
+        }
+
+        .back-btn {
+            position: fixed;
+            top: 20px;
+            left: 20px;
+            padding: 10px 20px;
+            background: rgba(0, 0, 0, 0.8);
+            color: #8b0000;
+            text-decoration: none;
+            border-radius: 5px;
+            font-size: 0.85rem;
+            transition: all 0.3s ease;
+            border: 1px solid rgba(139, 0, 0, 0.3);
+            z-index: 1001;
+        }
+
+        .back-btn:hover {
+            background: rgba(139, 0, 0, 0.2);
+            border-color: #8b0000;
+        }
+
+        #ui {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+            z-index: 100;
+        }
+
+        #crosshair {
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            width: 4px;
+            height: 4px;
+            background: rgba(255, 255, 255, 0.5);
+            border-radius: 50%;
+        }
+
+        #hud {
+            position: fixed;
+            bottom: 30px;
+            left: 50%;
+            transform: translateX(-50%);
+            display: flex;
+            gap: 40px;
+            padding: 15px 30px;
+            background: rgba(0, 0, 0, 0.7);
+            border-radius: 10px;
+            border: 1px solid rgba(139, 0, 0, 0.3);
+        }
+
+        .hud-item {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+
+        .hud-label {
+            font-size: 0.65rem;
+            color: rgba(255, 255, 255, 0.4);
+            text-transform: uppercase;
+            letter-spacing: 0.1rem;
+            margin-bottom: 5px;
+        }
+
+        .hud-value {
+            font-size: 1.3rem;
+            color: #fff;
+            font-family: monospace;
+        }
+
+        .hud-value.danger {
+            color: #8b0000;
+            animation: pulse 0.5s infinite;
+        }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.5; }
+        }
+
+        #heartbeat {
+            position: fixed;
+            top: 30px;
+            right: 30px;
+            display: flex;
+            align-items: center;
+            gap: 15px;
+            padding: 15px 25px;
+            background: rgba(0, 0, 0, 0.7);
+            border-radius: 10px;
+            border: 1px solid rgba(139, 0, 0, 0.3);
+        }
+
+        .heart-icon {
+            font-size: 1.5rem;
+            color: #8b0000;
+            animation: heartbeat 1s infinite;
+        }
+
+        @keyframes heartbeat {
+            0%, 100% { transform: scale(1); }
+            15% { transform: scale(1.3); }
+            30% { transform: scale(1); }
+            45% { transform: scale(1.2); }
+            60% { transform: scale(1); }
+        }
+
+        .heart-rate {
+            font-size: 1.5rem;
+            color: #8b0000;
+            font-family: monospace;
+        }
+
+        #stamina-bar {
+            position: fixed;
+            bottom: 100px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 200px;
+        }
+
+        .stamina-label {
+            font-size: 0.6rem;
+            color: rgba(255, 255, 255, 0.4);
+            text-transform: uppercase;
+            letter-spacing: 0.1rem;
+            margin-bottom: 5px;
+            text-align: center;
+        }
+
+        .stamina-container {
+            width: 100%;
+            height: 4px;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 2px;
+            overflow: hidden;
+        }
+
+        .stamina-fill {
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(90deg, #8b0000, #ff4444);
+            transition: width 0.1s ease;
+        }
+
+        #warning {
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            font-size: 3rem;
+            color: #8b0000;
+            text-shadow: 0 0 50px rgba(139, 0, 0, 0.8);
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity 0.3s ease;
+            letter-spacing: 0.5rem;
+        }
+
+        #warning.show {
+            opacity: 1;
+            animation: warningPulse 0.3s infinite;
+        }
+
+        @keyframes warningPulse {
+            0%, 100% { transform: translate(-50%, -50%) scale(1); }
+            50% { transform: translate(-50%, -50%) scale(1.05); }
+        }
+
+        #game-over {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.95);
+            display: none;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            z-index: 999;
+        }
+
+        #game-over.show {
+            display: flex;
+        }
+
+        .game-over-title {
+            font-size: 5rem;
+            color: #8b0000;
+            letter-spacing: 1rem;
+            margin-bottom: 1rem;
+            text-shadow: 0 0 100px rgba(139, 0, 0, 0.8);
+            animation: flicker 0.2s infinite;
+        }
+
+        .game-over-subtitle {
+            font-size: 1.2rem;
+            color: rgba(255, 255, 255, 0.5);
+            margin-bottom: 3rem;
+        }
+
+        .restart-btn {
+            padding: 15px 40px;
+            background: transparent;
+            border: 2px solid #8b0000;
+            color: #8b0000;
+            font-size: 1rem;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            text-transform: uppercase;
+            letter-spacing: 0.2rem;
+            pointer-events: auto;
+        }
+
+        .restart-btn:hover {
+            background: #8b0000;
+            color: #000;
+        }
+
+        #victory {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.95);
+            display: none;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            z-index: 999;
+        }
+
+        #victory.show {
+            display: flex;
+        }
+
+        .victory-title {
+            font-size: 4rem;
+            color: #00ff00;
+            letter-spacing: 1rem;
+            margin-bottom: 1rem;
+            text-shadow: 0 0 50px rgba(0, 255, 0, 0.5);
+        }
+
+        .victory-time {
+            font-size: 1.5rem;
+            color: rgba(255, 255, 255, 0.7);
+            margin-bottom: 3rem;
+        }
+
+        #instructions-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.95);
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            z-index: 999;
+            cursor: pointer;
+        }
+
+        #instructions-overlay.hidden {
+            display: none;
+        }
+
+        .instructions-title {
+            font-size: 3rem;
+            color: #8b0000;
+            letter-spacing: 0.5rem;
+            margin-bottom: 0.5rem;
+            text-shadow: 0 0 50px rgba(139, 0, 0, 0.5);
+        }
+
+        .instructions-subtitle {
+            font-size: 1rem;
+            color: rgba(255, 255, 255, 0.5);
+            margin-bottom: 2rem;
+        }
+
+        .instructions-story {
+            max-width: 500px;
+            text-align: center;
+            color: rgba(255, 255, 255, 0.6);
+            line-height: 1.8;
+            margin-bottom: 2rem;
+            font-style: italic;
+        }
+
+        .instructions-content {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 20px;
+            max-width: 450px;
+            margin-bottom: 2rem;
+        }
+
+        .instruction-item {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+            color: rgba(255, 255, 255, 0.7);
+        }
+
+        .instruction-key {
+            background: rgba(139, 0, 0, 0.2);
+            border: 1px solid rgba(139, 0, 0, 0.5);
+            padding: 8px 15px;
+            border-radius: 5px;
+            font-family: monospace;
+            font-size: 0.9rem;
+            color: #8b0000;
+            min-width: 70px;
+            text-align: center;
+        }
+
+        .click-to-start {
+            font-size: 1.3rem;
+            color: #8b0000;
+            animation: pulse 2s ease-in-out infinite;
+        }
+
+        #vignette {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+            background: radial-gradient(ellipse at center, transparent 0%, transparent 40%, rgba(0,0,0,0.8) 100%);
+            z-index: 50;
+        }
+
+        #blood-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+            background: radial-gradient(ellipse at center, transparent 0%, rgba(139,0,0,0.3) 100%);
+            z-index: 51;
+            opacity: 0;
+            transition: opacity 0.3s ease;
+        }
+
+        #flashlight-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+            background: radial-gradient(circle at 50% 50%, transparent 0%, transparent 15%, rgba(0,0,0,0.95) 40%);
+            z-index: 49;
+        }
+
+        @media (max-width: 768px) {
+            .loading-title {
+                font-size: 2.5rem;
+                letter-spacing: 0.5rem;
+            }
+
+            #hud {
+                padding: 10px 20px;
+                gap: 20px;
+            }
+
+            .hud-value {
+                font-size: 1rem;
+            }
+
+            #heartbeat {
+                top: 20px;
+                right: 20px;
+                padding: 10px 15px;
+            }
+
+            .instructions-content {
+                grid-template-columns: 1fr;
+                padding: 0 20px;
+            }
+
+            .instructions-title {
+                font-size: 2rem;
+            }
+        }
+    </style>
+</head>
+<body>
+    <a href="index.html" class="back-btn">← Back</a>
+
+    <div id="loadingScreen">
+        <div class="loading-title">THE HUNT</div>
+        <div class="loading-subtitle">ESCAPE THE MAZE</div>
+        <div class="loading-bar-container">
+            <div class="loading-bar" id="loadingBar"></div>
+        </div>
+        <div class="loading-text" id="loadingText">Generating maze...</div>
+    </div>
+
+    <div id="instructions-overlay" class="hidden">
+        <div class="instructions-title">THE HUNT</div>
+        <div class="instructions-subtitle">Can you escape?</div>
+        <div class="instructions-story">
+            You wake up in a dark maze. Someone... something... is hunting you.
+            Find the green exit before HE finds you. Your flashlight is your only friend.
+            Run if you must, but stamina is limited. Listen carefully... footsteps mean death approaches.
+        </div>
+        <div class="instructions-content">
+            <div class="instruction-item">
+                <span class="instruction-key">WASD</span>
+                <span>Move</span>
+            </div>
+            <div class="instruction-item">
+                <span class="instruction-key">Mouse</span>
+                <span>Look</span>
+            </div>
+            <div class="instruction-item">
+                <span class="instruction-key">Shift</span>
+                <span>Sprint</span>
+            </div>
+            <div class="instruction-item">
+                <span class="instruction-key">ESC</span>
+                <span>Pause</span>
+            </div>
+        </div>
+        <div class="click-to-start">Click to begin your nightmare</div>
+    </div>
+
+    <div id="vignette"></div>
+    <div id="blood-overlay"></div>
+    <div id="flashlight-overlay"></div>
+
+    <div id="ui">
+        <div id="crosshair"></div>
+
+        <div id="heartbeat">
+            <span class="heart-icon">&#10084;</span>
+            <span class="heart-rate" id="heartRate">70</span>
+            <span style="color: rgba(255,255,255,0.4); font-size: 0.8rem;">BPM</span>
+        </div>
+
+        <div id="stamina-bar">
+            <div class="stamina-label">Stamina</div>
+            <div class="stamina-container">
+                <div class="stamina-fill" id="staminaFill"></div>
+            </div>
+        </div>
+
+        <div id="hud">
+            <div class="hud-item">
+                <span class="hud-label">Time</span>
+                <span class="hud-value" id="time">0:00</span>
+            </div>
+            <div class="hud-item">
+                <span class="hud-label">Distance to Exit</span>
+                <span class="hud-value" id="distance">???</span>
+            </div>
+        </div>
+
+        <div id="warning">HE'S CLOSE</div>
+    </div>
+
+    <div id="game-over">
+        <div class="game-over-title">CAUGHT</div>
+        <div class="game-over-subtitle">The hunter became the hunted...</div>
+        <button class="restart-btn" onclick="location.reload()">Try Again</button>
+    </div>
+
+    <div id="victory">
+        <div class="victory-title">ESCAPED</div>
+        <div class="victory-time" id="victoryTime">Time: 0:00</div>
+        <button class="restart-btn" onclick="location.reload()">Play Again</button>
+    </div>
+
+    <script type="importmap">
+    {
+        "imports": {
+            "three": "https://unpkg.com/three@0.160.0/build/three.module.js",
+            "three/addons/": "https://unpkg.com/three@0.160.0/examples/jsm/"
+        }
+    }
+    </script>
+
+    <script type="module">
+        import * as THREE from 'three';
+        import { PointerLockControls } from 'three/addons/controls/PointerLockControls.js';
+
+        // ============================================
+        // CONFIGURATION
+        // ============================================
+        const CONFIG = {
+            MAZE_SIZE: 21, // Must be odd
+            CELL_SIZE: 4,
+            WALL_HEIGHT: 4,
+            PLAYER_HEIGHT: 1.7,
+            WALK_SPEED: 5,
+            SPRINT_SPEED: 9,
+            STAMINA_MAX: 100,
+            STAMINA_DRAIN: 25,
+            STAMINA_REGEN: 15,
+            ENEMY_SPEED: 3.5,
+            ENEMY_SPRINT_SPEED: 7,
+            CATCH_DISTANCE: 1.5,
+            DETECTION_RANGE: 15,
+            FLASHLIGHT_RANGE: 20,
+            FLASHLIGHT_ANGLE: 0.5
+        };
+
+        // ============================================
+        // GAME STATE
+        // ============================================
+        const state = {
+            isLoaded: false,
+            isPlaying: false,
+            isGameOver: false,
+            isVictory: false,
+            time: 0,
+            stamina: CONFIG.STAMINA_MAX,
+            isSprinting: false,
+            heartRate: 70,
+            enemyDistance: Infinity,
+            maze: null,
+            exitPosition: null,
+            playerStart: null
+        };
+
+        // ============================================
+        // THREE.JS SETUP
+        // ============================================
+        const scene = new THREE.Scene();
+        scene.background = new THREE.Color(0x000000);
+        scene.fog = new THREE.Fog(0x000000, 0, CONFIG.FLASHLIGHT_RANGE);
+
+        const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 100);
+        const renderer = new THREE.WebGLRenderer({ antialias: true });
+        renderer.setSize(window.innerWidth, window.innerHeight);
+        renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+        renderer.shadowMap.enabled = true;
+        renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+        document.body.appendChild(renderer.domElement);
+
+        const controls = new PointerLockControls(camera, document.body);
+
+        // ============================================
+        // MAZE GENERATION (Recursive Backtracking)
+        // ============================================
+        function generateMaze(width, height) {
+            const maze = Array(height).fill(null).map(() => Array(width).fill(1));
+
+            function carve(x, y) {
+                maze[y][x] = 0;
+
+                const directions = [
+                    [0, -2], [0, 2], [-2, 0], [2, 0]
+                ].sort(() => Math.random() - 0.5);
+
+                for (const [dx, dy] of directions) {
+                    const nx = x + dx;
+                    const ny = y + dy;
+
+                    if (nx > 0 && nx < width - 1 && ny > 0 && ny < height - 1 && maze[ny][nx] === 1) {
+                        maze[y + dy / 2][x + dx / 2] = 0;
+                        carve(nx, ny);
+                    }
+                }
+            }
+
+            carve(1, 1);
+
+            // Ensure start and end are open
+            maze[1][1] = 0;
+            maze[height - 2][width - 2] = 0;
+
+            return maze;
+        }
+
+        // ============================================
+        // CREATE MAZE GEOMETRY
+        // ============================================
+        function createMazeGeometry(maze) {
+            const wallGeometry = new THREE.BoxGeometry(CONFIG.CELL_SIZE, CONFIG.WALL_HEIGHT, CONFIG.CELL_SIZE);
+            const wallMaterial = new THREE.MeshStandardMaterial({
+                color: 0x1a1a1a,
+                roughness: 0.9,
+                metalness: 0.1
+            });
+
+            const floorGeometry = new THREE.PlaneGeometry(
+                CONFIG.MAZE_SIZE * CONFIG.CELL_SIZE,
+                CONFIG.MAZE_SIZE * CONFIG.CELL_SIZE
+            );
+            const floorMaterial = new THREE.MeshStandardMaterial({
+                color: 0x0a0a0a,
+                roughness: 1,
+                metalness: 0
+            });
+
+            // Floor
+            const floor = new THREE.Mesh(floorGeometry, floorMaterial);
+            floor.rotation.x = -Math.PI / 2;
+            floor.position.set(
+                (CONFIG.MAZE_SIZE * CONFIG.CELL_SIZE) / 2 - CONFIG.CELL_SIZE / 2,
+                0,
+                (CONFIG.MAZE_SIZE * CONFIG.CELL_SIZE) / 2 - CONFIG.CELL_SIZE / 2
+            );
+            floor.receiveShadow = true;
+            scene.add(floor);
+
+            // Ceiling
+            const ceiling = new THREE.Mesh(floorGeometry, floorMaterial);
+            ceiling.rotation.x = Math.PI / 2;
+            ceiling.position.set(
+                (CONFIG.MAZE_SIZE * CONFIG.CELL_SIZE) / 2 - CONFIG.CELL_SIZE / 2,
+                CONFIG.WALL_HEIGHT,
+                (CONFIG.MAZE_SIZE * CONFIG.CELL_SIZE) / 2 - CONFIG.CELL_SIZE / 2
+            );
+            scene.add(ceiling);
+
+            // Walls
+            const walls = new THREE.Group();
+            for (let y = 0; y < maze.length; y++) {
+                for (let x = 0; x < maze[y].length; x++) {
+                    if (maze[y][x] === 1) {
+                        const wall = new THREE.Mesh(wallGeometry, wallMaterial);
+                        wall.position.set(
+                            x * CONFIG.CELL_SIZE,
+                            CONFIG.WALL_HEIGHT / 2,
+                            y * CONFIG.CELL_SIZE
+                        );
+                        wall.castShadow = true;
+                        wall.receiveShadow = true;
+                        walls.add(wall);
+                    }
+                }
+            }
+            scene.add(walls);
+
+            return walls;
+        }
+
+        // ============================================
+        // CREATE EXIT
+        // ============================================
+        function createExit() {
+            const exitX = (CONFIG.MAZE_SIZE - 2) * CONFIG.CELL_SIZE;
+            const exitZ = (CONFIG.MAZE_SIZE - 2) * CONFIG.CELL_SIZE;
+
+            // Exit light
+            const exitLight = new THREE.PointLight(0x00ff00, 2, 10);
+            exitLight.position.set(exitX, 2, exitZ);
+            scene.add(exitLight);
+
+            // Exit marker
+            const markerGeometry = new THREE.CylinderGeometry(0.5, 0.5, 0.1, 32);
+            const markerMaterial = new THREE.MeshBasicMaterial({
+                color: 0x00ff00,
+                transparent: true,
+                opacity: 0.8
+            });
+            const marker = new THREE.Mesh(markerGeometry, markerMaterial);
+            marker.position.set(exitX, 0.05, exitZ);
+            scene.add(marker);
+
+            // Glowing pillar
+            const pillarGeometry = new THREE.CylinderGeometry(0.1, 0.1, CONFIG.WALL_HEIGHT, 16);
+            const pillarMaterial = new THREE.MeshBasicMaterial({
+                color: 0x00ff00,
+                transparent: true,
+                opacity: 0.5
+            });
+            const pillar = new THREE.Mesh(pillarGeometry, pillarMaterial);
+            pillar.position.set(exitX, CONFIG.WALL_HEIGHT / 2, exitZ);
+            scene.add(pillar);
+
+            state.exitPosition = new THREE.Vector3(exitX, 0, exitZ);
+
+            return { exitLight, marker, pillar };
+        }
+
+        // ============================================
+        // CREATE ENEMY (THE MANIAC)
+        // ============================================
+        let enemy;
+        let enemyLight;
+
+        function createEnemy() {
+            const group = new THREE.Group();
+
+            // Body
+            const bodyGeometry = new THREE.CylinderGeometry(0.3, 0.4, 1.6, 8);
+            const bodyMaterial = new THREE.MeshStandardMaterial({
+                color: 0x1a0000,
+                roughness: 0.8
+            });
+            const body = new THREE.Mesh(bodyGeometry, bodyMaterial);
+            body.position.y = 0.8;
+            group.add(body);
+
+            // Head
+            const headGeometry = new THREE.SphereGeometry(0.25, 16, 16);
+            const headMaterial = new THREE.MeshStandardMaterial({
+                color: 0x2a1a1a,
+                roughness: 0.7
+            });
+            const head = new THREE.Mesh(headGeometry, headMaterial);
+            head.position.y = 1.8;
+            group.add(head);
+
+            // Glowing red eyes
+            const eyeGeometry = new THREE.SphereGeometry(0.05, 8, 8);
+            const eyeMaterial = new THREE.MeshBasicMaterial({ color: 0xff0000 });
+
+            const leftEye = new THREE.Mesh(eyeGeometry, eyeMaterial);
+            leftEye.position.set(-0.08, 1.85, 0.2);
+            group.add(leftEye);
+
+            const rightEye = new THREE.Mesh(eyeGeometry, eyeMaterial);
+            rightEye.position.set(0.08, 1.85, 0.2);
+            group.add(rightEye);
+
+            // Enemy light (dim red)
+            enemyLight = new THREE.PointLight(0x330000, 1, 5);
+            enemyLight.position.y = 1.5;
+            group.add(enemyLight);
+
+            // Start position (far corner from player)
+            const startX = (CONFIG.MAZE_SIZE - 2) * CONFIG.CELL_SIZE;
+            const startZ = 1 * CONFIG.CELL_SIZE;
+            group.position.set(startX, 0, startZ);
+
+            group.userData = {
+                path: [],
+                pathIndex: 0,
+                lastPlayerPos: new THREE.Vector3(),
+                isChasing: false,
+                chaseTimer: 0
+            };
+
+            scene.add(group);
+            enemy = group;
+
+            return group;
+        }
+
+        // ============================================
+        // PATHFINDING (A*)
+        // ============================================
+        function findPath(startX, startZ, endX, endZ, maze) {
+            const startGridX = Math.round(startX / CONFIG.CELL_SIZE);
+            const startGridZ = Math.round(startZ / CONFIG.CELL_SIZE);
+            const endGridX = Math.round(endX / CONFIG.CELL_SIZE);
+            const endGridZ = Math.round(endZ / CONFIG.CELL_SIZE);
+
+            if (startGridX === endGridX && startGridZ === endGridZ) {
+                return [{ x: endX, z: endZ }];
+            }
+
+            const openSet = [];
+            const closedSet = new Set();
+            const cameFrom = new Map();
+
+            const gScore = new Map();
+            const fScore = new Map();
+
+            const startKey = `${startGridX},${startGridZ}`;
+            gScore.set(startKey, 0);
+            fScore.set(startKey, heuristic(startGridX, startGridZ, endGridX, endGridZ));
+            openSet.push({ x: startGridX, z: startGridZ, f: fScore.get(startKey) });
+
+            function heuristic(x1, z1, x2, z2) {
+                return Math.abs(x1 - x2) + Math.abs(z1 - z2);
+            }
+
+            function getNeighbors(x, z) {
+                const neighbors = [];
+                const dirs = [[0, 1], [0, -1], [1, 0], [-1, 0]];
+
+                for (const [dx, dz] of dirs) {
+                    const nx = x + dx;
+                    const nz = z + dz;
+
+                    if (nx >= 0 && nx < maze[0].length && nz >= 0 && nz < maze.length) {
+                        if (maze[nz][nx] === 0) {
+                            neighbors.push({ x: nx, z: nz });
+                        }
+                    }
+                }
+
+                return neighbors;
+            }
+
+            while (openSet.length > 0) {
+                openSet.sort((a, b) => a.f - b.f);
+                const current = openSet.shift();
+                const currentKey = `${current.x},${current.z}`;
+
+                if (current.x === endGridX && current.z === endGridZ) {
+                    // Reconstruct path
+                    const path = [];
+                    let key = currentKey;
+                    while (key) {
+                        const [x, z] = key.split(',').map(Number);
+                        path.unshift({ x: x * CONFIG.CELL_SIZE, z: z * CONFIG.CELL_SIZE });
+                        key = cameFrom.get(key);
+                    }
+                    return path;
+                }
+
+                closedSet.add(currentKey);
+
+                for (const neighbor of getNeighbors(current.x, current.z)) {
+                    const neighborKey = `${neighbor.x},${neighbor.z}`;
+
+                    if (closedSet.has(neighborKey)) continue;
+
+                    const tentativeG = gScore.get(currentKey) + 1;
+
+                    if (!gScore.has(neighborKey) || tentativeG < gScore.get(neighborKey)) {
+                        cameFrom.set(neighborKey, currentKey);
+                        gScore.set(neighborKey, tentativeG);
+                        const f = tentativeG + heuristic(neighbor.x, neighbor.z, endGridX, endGridZ);
+                        fScore.set(neighborKey, f);
+
+                        if (!openSet.find(n => n.x === neighbor.x && n.z === neighbor.z)) {
+                            openSet.push({ x: neighbor.x, z: neighbor.z, f });
+                        }
+                    }
+                }
+            }
+
+            return []; // No path found
+        }
+
+        // ============================================
+        // UPDATE ENEMY
+        // ============================================
+        function updateEnemy(delta) {
+            if (!enemy || state.isGameOver || state.isVictory) return;
+
+            const playerPos = camera.position.clone();
+            playerPos.y = 0;
+
+            const enemyPos = enemy.position.clone();
+            enemyPos.y = 0;
+
+            state.enemyDistance = playerPos.distanceTo(enemyPos);
+
+            // Check if caught
+            if (state.enemyDistance < CONFIG.CATCH_DISTANCE) {
+                gameOver();
+                return;
+            }
+
+            // Update chase state
+            const canSeePlayer = state.enemyDistance < CONFIG.DETECTION_RANGE;
+
+            if (canSeePlayer) {
+                enemy.userData.isChasing = true;
+                enemy.userData.chaseTimer = 5; // Chase for 5 seconds after losing sight
+                enemy.userData.lastPlayerPos.copy(playerPos);
+            } else if (enemy.userData.chaseTimer > 0) {
+                enemy.userData.chaseTimer -= delta;
+            } else {
+                enemy.userData.isChasing = false;
+            }
+
+            // Recalculate path periodically
+            if (enemy.userData.isChasing || enemy.userData.chaseTimer > 0) {
+                const targetPos = enemy.userData.isChasing ? playerPos : enemy.userData.lastPlayerPos;
+
+                // Recalculate path every 0.5 seconds
+                if (!enemy.userData.pathTimer || enemy.userData.pathTimer <= 0) {
+                    enemy.userData.path = findPath(
+                        enemy.position.x,
+                        enemy.position.z,
+                        targetPos.x,
+                        targetPos.z,
+                        state.maze
+                    );
+                    enemy.userData.pathIndex = 0;
+                    enemy.userData.pathTimer = 0.5;
+                } else {
+                    enemy.userData.pathTimer -= delta;
+                }
+            }
+
+            // Move along path
+            if (enemy.userData.path && enemy.userData.path.length > 0) {
+                const targetPoint = enemy.userData.path[Math.min(enemy.userData.pathIndex + 1, enemy.userData.path.length - 1)];
+
+                if (targetPoint) {
+                    const direction = new THREE.Vector3(
+                        targetPoint.x - enemy.position.x,
+                        0,
+                        targetPoint.z - enemy.position.z
+                    );
+
+                    const distanceToTarget = direction.length();
+
+                    if (distanceToTarget < 0.5) {
+                        enemy.userData.pathIndex++;
+                    } else {
+                        direction.normalize();
+
+                        // Speed up when chasing
+                        const speed = enemy.userData.isChasing ? CONFIG.ENEMY_SPRINT_SPEED : CONFIG.ENEMY_SPEED;
+                        enemy.position.x += direction.x * speed * delta;
+                        enemy.position.z += direction.z * speed * delta;
+
+                        // Face movement direction
+                        enemy.rotation.y = Math.atan2(direction.x, direction.z);
+                    }
+                }
+            }
+
+            // Idle wandering when not chasing
+            if (!enemy.userData.isChasing && enemy.userData.chaseTimer <= 0) {
+                if (!enemy.userData.wanderTarget || enemy.userData.wanderTimer <= 0) {
+                    // Pick random valid position
+                    let attempts = 0;
+                    while (attempts < 20) {
+                        const randX = Math.floor(Math.random() * (CONFIG.MAZE_SIZE - 2)) + 1;
+                        const randZ = Math.floor(Math.random() * (CONFIG.MAZE_SIZE - 2)) + 1;
+
+                        if (state.maze[randZ][randX] === 0) {
+                            enemy.userData.wanderTarget = {
+                                x: randX * CONFIG.CELL_SIZE,
+                                z: randZ * CONFIG.CELL_SIZE
+                            };
+                            enemy.userData.path = findPath(
+                                enemy.position.x,
+                                enemy.position.z,
+                                enemy.userData.wanderTarget.x,
+                                enemy.userData.wanderTarget.z,
+                                state.maze
+                            );
+                            enemy.userData.pathIndex = 0;
+                            enemy.userData.wanderTimer = 10;
+                            break;
+                        }
+                        attempts++;
+                    }
+                } else {
+                    enemy.userData.wanderTimer -= delta;
+                }
+            }
+
+            // Update enemy light intensity based on chase state
+            if (enemyLight) {
+                enemyLight.intensity = enemy.userData.isChasing ? 2 : 0.5;
+            }
+        }
+
+        // ============================================
+        // PLAYER FLASHLIGHT
+        // ============================================
+        let flashlight;
+
+        function createFlashlight() {
+            flashlight = new THREE.SpotLight(0xffffee, 3, CONFIG.FLASHLIGHT_RANGE, CONFIG.FLASHLIGHT_ANGLE, 0.5, 1);
+            flashlight.castShadow = true;
+            flashlight.shadow.mapSize.width = 1024;
+            flashlight.shadow.mapSize.height = 1024;
+            camera.add(flashlight);
+            camera.add(flashlight.target);
+            flashlight.target.position.set(0, 0, -1);
+            scene.add(camera);
+        }
+
+        // ============================================
+        // PLAYER CONTROLS
+        // ============================================
+        const moveState = {
+            forward: false,
+            backward: false,
+            left: false,
+            right: false,
+            sprint: false
+        };
+
+        const velocity = new THREE.Vector3();
+
+        function setupControls() {
+            document.addEventListener('keydown', (e) => {
+                switch (e.code) {
+                    case 'KeyW': moveState.forward = true; break;
+                    case 'KeyS': moveState.backward = true; break;
+                    case 'KeyA': moveState.left = true; break;
+                    case 'KeyD': moveState.right = true; break;
+                    case 'ShiftLeft':
+                    case 'ShiftRight':
+                        moveState.sprint = true;
+                        state.isSprinting = true;
+                        break;
+                }
+            });
+
+            document.addEventListener('keyup', (e) => {
+                switch (e.code) {
+                    case 'KeyW': moveState.forward = false; break;
+                    case 'KeyS': moveState.backward = false; break;
+                    case 'KeyA': moveState.left = false; break;
+                    case 'KeyD': moveState.right = false; break;
+                    case 'ShiftLeft':
+                    case 'ShiftRight':
+                        moveState.sprint = false;
+                        state.isSprinting = false;
+                        break;
+                }
+            });
+
+            const instructionsOverlay = document.getElementById('instructions-overlay');
+            instructionsOverlay.addEventListener('click', () => {
+                controls.lock();
+            });
+
+            controls.addEventListener('lock', () => {
+                instructionsOverlay.classList.add('hidden');
+                state.isPlaying = true;
+            });
+
+            controls.addEventListener('unlock', () => {
+                if (!state.isGameOver && !state.isVictory) {
+                    instructionsOverlay.classList.remove('hidden');
+                    state.isPlaying = false;
+                }
+            });
+        }
+
+        // ============================================
+        // COLLISION DETECTION
+        // ============================================
+        function checkCollision(position) {
+            const gridX = Math.round(position.x / CONFIG.CELL_SIZE);
+            const gridZ = Math.round(position.z / CONFIG.CELL_SIZE);
+
+            // Check boundaries
+            if (gridX < 0 || gridX >= CONFIG.MAZE_SIZE || gridZ < 0 || gridZ >= CONFIG.MAZE_SIZE) {
+                return true;
+            }
+
+            // Check wall collision with buffer
+            const buffer = 0.4;
+            const cellX = position.x / CONFIG.CELL_SIZE;
+            const cellZ = position.z / CONFIG.CELL_SIZE;
+
+            for (let dz = -1; dz <= 1; dz++) {
+                for (let dx = -1; dx <= 1; dx++) {
+                    const checkX = Math.round(cellX) + dx;
+                    const checkZ = Math.round(cellZ) + dz;
+
+                    if (checkX >= 0 && checkX < CONFIG.MAZE_SIZE && checkZ >= 0 && checkZ < CONFIG.MAZE_SIZE) {
+                        if (state.maze[checkZ][checkX] === 1) {
+                            const wallCenterX = checkX * CONFIG.CELL_SIZE;
+                            const wallCenterZ = checkZ * CONFIG.CELL_SIZE;
+                            const halfSize = CONFIG.CELL_SIZE / 2 + buffer;
+
+                            if (Math.abs(position.x - wallCenterX) < halfSize &&
+                                Math.abs(position.z - wallCenterZ) < halfSize) {
+                                return true;
+                            }
+                        }
+                    }
+                }
+            }
+
+            return false;
+        }
+
+        // ============================================
+        // UPDATE PLAYER
+        // ============================================
+        function updatePlayer(delta) {
+            if (!state.isPlaying || state.isGameOver || state.isVictory) return;
+
+            // Handle stamina
+            if (state.isSprinting && (moveState.forward || moveState.backward || moveState.left || moveState.right)) {
+                state.stamina = Math.max(0, state.stamina - CONFIG.STAMINA_DRAIN * delta);
+                if (state.stamina <= 0) {
+                    state.isSprinting = false;
+                }
+            } else {
+                state.stamina = Math.min(CONFIG.STAMINA_MAX, state.stamina + CONFIG.STAMINA_REGEN * delta);
+            }
+
+            // Calculate speed
+            const canSprint = state.isSprinting && state.stamina > 0;
+            const speed = canSprint ? CONFIG.SPRINT_SPEED : CONFIG.WALK_SPEED;
+
+            // Get movement direction
+            const direction = new THREE.Vector3();
+
+            if (moveState.forward) direction.z -= 1;
+            if (moveState.backward) direction.z += 1;
+            if (moveState.left) direction.x -= 1;
+            if (moveState.right) direction.x += 1;
+
+            direction.normalize();
+
+            // Apply movement relative to camera
+            if (direction.length() > 0) {
+                const cameraDirection = new THREE.Vector3();
+                camera.getWorldDirection(cameraDirection);
+                cameraDirection.y = 0;
+                cameraDirection.normalize();
+
+                const sideDirection = new THREE.Vector3(-cameraDirection.z, 0, cameraDirection.x);
+
+                const moveDirection = new THREE.Vector3();
+                moveDirection.addScaledVector(cameraDirection, -direction.z);
+                moveDirection.addScaledVector(sideDirection, direction.x);
+                moveDirection.normalize();
+
+                const newPosition = camera.position.clone();
+                newPosition.x += moveDirection.x * speed * delta;
+                newPosition.z += moveDirection.z * speed * delta;
+
+                // Check collision for X movement
+                const testPosX = camera.position.clone();
+                testPosX.x = newPosition.x;
+                if (!checkCollision(testPosX)) {
+                    camera.position.x = newPosition.x;
+                }
+
+                // Check collision for Z movement
+                const testPosZ = camera.position.clone();
+                testPosZ.z = newPosition.z;
+                if (!checkCollision(testPosZ)) {
+                    camera.position.z = newPosition.z;
+                }
+            }
+
+            // Check victory condition
+            if (state.exitPosition) {
+                const playerPos = camera.position.clone();
+                playerPos.y = 0;
+                const distToExit = playerPos.distanceTo(state.exitPosition);
+
+                if (distToExit < 1.5) {
+                    victory();
+                }
+            }
+        }
+
+        // ============================================
+        // UI UPDATES
+        // ============================================
+        function updateUI() {
+            // Time
+            const minutes = Math.floor(state.time / 60);
+            const seconds = Math.floor(state.time % 60);
+            document.getElementById('time').textContent = `${minutes}:${seconds.toString().padStart(2, '0')}`;
+
+            // Distance to exit
+            if (state.exitPosition) {
+                const playerPos = camera.position.clone();
+                playerPos.y = 0;
+                const dist = Math.floor(playerPos.distanceTo(state.exitPosition));
+                document.getElementById('distance').textContent = `${dist}m`;
+            }
+
+            // Stamina
+            document.getElementById('staminaFill').style.width = `${state.stamina}%`;
+
+            // Heart rate based on enemy distance
+            const baseRate = 70;
+            const maxRate = 180;
+            const panicDistance = 20;
+
+            if (state.enemyDistance < panicDistance) {
+                const panicFactor = 1 - (state.enemyDistance / panicDistance);
+                state.heartRate = Math.floor(baseRate + (maxRate - baseRate) * panicFactor);
+            } else {
+                state.heartRate = Math.max(baseRate, state.heartRate - 1);
+            }
+
+            const heartRateEl = document.getElementById('heartRate');
+            heartRateEl.textContent = state.heartRate;
+            heartRateEl.parentElement.querySelector('.heart-icon').style.animationDuration =
+                `${60 / state.heartRate}s`;
+
+            if (state.heartRate > 120) {
+                heartRateEl.classList.add('danger');
+            } else {
+                heartRateEl.classList.remove('danger');
+            }
+
+            // Warning when enemy is close
+            const warning = document.getElementById('warning');
+            if (state.enemyDistance < 10) {
+                warning.classList.add('show');
+            } else {
+                warning.classList.remove('show');
+            }
+
+            // Blood overlay based on proximity
+            const bloodOverlay = document.getElementById('blood-overlay');
+            if (state.enemyDistance < 15) {
+                const intensity = 1 - (state.enemyDistance / 15);
+                bloodOverlay.style.opacity = intensity * 0.5;
+            } else {
+                bloodOverlay.style.opacity = 0;
+            }
+        }
+
+        // ============================================
+        // GAME OVER / VICTORY
+        // ============================================
+        function gameOver() {
+            state.isGameOver = true;
+            state.isPlaying = false;
+            controls.unlock();
+            document.getElementById('game-over').classList.add('show');
+
+            // Dramatic effect
+            document.getElementById('blood-overlay').style.opacity = 0.8;
+        }
+
+        function victory() {
+            state.isVictory = true;
+            state.isPlaying = false;
+            controls.unlock();
+
+            const minutes = Math.floor(state.time / 60);
+            const seconds = Math.floor(state.time % 60);
+            document.getElementById('victoryTime').textContent =
+                `Escape Time: ${minutes}:${seconds.toString().padStart(2, '0')}`;
+            document.getElementById('victory').classList.add('show');
+        }
+
+        // ============================================
+        // AMBIENT LIGHTING
+        // ============================================
+        function createLighting() {
+            // Very dim ambient light
+            const ambientLight = new THREE.AmbientLight(0x111111, 0.3);
+            scene.add(ambientLight);
+        }
+
+        // ============================================
+        // INITIALIZATION
+        // ============================================
+        async function initGame() {
+            const loadingBar = document.getElementById('loadingBar');
+            const loadingText = document.getElementById('loadingText');
+
+            // Generate maze
+            loadingText.textContent = 'Generating maze...';
+            loadingBar.style.width = '20%';
+            await new Promise(r => setTimeout(r, 200));
+
+            state.maze = generateMaze(CONFIG.MAZE_SIZE, CONFIG.MAZE_SIZE);
+
+            // Create maze geometry
+            loadingText.textContent = 'Building walls...';
+            loadingBar.style.width = '40%';
+            await new Promise(r => setTimeout(r, 200));
+
+            createMazeGeometry(state.maze);
+
+            // Create exit
+            loadingText.textContent = 'Placing exit...';
+            loadingBar.style.width = '55%';
+            await new Promise(r => setTimeout(r, 200));
+
+            createExit();
+
+            // Create enemy
+            loadingText.textContent = 'Awakening the hunter...';
+            loadingBar.style.width = '70%';
+            await new Promise(r => setTimeout(r, 200));
+
+            createEnemy();
+
+            // Create lighting
+            loadingText.textContent = 'Dimming the lights...';
+            loadingBar.style.width = '85%';
+            await new Promise(r => setTimeout(r, 200));
+
+            createLighting();
+            createFlashlight();
+
+            // Setup controls
+            loadingText.textContent = 'Preparing your fate...';
+            loadingBar.style.width = '95%';
+            await new Promise(r => setTimeout(r, 200));
+
+            setupControls();
+
+            // Set player position
+            camera.position.set(1 * CONFIG.CELL_SIZE, CONFIG.PLAYER_HEIGHT, 1 * CONFIG.CELL_SIZE);
+
+            loadingBar.style.width = '100%';
+            loadingText.textContent = 'Run.';
+            await new Promise(r => setTimeout(r, 500));
+
+            // Hide loading screen
+            document.getElementById('loadingScreen').classList.add('hidden');
+            document.getElementById('instructions-overlay').classList.remove('hidden');
+
+            state.isLoaded = true;
+
+            // Animation loop
+            const clock = new THREE.Clock();
+
+            function animate() {
+                requestAnimationFrame(animate);
+
+                const delta = Math.min(clock.getDelta(), 0.1);
+
+                if (state.isLoaded && state.isPlaying && !state.isGameOver && !state.isVictory) {
+                    state.time += delta;
+                    updatePlayer(delta);
+                    updateEnemy(delta);
+                    updateUI();
+                }
+
+                renderer.render(scene, camera);
+            }
+
+            animate();
+        }
+
+        // Handle window resize
+        window.addEventListener('resize', () => {
+            camera.aspect = window.innerWidth / window.innerHeight;
+            camera.updateProjectionMatrix();
+            renderer.setSize(window.innerWidth, window.innerHeight);
+        });
+
+        // Start the game
+        initGame();
+    </script>
+</body>
+</html>
