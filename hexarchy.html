@@ -1,0 +1,1881 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>HEXARCHY - 4X Strategy Game</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+body{background:#0a0e1a;color:#e2e8f0;font-family:'Segoe UI',system-ui,sans-serif;overflow:hidden;user-select:none}
+canvas{display:block}
+#gameCanvas{position:absolute;top:0;left:0}
+#uiLayer{position:absolute;top:0;left:0;width:100%;height:100%;pointer-events:none}
+#uiLayer>*{pointer-events:auto}
+
+/* Top Bar */
+#topBar{position:absolute;top:0;left:0;right:0;height:48px;background:linear-gradient(180deg,rgba(10,14,26,0.97),rgba(10,14,26,0.92));border-bottom:1px solid rgba(0,255,136,0.15);display:flex;align-items:center;padding:0 16px;gap:20px;z-index:100}
+.res-item{display:flex;align-items:center;gap:5px;font-size:13px;font-weight:600}
+.res-icon{width:20px;height:20px;border-radius:4px;display:flex;align-items:center;justify-content:center;font-size:12px}
+.res-val{color:#e2e8f0}
+.res-delta{font-size:10px;opacity:0.7}
+#civName{font-weight:700;font-size:15px;margin-right:auto}
+#turnInfo{font-size:13px;color:#94a3b8;margin-left:auto}
+#endTurnBtn{padding:6px 20px;background:linear-gradient(135deg,#00ff88,#00cc6e);color:#0a0e1a;border:none;font-weight:700;font-size:13px;cursor:pointer;border-radius:3px;transition:all .2s}
+#endTurnBtn:hover{box-shadow:0 0 20px rgba(0,255,136,0.4);transform:scale(1.05)}
+
+/* Selection Panel */
+#selPanel{position:absolute;bottom:16px;left:16px;width:320px;background:rgba(10,14,26,0.95);border:1px solid rgba(0,255,136,0.15);border-radius:6px;padding:14px;display:none;z-index:90;backdrop-filter:blur(10px)}
+#selPanel h3{font-size:14px;color:#00ff88;margin-bottom:8px;text-transform:uppercase;letter-spacing:1px}
+#selPanel .info-row{display:flex;justify-content:space-between;font-size:12px;padding:3px 0;border-bottom:1px solid rgba(255,255,255,0.05)}
+#selPanel .info-row span:first-child{color:#94a3b8}
+#selPanel .info-row span:last-child{color:#e2e8f0;font-weight:600}
+.action-bar{display:flex;gap:6px;margin-top:10px;flex-wrap:wrap}
+.action-btn{padding:5px 12px;background:rgba(0,255,136,0.1);border:1px solid rgba(0,255,136,0.3);color:#00ff88;font-size:11px;font-weight:600;cursor:pointer;border-radius:3px;transition:all .2s;text-transform:uppercase;letter-spacing:0.5px}
+.action-btn:hover{background:rgba(0,255,136,0.25);box-shadow:0 0 10px rgba(0,255,136,0.2)}
+.action-btn.disabled{opacity:0.3;pointer-events:none}
+.action-btn.attack{border-color:rgba(255,68,68,0.5);color:#ff4444;background:rgba(255,68,68,0.1)}
+.action-btn.attack:hover{background:rgba(255,68,68,0.25)}
+
+/* Minimap */
+#minimap{position:absolute;bottom:16px;right:16px;width:200px;height:200px;background:rgba(10,14,26,0.95);border:1px solid rgba(0,255,136,0.15);border-radius:6px;overflow:hidden;z-index:90}
+#minimapCanvas{width:100%;height:100%}
+
+/* Tech Panel */
+#techPanel{position:absolute;top:56px;right:16px;width:300px;max-height:calc(100vh - 300px);background:rgba(10,14,26,0.96);border:1px solid rgba(0,255,136,0.15);border-radius:6px;padding:14px;z-index:90;overflow-y:auto;display:none;backdrop-filter:blur(10px)}
+#techPanel h3{font-size:14px;color:#00ff88;margin-bottom:10px;text-transform:uppercase;letter-spacing:1px}
+#techPanel::-webkit-scrollbar{width:4px}
+#techPanel::-webkit-scrollbar-track{background:transparent}
+#techPanel::-webkit-scrollbar-thumb{background:rgba(0,255,136,0.3);border-radius:2px}
+.tech-item{padding:8px 10px;margin-bottom:4px;border:1px solid rgba(255,255,255,0.08);border-radius:4px;cursor:pointer;transition:all .2s;font-size:12px;display:flex;justify-content:space-between;align-items:center}
+.tech-item:hover{border-color:rgba(0,255,136,0.3);background:rgba(0,255,136,0.05)}
+.tech-item.researched{border-color:rgba(0,255,136,0.4);background:rgba(0,255,136,0.08);opacity:0.6}
+.tech-item.researching{border-color:#00d4ff;background:rgba(0,212,255,0.1);animation:pulse 2s infinite}
+.tech-item.locked{opacity:0.35;pointer-events:none}
+.tech-cost{color:#00d4ff;font-size:11px;font-weight:600}
+@keyframes pulse{0%,100%{box-shadow:none}50%{box-shadow:0 0 10px rgba(0,212,255,0.2)}}
+
+/* City Panel */
+#cityPanel{position:absolute;top:56px;left:16px;width:340px;background:rgba(10,14,26,0.96);border:1px solid rgba(0,255,136,0.15);border-radius:6px;padding:14px;z-index:90;display:none;backdrop-filter:blur(10px)}
+#cityPanel h3{font-size:16px;color:#00ff88;margin-bottom:4px}
+#cityPanel .city-subtitle{font-size:11px;color:#94a3b8;margin-bottom:12px}
+.city-yields{display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-bottom:12px}
+.city-yield{display:flex;align-items:center;gap:6px;font-size:12px;padding:4px 8px;background:rgba(255,255,255,0.03);border-radius:3px}
+.city-yield .cy-icon{font-size:14px}
+.city-yield .cy-val{font-weight:700;color:#e2e8f0}
+.city-yield .cy-label{color:#94a3b8;font-size:10px}
+.build-section h4{font-size:12px;color:#94a3b8;text-transform:uppercase;letter-spacing:1px;margin-bottom:8px}
+.build-queue{margin-bottom:10px;padding:6px 10px;background:rgba(0,212,255,0.08);border:1px solid rgba(0,212,255,0.2);border-radius:4px;font-size:12px;color:#00d4ff}
+.build-item{padding:6px 10px;margin-bottom:3px;border:1px solid rgba(255,255,255,0.06);border-radius:3px;cursor:pointer;transition:all .2s;font-size:12px;display:flex;justify-content:space-between}
+.build-item:hover{border-color:rgba(0,255,136,0.3);background:rgba(0,255,136,0.05)}
+.build-item .cost{color:#f59e0b;font-size:11px}
+
+/* Notification */
+#notification{position:absolute;top:60px;left:50%;transform:translateX(-50%);padding:10px 24px;background:rgba(10,14,26,0.95);border:1px solid rgba(0,255,136,0.3);border-radius:6px;font-size:13px;color:#00ff88;z-index:200;display:none;transition:opacity .3s;white-space:nowrap}
+
+/* Victory Screen */
+#victoryScreen{position:absolute;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,0.85);display:none;align-items:center;justify-content:center;z-index:500;flex-direction:column}
+#victoryScreen h1{font-size:48px;background:linear-gradient(135deg,#00ff88,#00d4ff);-webkit-background-clip:text;-webkit-text-fill-color:transparent;margin-bottom:16px}
+#victoryScreen p{font-size:18px;color:#94a3b8;margin-bottom:30px}
+#victoryScreen button{padding:12px 40px;background:linear-gradient(135deg,#00ff88,#00cc6e);color:#0a0e1a;border:none;font-size:16px;font-weight:700;cursor:pointer;border-radius:4px}
+
+/* Start Screen */
+#startScreen{position:absolute;top:0;left:0;right:0;bottom:0;background:linear-gradient(135deg,#050810,#0a0e1a,#0d1425);display:flex;align-items:center;justify-content:center;z-index:1000;flex-direction:column}
+#startScreen h1{font-size:clamp(42px,8vw,72px);font-weight:900;background:linear-gradient(135deg,#00ff88 0%,#00d4ff 50%,#a855f7 100%);-webkit-background-clip:text;-webkit-text-fill-color:transparent;margin-bottom:8px;letter-spacing:-2px}
+#startScreen .subtitle{font-size:14px;color:#64748b;letter-spacing:6px;text-transform:uppercase;margin-bottom:40px}
+.civ-select{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-bottom:30px;max-width:600px;width:90%}
+.civ-option{padding:16px;border:2px solid rgba(255,255,255,0.1);border-radius:8px;cursor:pointer;transition:all .3s;text-align:center;background:rgba(255,255,255,0.02)}
+.civ-option:hover{border-color:rgba(0,255,136,0.4);background:rgba(0,255,136,0.05);transform:translateY(-2px)}
+.civ-option.selected{border-color:#00ff88;background:rgba(0,255,136,0.1);box-shadow:0 0 25px rgba(0,255,136,0.15)}
+.civ-option .civ-emoji{font-size:28px;margin-bottom:6px}
+.civ-option .civ-name{font-size:13px;font-weight:700;color:#e2e8f0;margin-bottom:3px}
+.civ-option .civ-bonus{font-size:10px;color:#94a3b8}
+.map-sizes{display:flex;gap:10px;margin-bottom:24px}
+.map-size-btn{padding:8px 20px;border:1px solid rgba(255,255,255,0.15);background:transparent;color:#94a3b8;font-size:12px;cursor:pointer;border-radius:4px;transition:all .2s}
+.map-size-btn.selected{border-color:#00ff88;color:#00ff88;background:rgba(0,255,136,0.1)}
+.ai-count{display:flex;align-items:center;gap:12px;margin-bottom:30px;font-size:13px;color:#94a3b8}
+.ai-count select{padding:4px 10px;background:#1a1e2e;color:#e2e8f0;border:1px solid rgba(255,255,255,0.15);border-radius:4px;font-size:13px}
+#startBtn{padding:14px 50px;background:linear-gradient(135deg,#00ff88,#00cc6e);color:#0a0e1a;border:none;font-size:16px;font-weight:800;cursor:pointer;border-radius:6px;letter-spacing:1px;transition:all .3s}
+#startBtn:hover{box-shadow:0 0 35px rgba(0,255,136,0.4);transform:scale(1.05)}
+
+/* Toggle Buttons */
+.toggle-btn{position:absolute;top:56px;padding:6px 14px;background:rgba(10,14,26,0.9);border:1px solid rgba(0,255,136,0.2);color:#94a3b8;font-size:11px;font-weight:600;cursor:pointer;border-radius:3px;z-index:95;text-transform:uppercase;letter-spacing:0.5px;transition:all .2s}
+.toggle-btn:hover{border-color:#00ff88;color:#00ff88}
+.toggle-btn.active{border-color:#00ff88;color:#00ff88;background:rgba(0,255,136,0.1)}
+#techToggle{right:16px}
+#dipToggle{right:90px}
+
+/* Diplomacy Panel */
+#dipPanel{position:absolute;top:56px;right:16px;width:300px;background:rgba(10,14,26,0.96);border:1px solid rgba(0,255,136,0.15);border-radius:6px;padding:14px;z-index:90;display:none;backdrop-filter:blur(10px)}
+#dipPanel h3{font-size:14px;color:#00ff88;margin-bottom:10px;text-transform:uppercase;letter-spacing:1px}
+.dip-civ{padding:8px;margin-bottom:6px;border:1px solid rgba(255,255,255,0.06);border-radius:4px;display:flex;align-items:center;gap:10px}
+.dip-civ-icon{font-size:22px}
+.dip-civ-info{flex:1}
+.dip-civ-name{font-size:12px;font-weight:700}
+.dip-civ-status{font-size:10px}
+.dip-civ-status.peace{color:#00ff88}
+.dip-civ-status.war{color:#ff4444}
+.dip-civ-status.ally{color:#00d4ff}
+.dip-btn{padding:3px 10px;font-size:10px;border:1px solid rgba(255,255,255,0.2);background:transparent;color:#94a3b8;cursor:pointer;border-radius:3px;transition:all .2s}
+.dip-btn:hover{border-color:#00ff88;color:#00ff88}
+.dip-btn.war-btn{border-color:rgba(255,68,68,0.4);color:#ff6666}
+.dip-btn.war-btn:hover{background:rgba(255,68,68,0.15)}
+
+/* Score Panel */
+#scorePanel{position:absolute;top:56px;left:50%;transform:translateX(-50%);background:rgba(10,14,26,0.96);border:1px solid rgba(0,255,136,0.15);border-radius:6px;padding:14px;z-index:90;display:none;min-width:300px;backdrop-filter:blur(10px)}
+.score-row{display:flex;justify-content:space-between;padding:5px 0;font-size:12px;border-bottom:1px solid rgba(255,255,255,0.04)}
+.score-name{display:flex;align-items:center;gap:6px}
+
+/* Tooltip */
+#tooltip{position:absolute;padding:8px 12px;background:rgba(10,14,26,0.97);border:1px solid rgba(0,255,136,0.2);border-radius:4px;font-size:11px;color:#e2e8f0;z-index:300;pointer-events:none;display:none;max-width:220px;line-height:1.5}
+</style>
+</head>
+<body>
+<canvas id="gameCanvas"></canvas>
+<div id="uiLayer">
+  <div id="topBar">
+    <div id="civName"></div>
+    <div class="res-item"><div class="res-icon" style="background:#2d5a1e">🌾</div><span class="res-val" id="resFood">0</span><span class="res-delta" id="resFoodD"></span></div>
+    <div class="res-item"><div class="res-icon" style="background:#5a3a1e">⚒️</div><span class="res-val" id="resProd">0</span><span class="res-delta" id="resProdD"></span></div>
+    <div class="res-item"><div class="res-icon" style="background:#5a5a1e">💰</div><span class="res-val" id="resGold">0</span><span class="res-delta" id="resGoldD"></span></div>
+    <div class="res-item"><div class="res-icon" style="background:#1e3a5a">🔬</div><span class="res-val" id="resScience">0</span><span class="res-delta" id="resScienceD"></span></div>
+    <div class="res-item"><div class="res-icon" style="background:#4a1e5a">🎭</div><span class="res-val" id="resCulture">0</span><span class="res-delta" id="resCultureD"></span></div>
+    <div id="turnInfo">Turn 1 / 60</div>
+    <button id="endTurnBtn" onclick="game.endTurn()">END TURN</button>
+  </div>
+  <button class="toggle-btn" id="techToggle" onclick="toggleTech()">Tech Tree</button>
+  <button class="toggle-btn" id="dipToggle" onclick="toggleDip()">Diplomacy</button>
+  <div id="selPanel"></div>
+  <div id="techPanel"></div>
+  <div id="cityPanel"></div>
+  <div id="dipPanel"></div>
+  <div id="minimap"><canvas id="minimapCanvas"></canvas></div>
+  <div id="notification"></div>
+  <div id="tooltip"></div>
+  <div id="victoryScreen"><h1></h1><p></p><button onclick="location.reload()">Play Again</button></div>
+</div>
+<div id="startScreen">
+  <h1>HEXARCHY</h1>
+  <div class="subtitle">4X Strategy</div>
+  <div class="civ-select" id="civSelect"></div>
+  <div class="map-sizes" id="mapSizes"></div>
+  <div class="ai-count">
+    <span>AI Opponents:</span>
+    <select id="aiCount"><option value="1">1</option><option value="2" selected>2</option><option value="3">3</option><option value="4">4</option><option value="5">5</option></select>
+  </div>
+  <button id="startBtn" onclick="startGame()">CONQUER THE WORLD</button>
+</div>
+
+<script>
+// ============================================================
+// CONSTANTS & CONFIGURATION
+// ============================================================
+const HEX_SIZE = 36;
+const SQRT3 = Math.sqrt(3);
+const MAX_TURNS = 60;
+
+const TERRAIN = {
+  OCEAN:0,COAST:1,GRASSLAND:2,PLAINS:3,FOREST:4,HILLS:5,MOUNTAIN:6,DESERT:7,TUNDRA:8,SWAMP:9
+};
+const TERRAIN_DATA = {
+  [TERRAIN.OCEAN]:{name:'Ocean',color:'#1a3a5c',food:1,prod:0,gold:0,move:1,passable:false,naval:true},
+  [TERRAIN.COAST]:{name:'Coast',color:'#2a6090',food:2,prod:0,gold:1,move:1,passable:false,naval:true},
+  [TERRAIN.GRASSLAND]:{name:'Grassland',color:'#4a8c3f',food:3,prod:1,gold:0,move:1,passable:true,naval:false},
+  [TERRAIN.PLAINS]:{name:'Plains',color:'#8a9a3f',food:2,prod:1,gold:1,move:1,passable:true,naval:false},
+  [TERRAIN.FOREST]:{name:'Forest',color:'#2a6630',food:2,prod:2,gold:0,move:2,passable:true,naval:false},
+  [TERRAIN.HILLS]:{name:'Hills',color:'#7a6a4a',food:1,prod:3,gold:0,move:2,passable:true,naval:false},
+  [TERRAIN.MOUNTAIN]:{name:'Mountain',color:'#6a6a7a',food:0,prod:1,gold:1,move:99,passable:false,naval:false},
+  [TERRAIN.DESERT]:{name:'Desert',color:'#c4a44a',food:0,prod:1,gold:2,move:1,passable:true,naval:false},
+  [TERRAIN.TUNDRA]:{name:'Tundra',color:'#8a9aaa',food:1,prod:1,gold:0,move:1,passable:true,naval:false},
+  [TERRAIN.SWAMP]:{name:'Swamp',color:'#3a5a3a',food:1,prod:0,gold:0,move:2,passable:true,naval:false}
+};
+
+const RESOURCE_TYPES = [
+  {name:'Iron',emoji:'⛏️',terrain:[TERRAIN.HILLS,TERRAIN.MOUNTAIN],prod:2},
+  {name:'Horses',emoji:'🐴',terrain:[TERRAIN.GRASSLAND,TERRAIN.PLAINS],move:1},
+  {name:'Gems',emoji:'💎',terrain:[TERRAIN.HILLS,TERRAIN.DESERT],gold:3},
+  {name:'Fish',emoji:'🐟',terrain:[TERRAIN.COAST,TERRAIN.OCEAN],food:2},
+  {name:'Wheat',emoji:'🌾',terrain:[TERRAIN.GRASSLAND,TERRAIN.PLAINS],food:2},
+  {name:'Stone',emoji:'🪨',terrain:[TERRAIN.HILLS,TERRAIN.FOREST],prod:2},
+  {name:'Spices',emoji:'🌶️',terrain:[TERRAIN.FOREST,TERRAIN.SWAMP],gold:2,culture:1},
+  {name:'Furs',emoji:'🦊',terrain:[TERRAIN.TUNDRA,TERRAIN.FOREST],gold:2}
+];
+
+const CIVS = [
+  {id:0,name:'Imperius',emoji:'🏛️',color:'#e04040',bonus:'Military: +1 attack to all units',techStart:'organization',unitBonus:{atk:1}},
+  {id:1,name:'Bardur',emoji:'🪓',color:'#6a9a4a',bonus:'Nature: +1 production from forests',techStart:'hunting',terrainBonus:{[TERRAIN.FOREST]:{prod:1}}},
+  {id:2,name:'Xin-Xi',emoji:'🏔️',color:'#d4a030',bonus:'Mountain: Units can traverse mountains',techStart:'climbing',canClimb:true},
+  {id:3,name:'Oumaji',emoji:'🐎',color:'#c06020',bonus:'Cavalry: Riders start with +1 movement',techStart:'riding',moveBonus:{rider:1}},
+  {id:4,name:'Aquarion',emoji:'🌊',color:'#3080c0',bonus:'Naval: Ships have +1 movement and attack',techStart:'fishing',navalBonus:{atk:1,move:1}},
+  {id:5,name:'Luxidoor',emoji:'👑',color:'#a040c0',bonus:'Economy: Start with 20 bonus gold',techStart:'organization',startGold:20}
+];
+
+const TECHS = [
+  {id:'hunting',name:'Hunting',cost:6,tier:1,prereq:[],unlocks:'Explorer unit, Forests +1 food'},
+  {id:'farming',name:'Farming',cost:6,tier:1,prereq:[],unlocks:'Farm building, +1 food base'},
+  {id:'mining',name:'Mining',cost:6,tier:1,prereq:[],unlocks:'Mine building, Hills +1 prod'},
+  {id:'fishing',name:'Fishing',cost:6,tier:1,prereq:[],unlocks:'Harbor building, coast access'},
+  {id:'riding',name:'Riding',cost:6,tier:1,prereq:[],unlocks:'Rider unit'},
+  {id:'climbing',name:'Climbing',cost:6,tier:1,prereq:[],unlocks:'Mountain traversal'},
+  {id:'organization',name:'Organization',cost:6,tier:1,prereq:[],unlocks:'Wall building, +1 city HP'},
+  {id:'forestry',name:'Forestry',cost:12,tier:2,prereq:['hunting'],unlocks:'Lumber Mill, Forest +1 prod'},
+  {id:'archery',name:'Archery',cost:12,tier:2,prereq:['hunting'],unlocks:'Archer unit'},
+  {id:'shields',name:'Shields',cost:12,tier:2,prereq:['organization'],unlocks:'Defender unit, +1 def'},
+  {id:'roads',name:'Roads',cost:12,tier:2,prereq:['riding'],unlocks:'Roads, +1 movement on roads'},
+  {id:'trade',name:'Trade',cost:12,tier:2,prereq:['organization'],unlocks:'Market building, +3 gold'},
+  {id:'navigation',name:'Navigation',cost:12,tier:2,prereq:['fishing'],unlocks:'Ship unit, ocean travel'},
+  {id:'mathematics',name:'Mathematics',cost:12,tier:2,prereq:['mining'],unlocks:'Catapult unit'},
+  {id:'construction',name:'Construction',cost:20,tier:3,prereq:['forestry','mining'],unlocks:'Workshop, +2 production'},
+  {id:'smithing',name:'Smithing',cost:20,tier:3,prereq:['mining','shields'],unlocks:'Swordsman unit'},
+  {id:'philosophy',name:'Philosophy',cost:20,tier:3,prereq:['archery','trade'],unlocks:'Temple, Library buildings'},
+  {id:'sailing',name:'Sailing',cost:20,tier:3,prereq:['navigation'],unlocks:'Battleship unit'},
+  {id:'engineering',name:'Engineering',cost:20,tier:3,prereq:['mathematics','roads'],unlocks:'Fortress building'},
+  {id:'currency',name:'Currency',cost:20,tier:3,prereq:['trade'],unlocks:'Bank building, +5 gold'},
+  {id:'metallurgy',name:'Metallurgy',cost:30,tier:4,prereq:['smithing','construction'],unlocks:'Knight unit'},
+  {id:'chivalry',name:'Chivalry',cost:30,tier:4,prereq:['smithing','riding'],unlocks:'+2 atk to mounted'},
+  {id:'theology',name:'Theology',cost:30,tier:4,prereq:['philosophy'],unlocks:'Cathedral (+5 culture)'},
+  {id:'education',name:'Education',cost:30,tier:4,prereq:['philosophy','mathematics'],unlocks:'University (+4 science)'},
+  {id:'astronomy',name:'Astronomy',cost:45,tier:5,prereq:['sailing','education'],unlocks:'Navigation mastery'},
+  {id:'economics',name:'Economics',cost:45,tier:5,prereq:['currency','education'],unlocks:'Stock Exchange'},
+  {id:'architecture',name:'Architecture',cost:45,tier:5,prereq:['engineering','theology'],unlocks:'Monument (+8 culture)'},
+  {id:'gunpowder',name:'Gunpowder',cost:45,tier:5,prereq:['metallurgy','mathematics'],unlocks:'Cannon unit'}
+];
+
+const UNIT_TYPES = {
+  warrior:{name:'Warrior',emoji:'⚔️',atk:2,def:2,hp:10,maxHp:10,move:2,range:1,cost:4,tech:null,tags:['melee']},
+  archer:{name:'Archer',emoji:'🏹',atk:2,def:1,hp:8,maxHp:8,move:2,range:2,cost:5,tech:'archery',tags:['ranged']},
+  rider:{name:'Rider',emoji:'🐎',atk:3,def:1,hp:10,maxHp:10,move:3,range:1,cost:6,tech:'riding',tags:['melee','mounted']},
+  defender:{name:'Defender',emoji:'🛡️',atk:1,def:4,hp:12,maxHp:12,move:2,range:1,cost:5,tech:'shields',tags:['melee']},
+  swordsman:{name:'Swordsman',emoji:'🗡️',atk:4,def:3,hp:12,maxHp:12,move:2,range:1,cost:8,tech:'smithing',tags:['melee']},
+  catapult:{name:'Catapult',emoji:'💥',atk:5,def:0,hp:6,maxHp:6,move:1,range:3,cost:8,tech:'mathematics',tags:['ranged','siege']},
+  knight:{name:'Knight',emoji:'🐴',atk:5,def:2,hp:14,maxHp:14,move:3,range:1,cost:12,tech:'metallurgy',tags:['melee','mounted']},
+  ship:{name:'Ship',emoji:'⛵',atk:2,def:2,hp:12,maxHp:12,move:3,range:2,cost:8,tech:'navigation',tags:['naval']},
+  battleship:{name:'Battleship',emoji:'🚢',atk:5,def:3,hp:16,maxHp:16,move:4,range:3,cost:14,tech:'sailing',tags:['naval']},
+  cannon:{name:'Cannon',emoji:'💣',atk:7,def:1,hp:8,maxHp:8,move:1,range:3,cost:14,tech:'gunpowder',tags:['ranged','siege']},
+  settler:{name:'Settler',emoji:'🏕️',atk:0,def:0,hp:5,maxHp:5,move:2,range:0,cost:10,tech:null,tags:['civilian']},
+  explorer:{name:'Explorer',emoji:'🧭',atk:1,def:1,hp:6,maxHp:6,move:4,range:1,cost:3,tech:'hunting',tags:['melee','scout']}
+};
+
+const BUILDINGS = {
+  farm:{name:'Farm',emoji:'🌾',cost:8,tech:'farming',yields:{food:2}},
+  mine:{name:'Mine',emoji:'⛏️',cost:8,tech:'mining',yields:{prod:2}},
+  lumberMill:{name:'Lumber Mill',emoji:'🪓',cost:10,tech:'forestry',yields:{prod:2}},
+  market:{name:'Market',emoji:'🏪',cost:10,tech:'trade',yields:{gold:3}},
+  harbor:{name:'Harbor',emoji:'⚓',cost:10,tech:'fishing',yields:{food:2,gold:1}},
+  walls:{name:'Walls',emoji:'🏰',cost:12,tech:'organization',yields:{},defense:4},
+  library:{name:'Library',emoji:'📚',cost:12,tech:'philosophy',yields:{science:3}},
+  temple:{name:'Temple',emoji:'⛩️',cost:12,tech:'philosophy',yields:{culture:2}},
+  workshop:{name:'Workshop',emoji:'🔨',cost:14,tech:'construction',yields:{prod:3}},
+  barracks:{name:'Barracks',emoji:'🎖️',cost:10,tech:'shields',yields:{},unitBonus:true},
+  bank:{name:'Bank',emoji:'🏦',cost:18,tech:'currency',yields:{gold:5}},
+  university:{name:'University',emoji:'🎓',cost:20,tech:'education',yields:{science:4}},
+  fortress:{name:'Fortress',emoji:'🏰',cost:20,tech:'engineering',yields:{},defense:8},
+  cathedral:{name:'Cathedral',emoji:'⛪',cost:24,tech:'theology',yields:{culture:5}},
+  monument:{name:'Monument',emoji:'🗿',cost:30,tech:'architecture',yields:{culture:8}},
+  stockExchange:{name:'Stock Exchange',emoji:'📈',cost:28,tech:'economics',yields:{gold:8}}
+};
+
+// ============================================================
+// UTILITY FUNCTIONS
+// ============================================================
+function hexToPixel(q,r){
+  return {x:HEX_SIZE*(SQRT3*q+SQRT3/2*r),y:HEX_SIZE*(1.5*r)};
+}
+function pixelToHex(px,py){
+  const q=(SQRT3/3*px-1/3*py)/HEX_SIZE;
+  const r=(2/3*py)/HEX_SIZE;
+  return hexRound(q,r);
+}
+function hexRound(q,r){
+  const s=-q-r;
+  let rq=Math.round(q),rr=Math.round(r),rs=Math.round(s);
+  const dq=Math.abs(rq-q),dr=Math.abs(rr-r),ds=Math.abs(rs-s);
+  if(dq>dr&&dq>ds)rq=-rr-rs;else if(dr>ds)rr=-rq-rs;
+  return {q:rq,r:rr};
+}
+function hexDist(a,b){return(Math.abs(a.q-b.q)+Math.abs(a.q+a.r-b.q-b.r)+Math.abs(a.r-b.r))/2}
+function hexKey(q,r){return q+','+r}
+function hexNeighbors(q,r){
+  return [{q:q+1,r:r},{q:q-1,r:r},{q:q,r:r+1},{q:q,r:r-1},{q:q+1,r:r-1},{q:q-1,r:r+1}];
+}
+function hexesInRange(q,r,range){
+  const results=[];
+  for(let dq=-range;dq<=range;dq++){
+    for(let dr=Math.max(-range,-dq-range);dr<=Math.min(range,-dq+range);dr++){
+      results.push({q:q+dq,r:r+dr});
+    }
+  }
+  return results;
+}
+
+// Simple noise
+function createNoise(seed){
+  const p=new Array(512);
+  const perm=new Array(256);
+  for(let i=0;i<256;i++)perm[i]=i;
+  let s=seed;
+  for(let i=255;i>0;i--){
+    s=(s*16807+0)%2147483647;
+    const j=s%i;
+    [perm[i],perm[j]]=[perm[j],perm[i]];
+  }
+  for(let i=0;i<512;i++)p[i]=perm[i&255];
+  function fade(t){return t*t*t*(t*(t*6-15)+10)}
+  function lerp(a,b,t){return a+t*(b-a)}
+  function grad(hash,x,y){const h=hash&3;return((h&1)?-x:x)+((h&2)?-y:y)}
+  return function(x,y){
+    const X=Math.floor(x)&255,Y=Math.floor(y)&255;
+    x-=Math.floor(x);y-=Math.floor(y);
+    const u=fade(x),v=fade(y);
+    const a=p[X]+Y,b=p[X+1]+Y;
+    return lerp(lerp(grad(p[a],x,y),grad(p[b],x-1,y),u),lerp(grad(p[a+1],x,y-1),grad(p[b+1],x-1,y-1),u),v);
+  };
+}
+
+function notify(msg){
+  const el=document.getElementById('notification');
+  el.textContent=msg;el.style.display='block';el.style.opacity='1';
+  clearTimeout(el._t);
+  el._t=setTimeout(()=>{el.style.opacity='0';setTimeout(()=>el.style.display='none',300)},2500);
+}
+
+// ============================================================
+// MAP GENERATION
+// ============================================================
+function generateMap(radius,seed){
+  const noise=createNoise(seed);
+  const noise2=createNoise(seed+100);
+  const tiles={};
+  for(let q=-radius;q<=radius;q++){
+    for(let r=Math.max(-radius,-q-radius);r<=Math.min(radius,-q+radius);r++){
+      const nx=q/radius,ny=r/radius;
+      const dist=hexDist({q,r},{q:0,r:0})/radius;
+      let e=noise(q*0.12,r*0.12)*0.5+noise(q*0.06,r*0.06)*0.3+noise2(q*0.2,r*0.2)*0.2;
+      e=e*1.1-dist*0.55;
+      let m=noise2(q*0.1+50,r*0.1+50)*0.5+0.5;
+      let terrain;
+      if(e<-0.15)terrain=TERRAIN.OCEAN;
+      else if(e<-0.05)terrain=TERRAIN.COAST;
+      else if(e<0.15){
+        if(m<0.25)terrain=TERRAIN.DESERT;
+        else if(m<0.5)terrain=TERRAIN.PLAINS;
+        else if(m>0.8)terrain=TERRAIN.SWAMP;
+        else terrain=TERRAIN.GRASSLAND;
+      }else if(e<0.3){
+        if(m<0.2)terrain=TERRAIN.TUNDRA;
+        else if(m>0.6)terrain=TERRAIN.FOREST;
+        else terrain=TERRAIN.HILLS;
+      }else if(e<0.45){
+        terrain=m>0.5?TERRAIN.FOREST:TERRAIN.HILLS;
+      }else{
+        terrain=TERRAIN.MOUNTAIN;
+      }
+      let resource=null;
+      const rn=noise(q*0.8+200,r*0.8+200);
+      if(rn>0.35){
+        const candidates=RESOURCE_TYPES.filter(rt=>rt.terrain.includes(terrain));
+        if(candidates.length>0){
+          const idx=Math.abs(Math.floor((rn*1000)))%candidates.length;
+          resource=candidates[idx];
+        }
+      }
+      tiles[hexKey(q,r)]={q,r,terrain,resource,improvement:null,road:false,owner:-1,visible:{},explored:{}};
+    }
+  }
+  return tiles;
+}
+
+function findStartPositions(tiles,mapRadius,count){
+  const land=Object.values(tiles).filter(t=>{
+    const td=TERRAIN_DATA[t.terrain];
+    return td.passable&&t.terrain!==TERRAIN.DESERT&&t.terrain!==TERRAIN.TUNDRA;
+  });
+  const positions=[];
+  const minDist=Math.max(5,Math.floor(mapRadius*0.7));
+  let attempts=0;
+  while(positions.length<count&&attempts<2000){
+    attempts++;
+    const candidate=land[Math.floor(Math.random()*land.length)];
+    let valid=true;
+    for(const p of positions){
+      if(hexDist(candidate,p)<minDist){valid=false;break}
+    }
+    if(valid)positions.push({q:candidate.q,r:candidate.r});
+  }
+  while(positions.length<count){
+    const t=land[Math.floor(Math.random()*land.length)];
+    positions.push({q:t.q,r:t.r});
+  }
+  return positions;
+}
+
+// ============================================================
+// GAME CLASS
+// ============================================================
+class Game {
+  constructor(config){
+    this.mapRadius=config.mapRadius;
+    this.seed=config.seed||Math.floor(Math.random()*999999);
+    this.tiles=generateMap(this.mapRadius,this.seed);
+    this.civs=[];
+    this.units=[];
+    this.cities=[];
+    this.turn=1;
+    this.currentCiv=0;
+    this.selectedUnit=null;
+    this.selectedCity=null;
+    this.movableHexes=[];
+    this.attackableHexes=[];
+    this.gameOver=false;
+
+    // Camera
+    this.camX=0;this.camY=0;this.zoom=1;
+    this.dragStart=null;this.isDragging=false;
+
+    // Setup civs
+    const playerCivDef=CIVS[config.playerCiv];
+    const startPositions=findStartPositions(this.tiles,this.mapRadius,config.aiCount+1);
+    const usedCivIds=new Set([config.playerCiv]);
+    const aiCivDefs=[];
+    for(let i=0;i<config.aiCount;i++){
+      let cid;
+      do{cid=Math.floor(Math.random()*CIVS.length)}while(usedCivIds.has(cid));
+      usedCivIds.add(cid);
+      aiCivDefs.push(CIVS[cid]);
+    }
+
+    // Player civ
+    this.civs.push(this.createCiv(playerCivDef,startPositions[0],true));
+    for(let i=0;i<config.aiCount;i++){
+      this.civs.push(this.createCiv(aiCivDefs[i],startPositions[i+1],false));
+    }
+
+    // Center camera on player start
+    const sp=hexToPixel(startPositions[0].q,startPositions[0].r);
+    this.camX=-sp.x;this.camY=-sp.y;
+
+    // Initial visibility
+    this.updateVisibility(0);
+
+    this.canvas=document.getElementById('gameCanvas');
+    this.ctx=this.canvas.getContext('2d');
+    this.minimapCanvas=document.getElementById('minimapCanvas');
+    this.minimapCtx=this.minimapCanvas.getContext('2d');
+
+    this.resize();
+    window.addEventListener('resize',()=>this.resize());
+    this.setupInputs();
+    this.updateUI();
+    this.render();
+    this.renderMinimap();
+  }
+
+  createCiv(civDef,startPos,isPlayer){
+    const civ={
+      id:this.civs.length,
+      def:civDef,
+      isPlayer,
+      gold:isPlayer?10:10,
+      science:0,
+      culture:0,
+      food:0,
+      prod:0,
+      techs:new Set([civDef.techStart]),
+      researching:null,
+      researchProgress:0,
+      relations:{},
+      alive:true,
+      score:0
+    };
+    if(civDef.startGold)civ.gold+=civDef.startGold;
+
+    // Create starting city
+    const city=this.createCity(civ.id,startPos.q,startPos.r,civDef.name+' Capital');
+
+    // Create starting warrior
+    this.spawnUnit(civ.id,'warrior',startPos.q,startPos.r);
+
+    // Set initial relations
+    for(let i=0;i<this.civs.length;i++){
+      if(i!==civ.id){
+        civ.relations[i]='peace';
+        if(this.civs[i])this.civs[i].relations[civ.id]='peace';
+      }
+    }
+    return civ;
+  }
+
+  createCity(civId,q,r,name){
+    const city={
+      id:this.cities.length,
+      civId,
+      q,r,
+      name:name||('City '+this.cities.length),
+      pop:1,
+      maxPop:3,
+      hp:20,maxHp:20,
+      buildings:[],
+      producing:null,
+      prodProgress:0,
+      food:0,
+      isCapital:this.cities.filter(c=>c.civId===civId).length===0,
+      territory:[]
+    };
+    // Claim territory
+    const claimed=hexesInRange(q,r,2);
+    for(const h of claimed){
+      const key=hexKey(h.q,h.r);
+      if(this.tiles[key]){
+        this.tiles[key].owner=civId;
+        city.territory.push(key);
+      }
+    }
+    this.cities.push(city);
+    return city;
+  }
+
+  spawnUnit(civId,type,q,r){
+    const def={...UNIT_TYPES[type]};
+    const civ=this.civs[civId];
+    // Apply civ bonuses
+    if(civ.def.unitBonus)def.atk+=civ.def.unitBonus.atk||0;
+    if(civ.def.moveBonus&&civ.def.moveBonus[type])def.move+=civ.def.moveBonus[type];
+    if(civ.def.navalBonus&&def.tags.includes('naval')){
+      def.atk+=civ.def.navalBonus.atk||0;
+      def.move+=civ.def.navalBonus.move||0;
+    }
+    if(civ.techs.has('chivalry')&&def.tags.includes('mounted'))def.atk+=2;
+    const unit={
+      id:this.units.length,
+      civId,
+      type,
+      ...def,
+      q,r,
+      movesLeft:def.move,
+      hasAttacked:false,
+      hasActed:false
+    };
+    this.units.push(unit);
+    return unit;
+  }
+
+  // ==================== VISIBILITY ====================
+  updateVisibility(civId){
+    const civ=this.civs[civId];
+    // Clear current visible
+    for(const key in this.tiles){
+      if(this.tiles[key].visible[civId])this.tiles[key].visible[civId]=false;
+    }
+    // Units provide vision
+    const myUnits=this.units.filter(u=>u.civId===civId&&u.hp>0);
+    for(const u of myUnits){
+      const range=u.tags&&u.tags.includes('scout')?5:3;
+      const visible=hexesInRange(u.q,u.r,range);
+      for(const h of visible){
+        const key=hexKey(h.q,h.r);
+        if(this.tiles[key]){
+          this.tiles[key].visible[civId]=true;
+          this.tiles[key].explored[civId]=true;
+        }
+      }
+    }
+    // Cities provide vision
+    const myCities=this.cities.filter(c=>c.civId===civId&&c.hp>0);
+    for(const c of myCities){
+      const visible=hexesInRange(c.q,c.r,3);
+      for(const h of visible){
+        const key=hexKey(h.q,h.r);
+        if(this.tiles[key]){
+          this.tiles[key].visible[civId]=true;
+          this.tiles[key].explored[civId]=true;
+        }
+      }
+    }
+  }
+
+  // ==================== MOVEMENT & COMBAT ====================
+  getMovableHexes(unit){
+    if(unit.movesLeft<=0)return[];
+    const results=[];
+    const visited={};
+    const queue=[{q:unit.q,r:unit.r,moves:unit.movesLeft}];
+    visited[hexKey(unit.q,unit.r)]=true;
+    const isNaval=unit.tags.includes('naval');
+    const canClimb=this.civs[unit.civId].def.canClimb;
+    while(queue.length>0){
+      const cur=queue.shift();
+      const neighbors=hexNeighbors(cur.q,cur.r);
+      for(const n of neighbors){
+        const key=hexKey(n.q,n.r);
+        if(visited[key]||!this.tiles[key])continue;
+        const tile=this.tiles[key];
+        const td=TERRAIN_DATA[tile.terrain];
+        // Check passability
+        if(isNaval){
+          if(!td.naval)continue;
+        }else{
+          if(!td.passable){
+            if(tile.terrain===TERRAIN.MOUNTAIN&&canClimb){}
+            else continue;
+          }
+        }
+        const moveCost=tile.terrain===TERRAIN.MOUNTAIN?2:td.move;
+        if(cur.moves>=moveCost){
+          // Check if occupied by enemy unit
+          const occupant=this.units.find(u=>u.q===n.q&&u.r===n.r&&u.hp>0);
+          if(occupant&&occupant.civId!==unit.civId)continue; // blocked by enemy (attack separately)
+          if(occupant&&occupant.civId===unit.civId)continue; // can't stack
+          visited[key]=true;
+          results.push({q:n.q,r:n.r});
+          if(cur.moves-moveCost>0)queue.push({q:n.q,r:n.r,moves:cur.moves-moveCost});
+        }
+      }
+    }
+    return results;
+  }
+
+  getAttackableHexes(unit){
+    if(unit.hasAttacked||unit.movesLeft<=0)return[];
+    const results=[];
+    const inRange=hexesInRange(unit.q,unit.r,unit.range);
+    for(const h of inRange){
+      if(h.q===unit.q&&h.r===unit.r)continue;
+      // Enemy unit?
+      const enemy=this.units.find(u=>u.q===h.q&&u.r===h.r&&u.hp>0&&u.civId!==unit.civId);
+      if(enemy){
+        const rel=this.civs[unit.civId].relations[enemy.civId];
+        if(rel==='war')results.push({q:h.q,r:h.r,target:enemy,type:'unit'});
+      }
+      // Enemy city?
+      const ecity=this.cities.find(c=>c.q===h.q&&c.r===h.r&&c.hp>0&&c.civId!==unit.civId);
+      if(ecity){
+        const rel=this.civs[unit.civId].relations[ecity.civId];
+        if(rel==='war')results.push({q:h.q,r:h.r,target:ecity,type:'city'});
+      }
+    }
+    return results;
+  }
+
+  moveUnit(unit,tq,tr){
+    const key=hexKey(tq,tr);
+    const tile=this.tiles[key];
+    if(!tile)return;
+    const td=TERRAIN_DATA[tile.terrain];
+    const moveCost=tile.terrain===TERRAIN.MOUNTAIN?2:td.move;
+    unit.q=tq;unit.r=tr;
+    unit.movesLeft=Math.max(0,unit.movesLeft-moveCost);
+    this.updateVisibility(unit.civId);
+    if(unit.civId===0){
+      this.selectUnit(unit);
+      this.renderMinimap();
+    }
+  }
+
+  attackTarget(unit,target,type){
+    if(type==='unit'){
+      const atkPower=unit.atk+(unit.tags.includes('siege')?2:0);
+      const defPower=target.def;
+      const dmg=Math.max(1,atkPower-Math.floor(defPower/2)+Math.floor(Math.random()*3));
+      const counterDmg=unit.range>1?0:Math.max(1,target.atk-Math.floor(unit.def/2));
+      target.hp-=dmg;
+      if(unit.range<=1)unit.hp-=counterDmg;
+      if(unit.civId===0)notify(`Dealt ${dmg} damage! ${counterDmg>0?'Took '+counterDmg+' back.':''}`);
+      if(target.hp<=0){
+        if(unit.civId===0)notify(`${target.name} destroyed!`);
+        // Move to position if melee
+        if(unit.range<=1){
+          unit.q=target.q;unit.r=target.r;
+        }
+        this.checkCivElimination(target.civId);
+      }
+      if(unit.hp<=0){
+        if(unit.civId===0)notify(`Your ${unit.name} was destroyed!`);
+      }
+    }else if(type==='city'){
+      const atkPower=unit.atk+(unit.tags.includes('siege')?4:0);
+      const cityDef=target.buildings.reduce((s,b)=>s+(BUILDINGS[b]?.defense||0),0);
+      const dmg=Math.max(1,atkPower-Math.floor(cityDef/3)+Math.floor(Math.random()*2));
+      target.hp-=dmg;
+      if(unit.civId===0)notify(`Dealt ${dmg} damage to ${target.name}!`);
+      if(target.hp<=0){
+        // Capture city
+        const oldOwner=target.civId;
+        target.civId=unit.civId;
+        target.hp=Math.floor(target.maxHp/2);
+        for(const key of target.territory){
+          if(this.tiles[key])this.tiles[key].owner=unit.civId;
+        }
+        if(unit.range<=1){unit.q=target.q;unit.r=target.r;}
+        notify(`${target.name} captured!`);
+        this.checkCivElimination(oldOwner);
+      }
+    }
+    unit.hasAttacked=true;
+    unit.movesLeft=0;
+    unit.hasActed=true;
+    this.updateVisibility(unit.civId);
+  }
+
+  checkCivElimination(civId){
+    const hasCities=this.cities.some(c=>c.civId===civId&&c.hp>0);
+    if(!hasCities){
+      this.civs[civId].alive=false;
+      notify(`${this.civs[civId].def.name} has been eliminated!`);
+      this.checkVictory();
+    }
+  }
+
+  // ==================== CITY PRODUCTION ====================
+  getCityYields(city){
+    const civ=this.civs[city.civId];
+    let food=2,prod=1,gold=1,science=1,culture=0;
+    // Territory tiles
+    for(const key of city.territory){
+      const tile=this.tiles[key];
+      if(!tile)continue;
+      const td=TERRAIN_DATA[tile.terrain];
+      if(td.passable||tile.terrain===TERRAIN.COAST){
+        food+=td.food;prod+=td.prod;gold+=td.gold;
+        if(tile.resource){
+          food+=tile.resource.food||0;
+          prod+=tile.resource.prod||0;
+          gold+=tile.resource.gold||0;
+          culture+=tile.resource.culture||0;
+        }
+      }
+      // Civ terrain bonus
+      if(civ.def.terrainBonus&&civ.def.terrainBonus[tile.terrain]){
+        const b=civ.def.terrainBonus[tile.terrain];
+        prod+=b.prod||0;food+=b.food||0;gold+=b.gold||0;
+      }
+    }
+    // Buildings
+    for(const bid of city.buildings){
+      const b=BUILDINGS[bid];
+      if(b&&b.yields){
+        food+=b.yields.food||0;prod+=b.yields.prod||0;
+        gold+=b.yields.gold||0;science+=b.yields.science||0;
+        culture+=b.yields.culture||0;
+      }
+    }
+    // Pop bonus
+    food+=city.pop;prod+=Math.floor(city.pop/2);
+    science+=Math.floor(city.pop*0.5);
+    return{food,prod,gold,science,culture};
+  }
+
+  processCity(city){
+    const yields=this.getCityYields(city);
+    const civ=this.civs[city.civId];
+    civ.gold+=yields.gold;
+    civ.science+=yields.science;
+    civ.culture+=yields.culture;
+
+    // Food -> growth
+    city.food+=yields.food-city.pop*2;
+    if(city.food>=city.pop*5+10){
+      city.pop++;
+      city.food=0;
+      city.maxPop=Math.max(city.maxPop,city.pop);
+      // Expand territory on growth
+      if(city.pop%2===0){
+        const border=hexesInRange(city.q,city.r,2+Math.floor(city.pop/3));
+        for(const h of border){
+          const key=hexKey(h.q,h.r);
+          if(this.tiles[key]&&this.tiles[key].owner===-1){
+            this.tiles[key].owner=city.civId;
+            city.territory.push(key);
+          }
+        }
+      }
+    }
+    if(city.food<0)city.food=0;
+
+    // Production
+    if(city.producing){
+      city.prodProgress+=yields.prod;
+      if(city.producing.type==='unit'){
+        const udef=UNIT_TYPES[city.producing.id];
+        if(city.prodProgress>=udef.cost){
+          // Find open hex near city
+          let sq=city.q,sr=city.r;
+          const occupant=this.units.find(u=>u.q===sq&&u.r===sr&&u.hp>0);
+          if(occupant){
+            const ns=hexNeighbors(sq,sr);
+            for(const n of ns){
+              const t=this.tiles[hexKey(n.q,n.r)];
+              if(t&&TERRAIN_DATA[t.terrain].passable&&!this.units.find(u=>u.q===n.q&&u.r===n.r&&u.hp>0)){
+                sq=n.q;sr=n.r;break;
+              }
+            }
+          }
+          this.spawnUnit(city.civId,city.producing.id,sq,sr);
+          if(city.civId===0)notify(`${udef.name} trained in ${city.name}!`);
+          city.producing=null;city.prodProgress=0;
+        }
+      }else if(city.producing.type==='building'){
+        const bdef=BUILDINGS[city.producing.id];
+        if(city.prodProgress>=bdef.cost){
+          city.buildings.push(city.producing.id);
+          if(city.civId===0)notify(`${bdef.name} built in ${city.name}!`);
+          city.producing=null;city.prodProgress=0;
+          // Update city HP for defensive buildings
+          if(bdef.defense){
+            city.maxHp+=bdef.defense;
+            city.hp+=bdef.defense;
+          }
+        }
+      }
+    }
+
+    // Heal city
+    if(city.hp<city.maxHp)city.hp=Math.min(city.maxHp,city.hp+2);
+  }
+
+  // ==================== TECH ====================
+  canResearch(civId,techId){
+    const civ=this.civs[civId];
+    if(civ.techs.has(techId))return false;
+    const tech=TECHS.find(t=>t.id===techId);
+    if(!tech)return false;
+    return tech.prereq.every(p=>civ.techs.has(p));
+  }
+
+  processTech(civId){
+    const civ=this.civs[civId];
+    if(!civ.researching)return;
+    const tech=TECHS.find(t=>t.id===civ.researching);
+    if(!tech)return;
+    civ.researchProgress+=civ.science;
+    if(civ.researchProgress>=tech.cost){
+      civ.techs.add(tech.id);
+      civ.researching=null;
+      civ.researchProgress=0;
+      if(civId===0)notify(`Researched ${tech.name}!`);
+    }
+  }
+
+  // ==================== TURN MANAGEMENT ====================
+  endTurn(){
+    if(this.gameOver)return;
+
+    // Process player
+    this.processTurnForCiv(0);
+
+    // Process AI
+    for(let i=1;i<this.civs.length;i++){
+      if(this.civs[i].alive)this.runAI(i);
+    }
+
+    // New turn
+    this.turn++;
+    this.currentCiv=0;
+
+    // Reset player units
+    const playerUnits=this.units.filter(u=>u.civId===0&&u.hp>0);
+    for(const u of playerUnits){
+      u.movesLeft=u.move;u.hasAttacked=false;u.hasActed=false;
+      // Heal if in friendly territory
+      const tile=this.tiles[hexKey(u.q,u.r)];
+      if(tile&&tile.owner===0&&u.hp<u.maxHp)u.hp=Math.min(u.maxHp,u.hp+2);
+    }
+
+    // Remove dead units
+    this.units=this.units.filter(u=>u.hp>0);
+
+    this.updateVisibility(0);
+    this.selectedUnit=null;
+    this.selectedCity=null;
+    this.movableHexes=[];
+    this.attackableHexes=[];
+
+    this.checkVictory();
+    this.updateUI();
+    this.render();
+    this.renderMinimap();
+
+    // Check if turn limit
+    if(this.turn>MAX_TURNS&&!this.gameOver){
+      this.endGameByScore();
+    }
+  }
+
+  processTurnForCiv(civId){
+    const civ=this.civs[civId];
+    if(!civ.alive)return;
+
+    // Reset per-turn resources
+    civ.science=0;civ.culture=0;
+
+    // Process cities
+    const myCities=this.cities.filter(c=>c.civId===civId&&c.hp>0);
+    for(const city of myCities){
+      this.processCity(city);
+    }
+
+    // Process tech
+    this.processTech(civId);
+
+    // Calculate score
+    civ.score=myCities.length*100+civ.techs.size*30+
+      this.units.filter(u=>u.civId===civId&&u.hp>0).length*10+
+      Math.floor(civ.gold/5)+civ.culture;
+  }
+
+  // ==================== AI ====================
+  runAI(civId){
+    const civ=this.civs[civId];
+    if(!civ.alive)return;
+
+    // Reset units
+    const myUnits=this.units.filter(u=>u.civId===civId&&u.hp>0);
+    for(const u of myUnits){
+      u.movesLeft=u.move;u.hasAttacked=false;u.hasActed=false;
+      const tile=this.tiles[hexKey(u.q,u.r)];
+      if(tile&&tile.owner===civId&&u.hp<u.maxHp)u.hp=Math.min(u.maxHp,u.hp+2);
+    }
+
+    this.updateVisibility(civId);
+
+    // AI: Research
+    if(!civ.researching){
+      const available=TECHS.filter(t=>this.canResearch(civId,t.id));
+      if(available.length>0){
+        // Prefer lower tier
+        available.sort((a,b)=>a.tier-b.tier||(a.cost-b.cost));
+        civ.researching=available[0].id;
+        civ.researchProgress=0;
+      }
+    }
+
+    // AI: City production
+    const myCities=this.cities.filter(c=>c.civId===civId&&c.hp>0);
+    for(const city of myCities){
+      if(!city.producing){
+        // Simple AI: alternate between military and buildings
+        const militaryStrength=myUnits.length;
+        if(militaryStrength<myCities.length*2+2){
+          // Build military
+          const available=['warrior'];
+          if(civ.techs.has('archery'))available.push('archer');
+          if(civ.techs.has('riding'))available.push('rider');
+          if(civ.techs.has('smithing'))available.push('swordsman');
+          if(civ.techs.has('metallurgy'))available.push('knight');
+          const choice=available[Math.floor(Math.random()*available.length)];
+          city.producing={type:'unit',id:choice};city.prodProgress=0;
+        }else{
+          // Build improvement
+          const available=Object.entries(BUILDINGS).filter(([id,b])=>{
+            if(city.buildings.includes(id))return false;
+            if(b.tech&&!civ.techs.has(b.tech))return false;
+            return true;
+          });
+          if(available.length>0){
+            const choice=available[Math.floor(Math.random()*available.length)];
+            city.producing={type:'building',id:choice[0]};city.prodProgress=0;
+          }else{
+            // Default to military
+            city.producing={type:'unit',id:'warrior'};city.prodProgress=0;
+          }
+        }
+      }
+    }
+
+    // AI: Move and attack
+    for(const unit of myUnits){
+      if(unit.tags.includes('civilian')){
+        // Settler AI: found city if far enough from own cities
+        if(unit.type==='settler'){
+          const nearCity=myCities.some(c=>hexDist(c,unit)<4);
+          if(!nearCity&&TERRAIN_DATA[this.tiles[hexKey(unit.q,unit.r)]?.terrain]?.passable){
+            this.createCity(civId,unit.q,unit.r);
+            unit.hp=0;
+            continue;
+          }else{
+            // Move away from cities
+            const movable=this.getMovableHexes(unit);
+            if(movable.length>0){
+              const far=movable.sort((a,b)=>{
+                const da=Math.min(...myCities.map(c=>hexDist(c,a)));
+                const db=Math.min(...myCities.map(c=>hexDist(c,b)));
+                return db-da;
+              });
+              this.moveUnit(unit,far[0].q,far[0].r);
+            }
+          }
+        }
+        continue;
+      }
+
+      // Check for nearby enemies to attack
+      const enemies=this.getAttackableHexes(unit);
+      if(enemies.length>0){
+        // Attack weakest
+        enemies.sort((a,b)=>(a.target.hp||99)-(b.target.hp||99));
+        this.attackTarget(unit,enemies[0].target,enemies[0].type);
+        continue;
+      }
+
+      // Move towards nearest enemy or explore
+      const movable=this.getMovableHexes(unit);
+      if(movable.length===0)continue;
+
+      // Find nearest enemy
+      let nearestEnemy=null;let nearestDist=Infinity;
+      for(const eu of this.units){
+        if(eu.civId===civId||eu.hp<=0)continue;
+        if(civ.relations[eu.civId]!=='war')continue;
+        const d=hexDist(unit,eu);
+        if(d<nearestDist){nearestDist=d;nearestEnemy=eu;}
+      }
+      // Also check enemy cities
+      for(const ec of this.cities){
+        if(ec.civId===civId||ec.hp<=0)continue;
+        if(civ.relations[ec.civId]!=='war')continue;
+        const d=hexDist(unit,ec);
+        if(d<nearestDist){nearestDist=d;nearestEnemy=ec;}
+      }
+
+      if(nearestEnemy){
+        // Move towards enemy
+        movable.sort((a,b)=>hexDist(a,nearestEnemy)-hexDist(b,nearestEnemy));
+        this.moveUnit(unit,movable[0].q,movable[0].r);
+        // Try to attack after moving
+        const atk2=this.getAttackableHexes(unit);
+        if(atk2.length>0){
+          atk2.sort((a,b)=>(a.target.hp||99)-(b.target.hp||99));
+          this.attackTarget(unit,atk2[0].target,atk2[0].type);
+        }
+      }else{
+        // Explore - move towards unexplored
+        const best=movable[Math.floor(Math.random()*movable.length)];
+        this.moveUnit(unit,best.q,best.r);
+      }
+    }
+
+    // AI: Diplomacy - declare war occasionally
+    if(this.turn>8&&Math.random()<0.08){
+      for(let i=0;i<this.civs.length;i++){
+        if(i===civId||!this.civs[i].alive)continue;
+        if(civ.relations[i]==='peace'&&Math.random()<0.2){
+          civ.relations[i]='war';
+          this.civs[i].relations[civId]='war';
+          if(i===0)notify(`${civ.def.name} declared WAR!`);
+        }
+      }
+    }
+
+    // AI: Build settler occasionally
+    if(myCities.length<4&&civ.gold>=10&&this.turn>5&&Math.random()<0.15){
+      const city=myCities[0];
+      if(city&&!city.producing){
+        city.producing={type:'unit',id:'settler'};city.prodProgress=0;
+      }
+    }
+
+    // Process turn
+    this.processTurnForCiv(civId);
+  }
+
+  // ==================== VICTORY ====================
+  checkVictory(){
+    if(this.gameOver)return;
+    const alive=this.civs.filter(c=>c.alive);
+    if(alive.length===1){
+      this.victory(alive[0].id,'Domination','Conquered all rivals!');
+      return;
+    }
+    // Science victory: all techs
+    for(const civ of alive){
+      if(civ.techs.size>=TECHS.length){
+        this.victory(civ.id,'Science','Researched all technologies!');
+        return;
+      }
+    }
+    // Economic victory
+    for(const civ of alive){
+      if(civ.gold>=500){
+        this.victory(civ.id,'Economic','Accumulated immense wealth!');
+        return;
+      }
+    }
+    // Cultural victory
+    for(const civ of alive){
+      if(civ.culture>=300){
+        this.victory(civ.id,'Cultural','Cultural supremacy achieved!');
+        return;
+      }
+    }
+  }
+
+  endGameByScore(){
+    const alive=this.civs.filter(c=>c.alive);
+    alive.sort((a,b)=>b.score-a.score);
+    this.victory(alive[0].id,'Score','Highest score after '+MAX_TURNS+' turns!');
+  }
+
+  victory(civId,type,desc){
+    this.gameOver=true;
+    const vs=document.getElementById('victoryScreen');
+    const civ=this.civs[civId];
+    vs.querySelector('h1').textContent=civId===0?
+      `${type} Victory!`:`${civ.def.name} Wins!`;
+    vs.querySelector('p').textContent=civId===0?
+      desc:`The ${civ.def.name} empire achieved ${type} victory. ${desc}`;
+    vs.style.display='flex';
+  }
+
+  // ==================== SELECTION ====================
+  selectUnit(unit){
+    this.selectedUnit=unit;
+    this.selectedCity=null;
+    if(unit&&unit.civId===0){
+      this.movableHexes=this.getMovableHexes(unit);
+      this.attackableHexes=this.getAttackableHexes(unit);
+    }else{
+      this.movableHexes=[];this.attackableHexes=[];
+    }
+    this.updateSelPanel();
+    this.render();
+  }
+
+  selectCity(city){
+    this.selectedCity=city;
+    this.selectedUnit=null;
+    this.movableHexes=[];
+    this.attackableHexes=[];
+    this.updateCityPanel();
+    this.render();
+  }
+
+  deselectAll(){
+    this.selectedUnit=null;this.selectedCity=null;
+    this.movableHexes=[];this.attackableHexes=[];
+    document.getElementById('selPanel').style.display='none';
+    document.getElementById('cityPanel').style.display='none';
+    this.render();
+  }
+
+  // ==================== INPUT ====================
+  setupInputs(){
+    const c=this.canvas;
+
+    c.addEventListener('mousedown',(e)=>{
+      this.dragStart={x:e.clientX,y:e.clientY,cx:this.camX,cy:this.camY};
+      this.isDragging=false;
+    });
+
+    c.addEventListener('mousemove',(e)=>{
+      if(this.dragStart){
+        const dx=e.clientX-this.dragStart.x;
+        const dy=e.clientY-this.dragStart.y;
+        if(Math.abs(dx)>3||Math.abs(dy)>3)this.isDragging=true;
+        if(this.isDragging){
+          this.camX=this.dragStart.cx+dx/this.zoom;
+          this.camY=this.dragStart.cy+dy/this.zoom;
+          this.render();
+        }
+      }
+      // Tooltip
+      this.handleHover(e);
+    });
+
+    c.addEventListener('mouseup',(e)=>{
+      if(!this.isDragging){
+        this.handleClick(e);
+      }
+      this.dragStart=null;this.isDragging=false;
+    });
+
+    c.addEventListener('wheel',(e)=>{
+      e.preventDefault();
+      const oldZoom=this.zoom;
+      this.zoom*=e.deltaY>0?0.9:1.1;
+      this.zoom=Math.max(0.3,Math.min(3,this.zoom));
+      this.render();
+      this.renderMinimap();
+    },{passive:false});
+
+    // Keyboard
+    document.addEventListener('keydown',(e)=>{
+      const spd=30/this.zoom;
+      if(e.key==='ArrowLeft'||e.key==='a')this.camX+=spd;
+      else if(e.key==='ArrowRight'||e.key==='d')this.camX-=spd;
+      else if(e.key==='ArrowUp'||e.key==='w')this.camY+=spd;
+      else if(e.key==='ArrowDown'||e.key==='s')this.camY-=spd;
+      else if(e.key==='Escape')this.deselectAll();
+      else if(e.key==='Enter'||e.key==='e')this.endTurn();
+      else if(e.key==='t')toggleTech();
+      else return;
+      this.render();
+    });
+
+    // Minimap click
+    const mm=document.getElementById('minimap');
+    mm.addEventListener('click',(e)=>{
+      const rect=mm.getBoundingClientRect();
+      const mx=(e.clientX-rect.left)/rect.width;
+      const my=(e.clientY-rect.top)/rect.height;
+      const worldX=(mx-0.5)*this.mapRadius*2*HEX_SIZE*SQRT3;
+      const worldY=(my-0.5)*this.mapRadius*2*HEX_SIZE*1.5;
+      this.camX=-worldX;this.camY=-worldY;
+      this.render();
+      this.renderMinimap();
+    });
+  }
+
+  screenToWorld(sx,sy){
+    const cx=this.canvas.width/2;
+    const cy=this.canvas.height/2;
+    return {
+      x:(sx-cx)/this.zoom-this.camX,
+      y:(sy-cy)/this.zoom-this.camY
+    };
+  }
+
+  handleClick(e){
+    if(this.gameOver)return;
+    const w=this.screenToWorld(e.clientX,e.clientY);
+    const hex=pixelToHex(w.x,w.y);
+    const key=hexKey(hex.q,hex.r);
+    const tile=this.tiles[key];
+    if(!tile)return;
+
+    // If we have a selected unit and clicked a movable hex
+    if(this.selectedUnit&&this.selectedUnit.civId===0){
+      // Check attack
+      const atkHex=this.attackableHexes.find(a=>a.q===hex.q&&a.r===hex.r);
+      if(atkHex){
+        this.attackTarget(this.selectedUnit,atkHex.target,atkHex.type);
+        if(this.selectedUnit.hp>0)this.selectUnit(this.selectedUnit);
+        else this.deselectAll();
+        this.render();this.renderMinimap();
+        return;
+      }
+      // Check move
+      const moveHex=this.movableHexes.find(m=>m.q===hex.q&&m.r===hex.r);
+      if(moveHex){
+        this.moveUnit(this.selectedUnit,hex.q,hex.r);
+        this.render();this.renderMinimap();
+        return;
+      }
+    }
+
+    // Click on own unit
+    const unit=this.units.find(u=>u.q===hex.q&&u.r===hex.r&&u.hp>0&&u.civId===0);
+    if(unit){
+      this.selectUnit(unit);
+      this.render();
+      return;
+    }
+
+    // Click on own city
+    const city=this.cities.find(c=>c.q===hex.q&&c.r===hex.r&&c.civId===0);
+    if(city){
+      this.selectCity(city);
+      this.render();
+      return;
+    }
+
+    this.deselectAll();
+  }
+
+  handleHover(e){
+    const w=this.screenToWorld(e.clientX,e.clientY);
+    const hex=pixelToHex(w.x,w.y);
+    const key=hexKey(hex.q,hex.r);
+    const tile=this.tiles[key];
+    const tt=document.getElementById('tooltip');
+    if(!tile||!tile.visible[0]){tt.style.display='none';return;}
+    const td=TERRAIN_DATA[tile.terrain];
+    let text=`<b>${td.name}</b>`;
+    if(tile.resource)text+=`<br>${tile.resource.emoji} ${tile.resource.name}`;
+    text+=`<br>🌾${td.food} ⚒️${td.prod} 💰${td.gold}`;
+    if(tile.owner>=0)text+=`<br>Owner: ${this.civs[tile.owner].def.name}`;
+    const unit=this.units.find(u=>u.q===hex.q&&u.r===hex.r&&u.hp>0);
+    if(unit)text+=`<br>${unit.emoji} ${unit.name} (${unit.hp}/${unit.maxHp})`;
+    const city=this.cities.find(c=>c.q===hex.q&&c.r===hex.r);
+    if(city)text+=`<br>🏙️ ${city.name} (Pop: ${city.pop})`;
+    tt.innerHTML=text;
+    tt.style.display='block';
+    tt.style.left=Math.min(e.clientX+12,window.innerWidth-230)+'px';
+    tt.style.top=(e.clientY+12)+'px';
+  }
+
+  // ==================== RENDERING ====================
+  resize(){
+    this.canvas.width=window.innerWidth;
+    this.canvas.height=window.innerHeight;
+    this.minimapCanvas.width=200;this.minimapCanvas.height=200;
+    this.render();this.renderMinimap();
+  }
+
+  render(){
+    const ctx=this.ctx;
+    const W=this.canvas.width;
+    const H=this.canvas.height;
+    ctx.fillStyle='#080c16';
+    ctx.fillRect(0,0,W,H);
+
+    ctx.save();
+    ctx.translate(W/2,H/2);
+    ctx.scale(this.zoom,this.zoom);
+    ctx.translate(this.camX,this.camY);
+
+    // Determine visible bounds
+    const invZoom=1/this.zoom;
+    const viewLeft=(-W/2)*invZoom-this.camX-HEX_SIZE*2;
+    const viewRight=(W/2)*invZoom-this.camX+HEX_SIZE*2;
+    const viewTop=(-H/2)*invZoom-this.camY-HEX_SIZE*2;
+    const viewBottom=(H/2)*invZoom-this.camY+HEX_SIZE*2;
+
+    // Draw tiles
+    for(const key in this.tiles){
+      const tile=this.tiles[key];
+      const px=hexToPixel(tile.q,tile.r);
+      if(px.x<viewLeft||px.x>viewRight||px.y<viewTop||px.y>viewBottom)continue;
+
+      const isVisible=tile.visible[0];
+      const isExplored=tile.explored[0];
+
+      if(!isExplored)continue;
+
+      const td=TERRAIN_DATA[tile.terrain];
+      ctx.globalAlpha=isVisible?1:0.35;
+
+      // Hex fill
+      this.drawHex(ctx,px.x,px.y,HEX_SIZE-1,td.color,true);
+
+      // Territory border tint
+      if(tile.owner>=0&&isVisible){
+        const ownerColor=this.civs[tile.owner].def.color;
+        ctx.globalAlpha=0.12;
+        this.drawHex(ctx,px.x,px.y,HEX_SIZE-1,ownerColor,true);
+        ctx.globalAlpha=isVisible?1:0.35;
+      }
+
+      // Resource icon
+      if(tile.resource&&isVisible){
+        ctx.globalAlpha=0.85;
+        ctx.font='12px sans-serif';
+        ctx.textAlign='center';ctx.textBaseline='middle';
+        ctx.fillText(tile.resource.emoji,px.x,px.y+HEX_SIZE*0.3);
+        ctx.globalAlpha=isVisible?1:0.35;
+      }
+
+      // Hex outline
+      ctx.globalAlpha=isVisible?0.25:0.1;
+      this.drawHex(ctx,px.x,px.y,HEX_SIZE-1,'#ffffff',false);
+    }
+
+    ctx.globalAlpha=1;
+
+    // Highlight movable hexes
+    for(const h of this.movableHexes){
+      const px=hexToPixel(h.q,h.r);
+      ctx.globalAlpha=0.25;
+      this.drawHex(ctx,px.x,px.y,HEX_SIZE-2,'#00ff88',true);
+      ctx.globalAlpha=0.6;
+      this.drawHex(ctx,px.x,px.y,HEX_SIZE-2,'#00ff88',false);
+    }
+
+    // Highlight attackable hexes
+    for(const h of this.attackableHexes){
+      const px=hexToPixel(h.q,h.r);
+      ctx.globalAlpha=0.3;
+      this.drawHex(ctx,px.x,px.y,HEX_SIZE-2,'#ff4444',true);
+      ctx.globalAlpha=0.7;
+      this.drawHex(ctx,px.x,px.y,HEX_SIZE-2,'#ff4444',false);
+    }
+
+    ctx.globalAlpha=1;
+
+    // Draw cities
+    for(const city of this.cities){
+      if(!this.tiles[hexKey(city.q,city.r)]?.visible[0])continue;
+      const px=hexToPixel(city.q,city.r);
+      const civColor=this.civs[city.civId].def.color;
+
+      // City base
+      ctx.fillStyle=civColor;
+      ctx.globalAlpha=0.4;
+      ctx.beginPath();ctx.arc(px.x,px.y,HEX_SIZE*0.5,0,Math.PI*2);ctx.fill();
+      ctx.globalAlpha=1;
+
+      // City icon
+      ctx.font='bold 18px sans-serif';
+      ctx.textAlign='center';ctx.textBaseline='middle';
+      ctx.fillText(city.isCapital?'⭐':'🏙️',px.x,px.y-4);
+
+      // City name & pop
+      ctx.font='bold 9px sans-serif';
+      ctx.fillStyle=civColor;
+      ctx.fillText(city.name,px.x,px.y-HEX_SIZE+2);
+      ctx.font='8px sans-serif';
+      ctx.fillStyle='#e2e8f0';
+      ctx.fillText('Pop: '+city.pop,px.x,px.y+14);
+
+      // HP bar
+      if(city.hp<city.maxHp){
+        const bw=HEX_SIZE*0.8;
+        ctx.fillStyle='#333';
+        ctx.fillRect(px.x-bw/2,px.y+20,bw,3);
+        ctx.fillStyle=city.hp>city.maxHp*0.5?'#00ff88':'#ff4444';
+        ctx.fillRect(px.x-bw/2,px.y+20,bw*(city.hp/city.maxHp),3);
+      }
+    }
+
+    // Draw units
+    for(const unit of this.units){
+      if(unit.hp<=0)continue;
+      if(!this.tiles[hexKey(unit.q,unit.r)]?.visible[0])continue;
+      const px=hexToPixel(unit.q,unit.r);
+      const civColor=this.civs[unit.civId].def.color;
+      const isSelected=this.selectedUnit===unit;
+
+      // Unit shadow
+      ctx.fillStyle=civColor;
+      ctx.globalAlpha=0.3;
+      ctx.beginPath();ctx.arc(px.x,px.y,12,0,Math.PI*2);ctx.fill();
+      ctx.globalAlpha=1;
+
+      // Selection ring
+      if(isSelected){
+        ctx.strokeStyle='#00ff88';ctx.lineWidth=2;
+        ctx.beginPath();ctx.arc(px.x,px.y,15,0,Math.PI*2);ctx.stroke();
+        ctx.lineWidth=1;
+      }
+
+      // Unit emoji
+      ctx.font='18px sans-serif';
+      ctx.textAlign='center';ctx.textBaseline='middle';
+      ctx.fillText(unit.emoji,px.x,px.y);
+
+      // HP bar
+      if(unit.hp<unit.maxHp){
+        const bw=16;
+        ctx.fillStyle='#222';
+        ctx.fillRect(px.x-bw/2,px.y+12,bw,2);
+        ctx.fillStyle=unit.hp>unit.maxHp*0.5?'#00ff88':'#ff4444';
+        ctx.fillRect(px.x-bw/2,px.y+12,bw*(unit.hp/unit.maxHp),2);
+      }
+
+      // Moves indicator
+      if(unit.civId===0&&unit.movesLeft>0&&!isSelected){
+        ctx.fillStyle='#00ff88';
+        ctx.beginPath();ctx.arc(px.x+10,px.y-10,3,0,Math.PI*2);ctx.fill();
+      }
+    }
+
+    // Selected unit glow
+    if(this.selectedUnit&&this.selectedUnit.hp>0){
+      const px=hexToPixel(this.selectedUnit.q,this.selectedUnit.r);
+      ctx.strokeStyle='#00ff88';ctx.lineWidth=2.5;
+      this.drawHex(ctx,px.x,px.y,HEX_SIZE,'#00ff88',false);
+      ctx.lineWidth=1;
+    }
+
+    ctx.restore();
+  }
+
+  drawHex(ctx,x,y,size,color,fill){
+    ctx.beginPath();
+    for(let i=0;i<6;i++){
+      const angle=Math.PI/180*(60*i-30);
+      const hx=x+size*Math.cos(angle);
+      const hy=y+size*Math.sin(angle);
+      if(i===0)ctx.moveTo(hx,hy);else ctx.lineTo(hx,hy);
+    }
+    ctx.closePath();
+    if(fill){ctx.fillStyle=color;ctx.fill();}
+    else{ctx.strokeStyle=color;ctx.stroke();}
+  }
+
+  renderMinimap(){
+    const ctx=this.minimapCtx;
+    const W=200,H=200;
+    ctx.fillStyle='#0a0e1a';
+    ctx.fillRect(0,0,W,H);
+    const scale=W/(this.mapRadius*2*HEX_SIZE*SQRT3)*0.85;
+    ctx.save();
+    ctx.translate(W/2,H/2);
+    ctx.scale(scale,scale);
+
+    for(const key in this.tiles){
+      const tile=this.tiles[key];
+      if(!tile.explored[0])continue;
+      const px=hexToPixel(tile.q,tile.r);
+      const td=TERRAIN_DATA[tile.terrain];
+      ctx.fillStyle=tile.owner>=0?this.civs[tile.owner].def.color:td.color;
+      ctx.globalAlpha=tile.visible[0]?0.8:0.3;
+      ctx.fillRect(px.x-3,px.y-3,6,6);
+    }
+
+    // Camera viewport
+    ctx.globalAlpha=1;
+    const vw=this.canvas.width/this.zoom;
+    const vh=this.canvas.height/this.zoom;
+    ctx.strokeStyle='#00ff88';ctx.lineWidth=2/scale;
+    ctx.strokeRect(-this.camX-vw/2,-this.camY-vh/2,vw,vh);
+
+    ctx.restore();
+  }
+
+  // ==================== UI ====================
+  updateUI(){
+    const civ=this.civs[0];
+    if(!civ)return;
+    document.getElementById('civName').textContent=civ.def.emoji+' '+civ.def.name;
+    document.getElementById('civName').style.color=civ.def.color;
+
+    // Calculate total yields
+    const myCities=this.cities.filter(c=>c.civId===0&&c.hp>0);
+    let tf=0,tp=0,tg=0,ts=0,tc=0;
+    for(const city of myCities){
+      const y=this.getCityYields(city);
+      tf+=y.food;tp+=y.prod;tg+=y.gold;ts+=y.science;tc+=y.culture;
+    }
+    document.getElementById('resFood').textContent=Math.floor(tf);
+    document.getElementById('resFoodD').textContent='+'+tf+'/t';
+    document.getElementById('resProd').textContent=Math.floor(tp);
+    document.getElementById('resProdD').textContent='+'+tp+'/t';
+    document.getElementById('resGold').textContent=Math.floor(civ.gold);
+    document.getElementById('resGoldD').textContent='+'+tg+'/t';
+    document.getElementById('resScience').textContent=Math.floor(civ.science);
+    document.getElementById('resScienceD').textContent='+'+ts+'/t';
+    document.getElementById('resCulture').textContent=Math.floor(civ.culture);
+    document.getElementById('resCultureD').textContent='+'+tc+'/t';
+    document.getElementById('turnInfo').textContent=`Turn ${this.turn} / ${MAX_TURNS}`;
+  }
+
+  updateSelPanel(){
+    const panel=document.getElementById('selPanel');
+    const unit=this.selectedUnit;
+    if(!unit||unit.hp<=0){panel.style.display='none';return;}
+    document.getElementById('cityPanel').style.display='none';
+    panel.style.display='block';
+
+    const isOwn=unit.civId===0;
+    const civName=this.civs[unit.civId].def.name;
+    let html=`<h3>${unit.emoji} ${unit.name}</h3>`;
+    html+=`<div class="info-row"><span>Owner</span><span>${civName}</span></div>`;
+    html+=`<div class="info-row"><span>HP</span><span>${unit.hp} / ${unit.maxHp}</span></div>`;
+    html+=`<div class="info-row"><span>Attack</span><span>${unit.atk}</span></div>`;
+    html+=`<div class="info-row"><span>Defense</span><span>${unit.def}</span></div>`;
+    html+=`<div class="info-row"><span>Range</span><span>${unit.range}</span></div>`;
+    html+=`<div class="info-row"><span>Moves</span><span>${unit.movesLeft} / ${unit.move}</span></div>`;
+
+    if(isOwn){
+      html+=`<div class="action-bar">`;
+      if(unit.type==='settler'&&TERRAIN_DATA[this.tiles[hexKey(unit.q,unit.r)]?.terrain]?.passable){
+        html+=`<button class="action-btn" onclick="game.foundCity()">Found City</button>`;
+      }
+      html+=`<button class="action-btn" onclick="game.skipUnit()">Skip</button>`;
+      html+=`<button class="action-btn" onclick="game.disbandUnit()">Disband</button>`;
+      html+=`</div>`;
+    }
+    panel.innerHTML=html;
+  }
+
+  updateCityPanel(){
+    const panel=document.getElementById('cityPanel');
+    const city=this.selectedCity;
+    if(!city){panel.style.display='none';return;}
+    document.getElementById('selPanel').style.display='none';
+    panel.style.display='block';
+
+    const yields=this.getCityYields(city);
+    const isOwn=city.civId===0;
+
+    let html=`<h3>🏙️ ${city.name}</h3>`;
+    html+=`<div class="city-subtitle">Population: ${city.pop} | HP: ${city.hp}/${city.maxHp}</div>`;
+
+    html+=`<div class="city-yields">`;
+    html+=`<div class="city-yield"><span class="cy-icon">🌾</span><span class="cy-val">${yields.food}</span><span class="cy-label">Food</span></div>`;
+    html+=`<div class="city-yield"><span class="cy-icon">⚒️</span><span class="cy-val">${yields.prod}</span><span class="cy-label">Production</span></div>`;
+    html+=`<div class="city-yield"><span class="cy-icon">💰</span><span class="cy-val">${yields.gold}</span><span class="cy-label">Gold</span></div>`;
+    html+=`<div class="city-yield"><span class="cy-icon">🔬</span><span class="cy-val">${yields.science}</span><span class="cy-label">Science</span></div>`;
+    html+=`<div class="city-yield"><span class="cy-icon">🎭</span><span class="cy-val">${yields.culture}</span><span class="cy-label">Culture</span></div>`;
+    html+=`</div>`;
+
+    // Buildings
+    if(city.buildings.length>0){
+      html+=`<div class="build-section"><h4>Buildings</h4>`;
+      for(const bid of city.buildings){
+        const b=BUILDINGS[bid];
+        html+=`<div style="font-size:11px;padding:2px 0;color:#94a3b8">${b.emoji} ${b.name}</div>`;
+      }
+      html+=`</div>`;
+    }
+
+    // Current production
+    if(city.producing){
+      const item=city.producing.type==='unit'?UNIT_TYPES[city.producing.id]:BUILDINGS[city.producing.id];
+      const total=city.producing.type==='unit'?item.cost:item.cost;
+      html+=`<div class="build-queue">Building: ${item.emoji||''} ${item.name} (${city.prodProgress}/${total})</div>`;
+    }
+
+    // Production options
+    if(isOwn){
+      html+=`<div class="build-section"><h4>Build</h4>`;
+      const civ=this.civs[0];
+
+      // Units
+      for(const [uid,udef] of Object.entries(UNIT_TYPES)){
+        if(udef.tech&&!civ.techs.has(udef.tech))continue;
+        if(uid==='ship'||uid==='battleship'){
+          const hasCoast=city.territory.some(k=>this.tiles[k]&&(this.tiles[k].terrain===TERRAIN.COAST||this.tiles[k].terrain===TERRAIN.OCEAN));
+          if(!hasCoast)continue;
+        }
+        html+=`<div class="build-item" onclick="game.setProduction(${city.id},'unit','${uid}')">`;
+        html+=`<span>${udef.emoji} ${udef.name} (A:${udef.atk} D:${udef.def} M:${udef.move})</span>`;
+        html+=`<span class="cost">⚒️${udef.cost}</span></div>`;
+      }
+
+      // Buildings
+      for(const [bid,bdef] of Object.entries(BUILDINGS)){
+        if(city.buildings.includes(bid))continue;
+        if(bdef.tech&&!civ.techs.has(bdef.tech))continue;
+        html+=`<div class="build-item" onclick="game.setProduction(${city.id},'building','${bid}')">`;
+        let yStr=Object.entries(bdef.yields).map(([k,v])=>{
+          const icons={food:'🌾',prod:'⚒️',gold:'💰',science:'🔬',culture:'🎭'};
+          return (icons[k]||k)+v;
+        }).join(' ');
+        if(bdef.defense)yStr+=' 🛡️+'+bdef.defense;
+        html+=`<span>${bdef.emoji} ${bdef.name} ${yStr?'('+yStr+')':''}</span>`;
+        html+=`<span class="cost">⚒️${bdef.cost}</span></div>`;
+      }
+      html+=`</div>`;
+    }
+    panel.innerHTML=html;
+  }
+
+  // ==================== ACTIONS ====================
+  setProduction(cityId,type,id){
+    const city=this.cities[cityId];
+    if(city&&city.civId===0){
+      city.producing={type,id};city.prodProgress=0;
+      this.updateCityPanel();
+      const item=type==='unit'?UNIT_TYPES[id]:BUILDINGS[id];
+      notify(`${city.name} now producing ${item.name}`);
+    }
+  }
+
+  foundCity(){
+    if(!this.selectedUnit||this.selectedUnit.type!=='settler')return;
+    const u=this.selectedUnit;
+    const tile=this.tiles[hexKey(u.q,u.r)];
+    if(!tile||!TERRAIN_DATA[tile.terrain].passable)return;
+    // Check minimum distance
+    const tooClose=this.cities.some(c=>hexDist(c,u)<3);
+    if(tooClose){notify('Too close to another city!');return;}
+    const cityNum=this.cities.filter(c=>c.civId===0).length+1;
+    this.createCity(0,u.q,u.r,this.civs[0].def.name+' City '+cityNum);
+    u.hp=0;
+    this.deselectAll();
+    this.updateVisibility(0);
+    this.updateUI();
+    this.render();this.renderMinimap();
+    notify('City founded!');
+  }
+
+  skipUnit(){
+    if(this.selectedUnit){
+      this.selectedUnit.movesLeft=0;
+      this.selectedUnit.hasActed=true;
+      this.deselectAll();
+      // Auto-select next available unit
+      this.selectNextUnit();
+    }
+  }
+
+  disbandUnit(){
+    if(this.selectedUnit&&this.selectedUnit.civId===0){
+      this.selectedUnit.hp=0;
+      this.deselectAll();
+      this.render();
+    }
+  }
+
+  selectNextUnit(){
+    const available=this.units.filter(u=>u.civId===0&&u.hp>0&&u.movesLeft>0&&!u.hasActed);
+    if(available.length>0){
+      this.selectUnit(available[0]);
+      const px=hexToPixel(available[0].q,available[0].r);
+      this.camX=-px.x;this.camY=-px.y;
+      this.render();this.renderMinimap();
+    }
+  }
+}
+
+// ============================================================
+// TECH & DIPLOMACY PANELS
+// ============================================================
+function toggleTech(){
+  const p=document.getElementById('techPanel');
+  const d=document.getElementById('dipPanel');
+  d.style.display='none';
+  document.getElementById('dipToggle').classList.remove('active');
+  if(p.style.display==='block'){
+    p.style.display='none';
+    document.getElementById('techToggle').classList.remove('active');
+  }else{
+    p.style.display='block';
+    document.getElementById('techToggle').classList.add('active');
+    renderTechPanel();
+  }
+}
+
+function toggleDip(){
+  const p=document.getElementById('dipPanel');
+  const t=document.getElementById('techPanel');
+  t.style.display='none';
+  document.getElementById('techToggle').classList.remove('active');
+  if(p.style.display==='block'){
+    p.style.display='none';
+    document.getElementById('dipToggle').classList.remove('active');
+  }else{
+    p.style.display='block';
+    document.getElementById('dipToggle').classList.add('active');
+    renderDipPanel();
+  }
+}
+
+function renderTechPanel(){
+  if(!game)return;
+  const civ=game.civs[0];
+  const panel=document.getElementById('techPanel');
+  let html='<h3>Technology</h3>';
+  if(civ.researching){
+    const tech=TECHS.find(t=>t.id===civ.researching);
+    html+=`<div style="padding:8px;margin-bottom:10px;border:1px solid #00d4ff33;border-radius:4px;font-size:12px;color:#00d4ff">Researching: ${tech.name} (${civ.researchProgress}/${tech.cost})</div>`;
+  }
+
+  const tiers=[1,2,3,4,5];
+  for(const tier of tiers){
+    const tierTechs=TECHS.filter(t=>t.tier===tier);
+    html+=`<div style="font-size:10px;color:#64748b;margin:8px 0 4px;text-transform:uppercase;letter-spacing:1px">Era ${tier}</div>`;
+    for(const tech of tierTechs){
+      const researched=civ.techs.has(tech.id);
+      const isResearching=civ.researching===tech.id;
+      const canRes=game.canResearch(0,tech.id);
+      const cls=researched?'researched':isResearching?'researching':canRes?'':'locked';
+      html+=`<div class="tech-item ${cls}" onclick="${canRes&&!researched?`game.civs[0].researching='${tech.id}';game.civs[0].researchProgress=0;renderTechPanel();notify('Researching ${tech.name}')`:''}" title="${tech.unlocks}">`;
+      html+=`<div><div style="font-weight:600">${tech.name}</div><div style="font-size:10px;color:#64748b;margin-top:2px">${tech.unlocks}</div></div>`;
+      html+=`<span class="tech-cost">${researched?'✓':'🔬'+tech.cost}</span>`;
+      html+=`</div>`;
+    }
+  }
+  panel.innerHTML=html;
+}
+
+function renderDipPanel(){
+  if(!game)return;
+  const civ=game.civs[0];
+  const panel=document.getElementById('dipPanel');
+  let html='<h3>Diplomacy</h3>';
+  for(let i=1;i<game.civs.length;i++){
+    const other=game.civs[i];
+    if(!other.alive){
+      html+=`<div class="dip-civ" style="opacity:0.3"><div class="dip-civ-icon">${other.def.emoji}</div><div class="dip-civ-info"><div class="dip-civ-name" style="color:${other.def.color}">${other.def.name}</div><div class="dip-civ-status">Eliminated</div></div></div>`;
+      continue;
+    }
+    const rel=civ.relations[i]||'peace';
+    html+=`<div class="dip-civ">`;
+    html+=`<div class="dip-civ-icon">${other.def.emoji}</div>`;
+    html+=`<div class="dip-civ-info"><div class="dip-civ-name" style="color:${other.def.color}">${other.def.name}</div>`;
+    html+=`<div class="dip-civ-status ${rel}">${rel==='war'?'⚔️ At War':rel==='ally'?'🤝 Allied':'☮️ Peace'}</div></div>`;
+    if(rel==='peace'){
+      html+=`<button class="dip-btn war-btn" onclick="declareWar(${i})">Declare War</button>`;
+    }else if(rel==='war'){
+      html+=`<button class="dip-btn" onclick="offerPeace(${i})">Offer Peace</button>`;
+    }
+    html+=`</div>`;
+  }
+
+  // Score overview
+  html+=`<div style="margin-top:14px;padding-top:10px;border-top:1px solid rgba(255,255,255,0.06)"><div style="font-size:11px;color:#64748b;text-transform:uppercase;margin-bottom:6px">Scores</div>`;
+  const sorted=[...game.civs].filter(c=>c.alive).sort((a,b)=>b.score-a.score);
+  for(const c of sorted){
+    html+=`<div style="display:flex;justify-content:space-between;font-size:12px;padding:2px 0"><span style="color:${c.def.color}">${c.def.emoji} ${c.def.name}</span><span>${c.score}</span></div>`;
+  }
+  html+=`</div>`;
+
+  panel.innerHTML=html;
+}
+
+function declareWar(civId){
+  game.civs[0].relations[civId]='war';
+  game.civs[civId].relations[0]='war';
+  notify(`War declared on ${game.civs[civId].def.name}!`);
+  renderDipPanel();
+}
+
+function offerPeace(civId){
+  if(Math.random()<0.5){
+    game.civs[0].relations[civId]='peace';
+    game.civs[civId].relations[0]='peace';
+    notify(`${game.civs[civId].def.name} accepted peace!`);
+  }else{
+    notify(`${game.civs[civId].def.name} rejected peace offer.`);
+  }
+  renderDipPanel();
+}
+
+// ============================================================
+// START SCREEN
+// ============================================================
+let game=null;
+
+function initStartScreen(){
+  const civSelect=document.getElementById('civSelect');
+  CIVS.forEach((c,i)=>{
+    const div=document.createElement('div');
+    div.className='civ-option'+(i===0?' selected':'');
+    div.dataset.civ=i;
+    div.innerHTML=`<div class="civ-emoji">${c.emoji}</div><div class="civ-name" style="color:${c.color}">${c.name}</div><div class="civ-bonus">${c.bonus}</div>`;
+    div.onclick=()=>{
+      document.querySelectorAll('.civ-option').forEach(e=>e.classList.remove('selected'));
+      div.classList.add('selected');
+    };
+    civSelect.appendChild(div);
+  });
+
+  const mapSizes=document.getElementById('mapSizes');
+  [{label:'Small',radius:12},{label:'Medium',radius:18},{label:'Large',radius:24}].forEach((s,i)=>{
+    const btn=document.createElement('button');
+    btn.className='map-size-btn'+(i===1?' selected':'');
+    btn.textContent=s.label;
+    btn.dataset.radius=s.radius;
+    btn.onclick=()=>{
+      document.querySelectorAll('.map-size-btn').forEach(b=>b.classList.remove('selected'));
+      btn.classList.add('selected');
+    };
+    mapSizes.appendChild(btn);
+  });
+}
+
+function startGame(){
+  const civId=parseInt(document.querySelector('.civ-option.selected').dataset.civ);
+  const mapRadius=parseInt(document.querySelector('.map-size-btn.selected').dataset.radius);
+  const aiCount=parseInt(document.getElementById('aiCount').value);
+
+  document.getElementById('startScreen').style.display='none';
+
+  game=new Game({
+    playerCiv:civId,
+    mapRadius:mapRadius,
+    aiCount:aiCount,
+    seed:Math.floor(Math.random()*999999)
+  });
+
+  // Start animation loop
+  function gameLoop(){
+    requestAnimationFrame(gameLoop);
+  }
+  gameLoop();
+}
+
+initStartScreen();
+</script>
+</body>
+</html>

@@ -441,6 +441,7 @@
             <button class="filter-btn" data-filter="arcade">Arcade</button>
             <button class="filter-btn" data-filter="board">Board</button>
             <button class="filter-btn" data-filter="multiplayer">Multiplayer</button>
+            <button class="filter-btn" data-filter="strategy">Strategy</button>
         </div>
     </div>
 
@@ -721,6 +722,23 @@
                 </div>
             </div>
 
+            <!-- HEXARCHY -->
+            <div class="game-card" data-tags="strategy,board" style="--card-accent: #00ff88;">
+                <div class="game-preview" style="background: linear-gradient(135deg, #040a04, #0a1e12, #081018);">
+                    <canvas class="preview-canvas" data-effect="hexarchy"></canvas>
+                    <span class="game-preview-icon">&#x1F451;</span>
+                </div>
+                <div class="game-info">
+                    <div class="game-tags">
+                        <span class="game-tag">4X Strategy</span>
+                        <span class="game-tag">Turn-Based</span>
+                    </div>
+                    <h3 class="game-title">HEXARCHY</h3>
+                    <p class="game-description">Epic 4X strategy on a hex grid. Build cities, research tech, raise armies, and conquer civilizations. 6 factions, fog of war, diplomacy &amp; AI opponents.</p>
+                    <a href="hexarchy.html" class="game-play-btn">Play</a>
+                </div>
+            </div>
+
         </div>
     </div>
 
@@ -732,7 +750,7 @@
             </div>
             <div class="footer-status">
                 <span class="status-dot"></span>
-                System Online &bull; Games: 16 &bull; Ready to Play
+                System Online &bull; Games: 17 &bull; Ready to Play
             </div>
         </footer>
     </div>
@@ -822,6 +840,9 @@
                         break;
                     case 'starfire':
                         drawStarfirePreview(ctx, canvas, frame);
+                        break;
+                    case 'hexarchy':
+                        drawHexarchyPreview(ctx, canvas, frame);
                         break;
                 }
 
@@ -1106,6 +1127,46 @@
             ctx.lineTo(sx + 12, sy + 6);
             ctx.closePath();
             ctx.fill();
+        }
+
+        function drawHexarchyPreview(ctx, c, f) {
+            const size = 14;
+            const sqrt3 = Math.sqrt(3);
+            const colors = ['#4a8c3f','#8a9a3f','#2a6630','#7a6a4a','#1a3a5c','#c4a44a'];
+            for (let q = -3; q <= 6; q++) {
+                for (let r = -3; r <= 6; r++) {
+                    const x = size * (sqrt3 * q + sqrt3/2 * r) + c.width * 0.3;
+                    const y = size * (1.5 * r) + c.height * 0.5 + Math.sin(f * 0.01 + q * 0.5) * 3;
+                    if (x < -20 || x > c.width + 20 || y < -20 || y > c.height + 20) continue;
+                    ctx.beginPath();
+                    for (let i = 0; i < 6; i++) {
+                        const a = Math.PI / 180 * (60 * i - 30);
+                        const hx = x + (size-1) * Math.cos(a);
+                        const hy = y + (size-1) * Math.sin(a);
+                        if (i === 0) ctx.moveTo(hx, hy); else ctx.lineTo(hx, hy);
+                    }
+                    ctx.closePath();
+                    const ci = Math.abs((q * 3 + r * 7 + Math.floor(f * 0.02)) % colors.length);
+                    ctx.fillStyle = colors[ci];
+                    ctx.globalAlpha = 0.25 + Math.sin(f * 0.03 + q + r) * 0.1;
+                    ctx.fill();
+                    ctx.strokeStyle = 'rgba(0, 255, 136, 0.15)';
+                    ctx.lineWidth = 0.5;
+                    ctx.stroke();
+                }
+            }
+            ctx.globalAlpha = 1;
+            // Small unit icons
+            const icons = ['\u2694','\u{1F3F0}','\u{1F6E1}'];
+            ctx.font = '12px sans-serif';
+            ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+            for (let i = 0; i < 3; i++) {
+                const ux = c.width * (0.25 + i * 0.25) + Math.sin(f * 0.025 + i * 2) * 10;
+                const uy = c.height * 0.5 + Math.cos(f * 0.03 + i * 1.5) * 15;
+                ctx.globalAlpha = 0.5 + Math.sin(f * 0.04 + i) * 0.2;
+                ctx.fillText(icons[i], ux, uy);
+            }
+            ctx.globalAlpha = 1;
         }
 
         // Matrix rain background
