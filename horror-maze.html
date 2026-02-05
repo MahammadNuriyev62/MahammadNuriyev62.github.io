@@ -490,7 +490,7 @@
 
         // Game variables
         let scene, camera, renderer;
-        let player, maniac, exitLight;
+        let player, maniac, exitLight, exitMarkerMaterial;
         let flashlight, flashlightTarget;
         let maze = [];
         let walls = [];
@@ -755,26 +755,17 @@
 
             // Exit marker on floor
             const exitGeometry = new THREE.PlaneGeometry(CELL_SIZE * 0.8, CELL_SIZE * 0.8);
-            const exitMaterial = new THREE.MeshStandardMaterial({
+            exitMarkerMaterial = new THREE.MeshStandardMaterial({
                 color: 0x00ff00,
                 emissive: 0x00ff00,
                 emissiveIntensity: 0.5,
                 transparent: true,
                 opacity: 0.8
             });
-            const exitMarker = new THREE.Mesh(exitGeometry, exitMaterial);
+            const exitMarker = new THREE.Mesh(exitGeometry, exitMarkerMaterial);
             exitMarker.rotation.x = -Math.PI / 2;
             exitMarker.position.set(exitPosition.x, 0.01, exitPosition.z);
             scene.add(exitMarker);
-
-            // Pulsing animation
-            const pulseExit = () => {
-                if (!gameRunning) return;
-                exitLight.intensity = 2 + Math.sin(Date.now() * 0.005) * 1;
-                exitMaterial.emissiveIntensity = 0.5 + Math.sin(Date.now() * 0.005) * 0.3;
-                requestAnimationFrame(pulseExit);
-            };
-            pulseExit();
         }
 
         function createManiac() {
@@ -1031,9 +1022,11 @@
                 camera.position.y = 1.6 + Math.sin(Date.now() * 0.001 * bobSpeed) * bobAmount;
             }
 
-            // Check exit
-            const distToExit = camera.position.distanceTo(exitPosition);
-            if (distToExit < 1.5) {
+            // Check exit (2D distance on XZ plane - ignore Y since camera is at eye height)
+            const dxExit = camera.position.x - exitPosition.x;
+            const dzExit = camera.position.z - exitPosition.z;
+            const distToExit = Math.sqrt(dxExit * dxExit + dzExit * dzExit);
+            if (distToExit < 2) {
                 gameWin();
             }
         }
@@ -1193,6 +1186,10 @@
             updatePlayer(delta);
             updateManiac(delta);
             updateHUD();
+
+            // Pulse exit light and marker
+            exitLight.intensity = 2 + Math.sin(Date.now() * 0.005) * 1;
+            exitMarkerMaterial.emissiveIntensity = 0.5 + Math.sin(Date.now() * 0.005) * 0.3;
 
             renderer.render(scene, camera);
         }
