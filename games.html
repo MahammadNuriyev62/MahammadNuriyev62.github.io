@@ -1,0 +1,1093 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Games | Mahammad Nuriyev</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@300;400;600;700&family=Inter:wght@300;400;600;700;900&display=swap" rel="stylesheet">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        :root {
+            --primary: #00ff88;
+            --primary-dim: #00cc6e;
+            --secondary: #00d4ff;
+            --accent: #ff0080;
+            --bg-dark: #0a0e1a;
+            --bg-darker: #050810;
+            --bg-card: rgba(15, 23, 42, 0.8);
+            --text-primary: #e2e8f0;
+            --text-secondary: #94a3b8;
+            --text-dim: #64748b;
+            --border: rgba(0, 255, 136, 0.2);
+            --glow: rgba(0, 255, 136, 0.4);
+        }
+
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+            background: var(--bg-darker);
+            color: var(--text-primary);
+            line-height: 1.7;
+            overflow-x: hidden;
+            -webkit-font-smoothing: antialiased;
+        }
+
+        .bg-canvas {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: 0;
+            opacity: 0.12;
+            pointer-events: none;
+        }
+
+        .bg-gradient {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: 0;
+            background: radial-gradient(circle at 20% 50%, rgba(0, 255, 136, 0.08) 0%, transparent 50%),
+                        radial-gradient(circle at 80% 80%, rgba(0, 212, 255, 0.08) 0%, transparent 50%);
+            pointer-events: none;
+        }
+
+        .container {
+            position: relative;
+            z-index: 10;
+            max-width: 1280px;
+            margin: 0 auto;
+            padding: 0 2rem;
+        }
+
+        /* Header */
+        header {
+            padding: 2rem 0;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-bottom: 1px solid var(--border);
+        }
+
+        .logo {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 1.2rem;
+            font-weight: 700;
+            color: var(--primary);
+            text-decoration: none;
+            letter-spacing: -0.02em;
+        }
+
+        .logo::before {
+            content: '{ ';
+            color: var(--secondary);
+        }
+
+        .logo::after {
+            content: ' }';
+            color: var(--secondary);
+        }
+
+        nav {
+            display: flex;
+            align-items: center;
+            gap: 1.5rem;
+        }
+
+        nav a {
+            font-family: 'JetBrains Mono', monospace;
+            color: var(--text-secondary);
+            text-decoration: none;
+            font-size: 0.9rem;
+            transition: color 0.3s ease;
+        }
+
+        nav a:hover {
+            color: var(--primary);
+        }
+
+        .nav-games-btn {
+            display: inline-block;
+            padding: 0.6rem 1.5rem;
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.9rem;
+            font-weight: 600;
+            border: 2px solid var(--primary);
+            background: rgba(0, 255, 136, 0.1);
+            color: var(--primary);
+            text-decoration: none;
+            position: relative;
+            overflow: hidden;
+        }
+
+        /* Page Title */
+        .page-header {
+            text-align: center;
+            padding: 4rem 0 3rem;
+        }
+
+        .page-title {
+            font-size: clamp(2.5rem, 6vw, 4rem);
+            font-weight: 900;
+            margin-bottom: 1rem;
+            background: linear-gradient(135deg, var(--primary) 0%, var(--secondary) 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            letter-spacing: -0.03em;
+        }
+
+        .page-subtitle {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: clamp(0.9rem, 2vw, 1.1rem);
+            color: var(--text-secondary);
+        }
+
+        /* Filter Tabs */
+        .filter-bar {
+            display: flex;
+            justify-content: center;
+            gap: 0.75rem;
+            flex-wrap: wrap;
+            margin-bottom: 3rem;
+        }
+
+        .filter-btn {
+            padding: 0.5rem 1.2rem;
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.8rem;
+            font-weight: 600;
+            border: 1px solid var(--border);
+            background: transparent;
+            color: var(--text-secondary);
+            cursor: pointer;
+            transition: all 0.3s ease;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+        }
+
+        .filter-btn:hover,
+        .filter-btn.active {
+            border-color: var(--primary);
+            color: var(--primary);
+            background: rgba(0, 255, 136, 0.05);
+            box-shadow: 0 0 15px rgba(0, 255, 136, 0.1);
+        }
+
+        /* Games Grid */
+        .games-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+            gap: 2rem;
+            padding-bottom: 4rem;
+        }
+
+        .game-card {
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            backdrop-filter: blur(20px);
+            transition: all 0.4s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+            position: relative;
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .game-card::after {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 3px;
+            background: linear-gradient(90deg, var(--card-accent, var(--primary)), var(--secondary));
+            transform: scaleX(0);
+            transform-origin: left;
+            transition: transform 0.4s ease;
+        }
+
+        .game-card:hover {
+            transform: translateY(-8px);
+            border-color: var(--card-accent, var(--primary));
+            box-shadow: 0 20px 60px rgba(0, 255, 136, 0.12);
+        }
+
+        .game-card:hover::after {
+            transform: scaleX(1);
+        }
+
+        .game-preview {
+            width: 100%;
+            height: 200px;
+            position: relative;
+            overflow: hidden;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 4rem;
+        }
+
+        .game-preview canvas {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+        }
+
+        .game-preview-icon {
+            position: relative;
+            z-index: 2;
+            font-size: 3.5rem;
+            filter: drop-shadow(0 0 20px rgba(0, 0, 0, 0.5));
+        }
+
+        .game-info {
+            padding: 1.5rem;
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .game-tags {
+            display: flex;
+            gap: 0.5rem;
+            flex-wrap: wrap;
+            margin-bottom: 0.75rem;
+        }
+
+        .game-tag {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.7rem;
+            padding: 0.2rem 0.6rem;
+            border: 1px solid var(--card-accent, var(--primary));
+            color: var(--card-accent, var(--primary));
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            opacity: 0.8;
+        }
+
+        .game-title {
+            font-size: 1.3rem;
+            font-weight: 700;
+            margin-bottom: 0.5rem;
+            color: var(--text-primary);
+            font-family: 'JetBrains Mono', monospace;
+        }
+
+        .game-description {
+            font-size: 0.9rem;
+            color: var(--text-secondary);
+            line-height: 1.6;
+            margin-bottom: 1.5rem;
+            flex: 1;
+        }
+
+        .game-play-btn {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+            padding: 0.75rem 1.5rem;
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.85rem;
+            font-weight: 600;
+            border: 2px solid var(--card-accent, var(--primary));
+            background: transparent;
+            color: var(--card-accent, var(--primary));
+            text-decoration: none;
+            transition: all 0.3s ease;
+            position: relative;
+            overflow: hidden;
+            align-self: flex-start;
+        }
+
+        .game-play-btn::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -100%;
+            width: 100%;
+            height: 100%;
+            background: var(--card-accent, var(--primary));
+            transition: left 0.3s ease;
+            z-index: -1;
+        }
+
+        .game-play-btn:hover {
+            color: var(--bg-darker);
+            box-shadow: 0 0 25px color-mix(in srgb, var(--card-accent, var(--primary)) 40%, transparent);
+        }
+
+        .game-play-btn:hover::before {
+            left: 0;
+        }
+
+        .game-play-btn::after {
+            content: '\2192';
+            transition: transform 0.3s ease;
+        }
+
+        .game-play-btn:hover::after {
+            transform: translateX(4px);
+        }
+
+        /* Footer */
+        footer {
+            border-top: 1px solid var(--border);
+            padding: 3rem 0;
+            text-align: center;
+        }
+
+        .footer-content {
+            color: var(--text-dim);
+            font-size: 0.9rem;
+        }
+
+        .footer-status {
+            font-family: 'JetBrains Mono', monospace;
+            color: var(--text-secondary);
+            margin-top: 1rem;
+            font-size: 0.85rem;
+        }
+
+        .status-dot {
+            display: inline-block;
+            width: 8px;
+            height: 8px;
+            background: var(--primary);
+            border-radius: 50%;
+            margin-right: 0.5rem;
+            box-shadow: 0 0 10px var(--glow);
+            animation: pulse 2s ease-in-out infinite;
+        }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 1; transform: scale(1); }
+            50% { opacity: 0.6; transform: scale(1.1); }
+        }
+
+        /* Responsive */
+        @media (max-width: 768px) {
+            .games-grid {
+                grid-template-columns: 1fr;
+            }
+
+            nav a:not(.nav-games-btn) {
+                display: none;
+            }
+
+            .page-header {
+                padding: 3rem 0 2rem;
+            }
+        }
+
+        @media (max-width: 480px) {
+            .games-grid {
+                gap: 1.5rem;
+            }
+
+            .game-preview {
+                height: 160px;
+            }
+        }
+
+        html {
+            scroll-behavior: smooth;
+        }
+
+        ::selection {
+            background: var(--primary);
+            color: var(--bg-darker);
+        }
+    </style>
+</head>
+<body>
+    <div class="bg-gradient"></div>
+    <canvas class="bg-canvas" id="matrix-canvas"></canvas>
+
+    <!-- Header -->
+    <div class="container">
+        <header>
+            <a href="index.html" class="logo">MN</a>
+            <nav>
+                <a href="index.html">Home</a>
+                <a href="games.html" class="nav-games-btn">Games</a>
+            </nav>
+        </header>
+    </div>
+
+    <!-- Page Header -->
+    <div class="container">
+        <div class="page-header">
+            <h1 class="page-title">Game Arcade</h1>
+            <p class="page-subtitle">Choose a game and start playing</p>
+        </div>
+
+        <!-- Filter Bar -->
+        <div class="filter-bar">
+            <button class="filter-btn active" data-filter="all">All</button>
+            <button class="filter-btn" data-filter="3d">3D</button>
+            <button class="filter-btn" data-filter="horror">Horror</button>
+            <button class="filter-btn" data-filter="action">Action</button>
+            <button class="filter-btn" data-filter="arcade">Arcade</button>
+            <button class="filter-btn" data-filter="board">Board</button>
+            <button class="filter-btn" data-filter="multiplayer">Multiplayer</button>
+        </div>
+    </div>
+
+    <!-- Games Grid -->
+    <div class="container">
+        <div class="games-grid">
+
+            <!-- The Maze -->
+            <div class="game-card" data-tags="3d,horror" style="--card-accent: #ff0000;">
+                <div class="game-preview" style="background: linear-gradient(135deg, #1a0000, #330000, #0a0a0a);">
+                    <canvas class="preview-canvas" data-effect="maze"></canvas>
+                    <span class="game-preview-icon">&#x1F3DA;</span>
+                </div>
+                <div class="game-info">
+                    <div class="game-tags">
+                        <span class="game-tag">3D</span>
+                        <span class="game-tag">Horror</span>
+                    </div>
+                    <h3 class="game-title">The Maze</h3>
+                    <p class="game-description">Navigate through a terrifying first-person 3D maze. Find the exit before something finds you.</p>
+                    <a href="horror-maze.html" class="game-play-btn">Play</a>
+                </div>
+            </div>
+
+            <!-- Stellar Voyage -->
+            <div class="game-card" data-tags="3d,action" style="--card-accent: #a855f7;">
+                <div class="game-preview" style="background: linear-gradient(135deg, #0a001a, #1a0033, #050510);">
+                    <canvas class="preview-canvas" data-effect="stars"></canvas>
+                    <span class="game-preview-icon">&#x1F680;</span>
+                </div>
+                <div class="game-info">
+                    <div class="game-tags">
+                        <span class="game-tag">3D</span>
+                        <span class="game-tag">Open World</span>
+                    </div>
+                    <h3 class="game-title">Stellar Voyage</h3>
+                    <p class="game-description">Pilot a rocket through a procedurally generated galaxy. Explore planets, dodge asteroids, and chart the unknown.</p>
+                    <a href="open-world.html" class="game-play-btn">Play</a>
+                </div>
+            </div>
+
+            <!-- Horror Chase -->
+            <div class="game-card" data-tags="3d,horror" style="--card-accent: #dc2626;">
+                <div class="game-preview" style="background: linear-gradient(135deg, #0d0000, #2a0000, #0a0505);">
+                    <canvas class="preview-canvas" data-effect="fog"></canvas>
+                    <span class="game-preview-icon">&#x1F47B;</span>
+                </div>
+                <div class="game-info">
+                    <div class="game-tags">
+                        <span class="game-tag">3D</span>
+                        <span class="game-tag">Horror</span>
+                        <span class="game-tag">Survival</span>
+                    </div>
+                    <h3 class="game-title">Horror Chase</h3>
+                    <p class="game-description">Run for your life in this intense 3D horror experience. Something is chasing you through the darkness.</p>
+                    <a href="horror-chase.html" class="game-play-btn">Play</a>
+                </div>
+            </div>
+
+            <!-- Tactical Warfare -->
+            <div class="game-card" data-tags="action,arcade" style="--card-accent: #22c55e;">
+                <div class="game-preview" style="background: linear-gradient(135deg, #001a00, #002200, #0a0f0a);">
+                    <canvas class="preview-canvas" data-effect="grid"></canvas>
+                    <span class="game-preview-icon">&#x1F3AF;</span>
+                </div>
+                <div class="game-info">
+                    <div class="game-tags">
+                        <span class="game-tag">Action</span>
+                        <span class="game-tag">Strategy</span>
+                    </div>
+                    <h3 class="game-title">Tactical Warfare</h3>
+                    <p class="game-description">Turn-based tactical combat with HUD overlays, multiple weapons, and strategic depth.</p>
+                    <a href="tactical-shooter.html" class="game-play-btn">Play</a>
+                </div>
+            </div>
+
+            <!-- Cyber Arena -->
+            <div class="game-card" data-tags="3d,action,multiplayer" style="--card-accent: #06b6d4;">
+                <div class="game-preview" style="background: linear-gradient(135deg, #001a1a, #002233, #050f10);">
+                    <canvas class="preview-canvas" data-effect="particles"></canvas>
+                    <span class="game-preview-icon">&#x2694;</span>
+                </div>
+                <div class="game-info">
+                    <div class="game-tags">
+                        <span class="game-tag">3D</span>
+                        <span class="game-tag">Battle</span>
+                    </div>
+                    <h3 class="game-title">Cyber Arena</h3>
+                    <p class="game-description">Enter the arena for 3D combat with full HUD, health systems, and dynamic encounters.</p>
+                    <a href="game.html" class="game-play-btn">Play</a>
+                </div>
+            </div>
+
+            <!-- Shooter 3D -->
+            <div class="game-card" data-tags="3d,action" style="--card-accent: #f97316;">
+                <div class="game-preview" style="background: linear-gradient(135deg, #1a0d00, #331a00, #0f0a05);">
+                    <canvas class="preview-canvas" data-effect="crosshair"></canvas>
+                    <span class="game-preview-icon">&#x1F52B;</span>
+                </div>
+                <div class="game-info">
+                    <div class="game-tags">
+                        <span class="game-tag">3D</span>
+                        <span class="game-tag">FPS</span>
+                    </div>
+                    <h3 class="game-title">Shooter 3D</h3>
+                    <p class="game-description">First-person 3D shooter with fast-paced action and precision aiming mechanics.</p>
+                    <a href="shooter-3d.html" class="game-play-btn">Play</a>
+                </div>
+            </div>
+
+            <!-- Minecraft Clone -->
+            <div class="game-card" data-tags="3d,arcade" style="--card-accent: #84cc16;">
+                <div class="game-preview" style="background: linear-gradient(135deg, #0a1a00, #1a2200, #080f05);">
+                    <canvas class="preview-canvas" data-effect="blocks"></canvas>
+                    <span class="game-preview-icon">&#x1F9F1;</span>
+                </div>
+                <div class="game-info">
+                    <div class="game-tags">
+                        <span class="game-tag">3D</span>
+                        <span class="game-tag">Sandbox</span>
+                    </div>
+                    <h3 class="game-title">Minecraft Clone</h3>
+                    <p class="game-description">Build and explore a block-based 3D world. Place and destroy blocks to create your own structures.</p>
+                    <a href="minecraft.html" class="game-play-btn">Play</a>
+                </div>
+            </div>
+
+            <!-- Racing -->
+            <div class="game-card" data-tags="arcade,action" style="--card-accent: #eab308;">
+                <div class="game-preview" style="background: linear-gradient(135deg, #1a1500, #332200, #0f0d05);">
+                    <canvas class="preview-canvas" data-effect="road"></canvas>
+                    <span class="game-preview-icon">&#x1F3CE;</span>
+                </div>
+                <div class="game-info">
+                    <div class="game-tags">
+                        <span class="game-tag">Racing</span>
+                        <span class="game-tag">Arcade</span>
+                    </div>
+                    <h3 class="game-title">Racing</h3>
+                    <p class="game-description">Hit the track in this 2D racing simulation with responsive driving mechanics and speed.</p>
+                    <a href="racing.html" class="game-play-btn">Play</a>
+                </div>
+            </div>
+
+            <!-- Connect Four -->
+            <div class="game-card" data-tags="board" style="--card-accent: #3b82f6;">
+                <div class="game-preview" style="background: linear-gradient(135deg, #00081a, #001033, #050810);">
+                    <canvas class="preview-canvas" data-effect="connect"></canvas>
+                    <span class="game-preview-icon">&#x1F534;</span>
+                </div>
+                <div class="game-info">
+                    <div class="game-tags">
+                        <span class="game-tag">Board</span>
+                        <span class="game-tag">AI</span>
+                    </div>
+                    <h3 class="game-title">Connect Four</h3>
+                    <p class="game-description">Challenge a minimax AI opponent in the classic strategy game. Can you outsmart the algorithm?</p>
+                    <a href="connect-four.html" class="game-play-btn">Play</a>
+                </div>
+            </div>
+
+            <!-- Rock Paper Scissors -->
+            <div class="game-card" data-tags="board,arcade" style="--card-accent: #ffa500;">
+                <div class="game-preview" style="background: linear-gradient(135deg, #1a0d00, #331a00, #0f0a05);">
+                    <canvas class="preview-canvas" data-effect="rps"></canvas>
+                    <span class="game-preview-icon">&#x270A;</span>
+                </div>
+                <div class="game-info">
+                    <div class="game-tags">
+                        <span class="game-tag">Arcade</span>
+                        <span class="game-tag">Classic</span>
+                    </div>
+                    <h3 class="game-title">Rock Paper Scissors</h3>
+                    <p class="game-description">The classic hand game with a twist - the bot always wins. Can you figure out the pattern?</p>
+                    <a href="rock-paper-scissors.html" class="game-play-btn">Play</a>
+                </div>
+            </div>
+
+            <!-- Air Hockey -->
+            <div class="game-card" data-tags="arcade,multiplayer" style="--card-accent: #00d4ff;">
+                <div class="game-preview" style="background: linear-gradient(135deg, #001a1a, #002233, #050f10);">
+                    <canvas class="preview-canvas" data-effect="hockey"></canvas>
+                    <span class="game-preview-icon">&#x1F3D2;</span>
+                </div>
+                <div class="game-info">
+                    <div class="game-tags">
+                        <span class="game-tag">Arcade</span>
+                        <span class="game-tag">2-Player</span>
+                    </div>
+                    <h3 class="game-title">Air Hockey</h3>
+                    <p class="game-description">Fast-paced 2-player air hockey with realistic physics. Challenge a friend on the same device.</p>
+                    <a href="air-hockey.html" class="game-play-btn">Play</a>
+                </div>
+            </div>
+
+            <!-- Butt Bump -->
+            <div class="game-card" data-tags="arcade,multiplayer" style="--card-accent: #ff69b4;">
+                <div class="game-preview" style="background: linear-gradient(135deg, #1a001a, #330022, #0f050a);">
+                    <canvas class="preview-canvas" data-effect="bump"></canvas>
+                    <span class="game-preview-icon">&#x1F4A5;</span>
+                </div>
+                <div class="game-info">
+                    <div class="game-tags">
+                        <span class="game-tag">Arcade</span>
+                        <span class="game-tag">Party</span>
+                    </div>
+                    <h3 class="game-title">Butt Bump</h3>
+                    <p class="game-description">Collision-based arcade fun. Bump your opponents off the arena to claim victory.</p>
+                    <a href="butt-bump.html" class="game-play-btn">Play</a>
+                </div>
+            </div>
+
+            <!-- Shadow Hunt -->
+            <div class="game-card" data-tags="action,horror" style="--card-accent: #8b5cf6;">
+                <div class="game-preview" style="background: linear-gradient(135deg, #0d001a, #1a0033, #08050f);">
+                    <canvas class="preview-canvas" data-effect="shadow"></canvas>
+                    <span class="game-preview-icon">&#x1F441;</span>
+                </div>
+                <div class="game-info">
+                    <div class="game-tags">
+                        <span class="game-tag">Stealth</span>
+                        <span class="game-tag">Puzzle</span>
+                    </div>
+                    <h3 class="game-title">Shadow Hunt</h3>
+                    <p class="game-description">A stealth puzzle game where you must stay in the shadows. One wrong move and you're spotted.</p>
+                    <a href="shadow-hunt.html" class="game-play-btn">Play</a>
+                </div>
+            </div>
+
+            <!-- Midnight Terror -->
+            <div class="game-card" data-tags="horror,arcade" style="--card-accent: #ef4444;">
+                <div class="game-preview" style="background: linear-gradient(135deg, #0d0000, #1a0505, #0a0000);">
+                    <canvas class="preview-canvas" data-effect="terror"></canvas>
+                    <span class="game-preview-icon">&#x1F319;</span>
+                </div>
+                <div class="game-info">
+                    <div class="game-tags">
+                        <span class="game-tag">Horror</span>
+                        <span class="game-tag">Survival</span>
+                    </div>
+                    <h3 class="game-title">Midnight Terror</h3>
+                    <p class="game-description">Survive the horrors of midnight in this 2D survival game. Every second counts.</p>
+                    <a href="midnight-terror.html" class="game-play-btn">Play</a>
+                </div>
+            </div>
+
+            <!-- WiFi Multiplayer -->
+            <div class="game-card" data-tags="multiplayer,action" style="--card-accent: #14b8a6;">
+                <div class="game-preview" style="background: linear-gradient(135deg, #001a14, #00331a, #050f0a);">
+                    <canvas class="preview-canvas" data-effect="network"></canvas>
+                    <span class="game-preview-icon">&#x1F4E1;</span>
+                </div>
+                <div class="game-info">
+                    <div class="game-tags">
+                        <span class="game-tag">Multiplayer</span>
+                        <span class="game-tag">Network</span>
+                    </div>
+                    <h3 class="game-title">WiFi Multiplayer</h3>
+                    <p class="game-description">Real-time multiplayer game with network connectivity. Play with friends over local WiFi.</p>
+                    <a href="wifi-multiplayer.html" class="game-play-btn">Play</a>
+                </div>
+            </div>
+
+        </div>
+    </div>
+
+    <!-- Footer -->
+    <div class="container">
+        <footer>
+            <div class="footer-content">
+                &copy; 2025 Mahammad Nuriyev. All rights reserved.
+            </div>
+            <div class="footer-status">
+                <span class="status-dot"></span>
+                System Online &bull; Games: 15 &bull; Ready to Play
+            </div>
+        </footer>
+    </div>
+
+    <script>
+        // Filter functionality
+        const filterBtns = document.querySelectorAll('.filter-btn');
+        const gameCards = document.querySelectorAll('.game-card');
+
+        filterBtns.forEach(btn => {
+            btn.addEventListener('click', () => {
+                filterBtns.forEach(b => b.classList.remove('active'));
+                btn.classList.add('active');
+
+                const filter = btn.dataset.filter;
+
+                gameCards.forEach(card => {
+                    if (filter === 'all') {
+                        card.style.display = '';
+                    } else {
+                        const tags = card.dataset.tags.split(',');
+                        card.style.display = tags.includes(filter) ? '' : 'none';
+                    }
+                });
+            });
+        });
+
+        // Preview canvas animations
+        document.querySelectorAll('.preview-canvas').forEach(canvas => {
+            const ctx = canvas.getContext('2d');
+            const effect = canvas.dataset.effect;
+            const rect = canvas.parentElement.getBoundingClientRect();
+            canvas.width = rect.width || 400;
+            canvas.height = rect.height || 200;
+
+            let frame = 0;
+
+            function animate() {
+                ctx.clearRect(0, 0, canvas.width, canvas.height);
+                frame++;
+
+                switch (effect) {
+                    case 'maze':
+                        drawMazePreview(ctx, canvas, frame);
+                        break;
+                    case 'stars':
+                        drawStarsPreview(ctx, canvas, frame);
+                        break;
+                    case 'fog':
+                        drawFogPreview(ctx, canvas, frame);
+                        break;
+                    case 'grid':
+                        drawGridPreview(ctx, canvas, frame);
+                        break;
+                    case 'particles':
+                        drawParticlesPreview(ctx, canvas, frame);
+                        break;
+                    case 'crosshair':
+                        drawCrosshairPreview(ctx, canvas, frame);
+                        break;
+                    case 'blocks':
+                        drawBlocksPreview(ctx, canvas, frame);
+                        break;
+                    case 'road':
+                        drawRoadPreview(ctx, canvas, frame);
+                        break;
+                    case 'connect':
+                        drawConnectPreview(ctx, canvas, frame);
+                        break;
+                    case 'rps':
+                        drawRPSPreview(ctx, canvas, frame);
+                        break;
+                    case 'hockey':
+                        drawHockeyPreview(ctx, canvas, frame);
+                        break;
+                    case 'bump':
+                        drawBumpPreview(ctx, canvas, frame);
+                        break;
+                    case 'shadow':
+                        drawShadowPreview(ctx, canvas, frame);
+                        break;
+                    case 'terror':
+                        drawTerrorPreview(ctx, canvas, frame);
+                        break;
+                    case 'network':
+                        drawNetworkPreview(ctx, canvas, frame);
+                        break;
+                }
+
+                requestAnimationFrame(animate);
+            }
+
+            animate();
+        });
+
+        // Preview animation functions
+        function drawMazePreview(ctx, c, f) {
+            ctx.strokeStyle = 'rgba(255, 0, 0, 0.3)';
+            ctx.lineWidth = 2;
+            const size = 30;
+            for (let x = 0; x < c.width; x += size) {
+                for (let y = 0; y < c.height; y += size) {
+                    if (Math.sin(x * 0.1 + f * 0.02) > 0) {
+                        ctx.beginPath();
+                        ctx.moveTo(x, y);
+                        ctx.lineTo(x + size, y);
+                        ctx.stroke();
+                    }
+                    if (Math.cos(y * 0.1 + f * 0.015) > 0) {
+                        ctx.beginPath();
+                        ctx.moveTo(x, y);
+                        ctx.lineTo(x, y + size);
+                        ctx.stroke();
+                    }
+                }
+            }
+        }
+
+        function drawStarsPreview(ctx, c, f) {
+            for (let i = 0; i < 60; i++) {
+                const x = (i * 73 + f * (0.5 + (i % 3) * 0.3)) % c.width;
+                const y = (i * 41) % c.height;
+                const s = 1 + Math.sin(f * 0.05 + i) * 0.5;
+                ctx.fillStyle = `rgba(168, 85, 247, ${0.3 + Math.sin(f * 0.03 + i) * 0.2})`;
+                ctx.beginPath();
+                ctx.arc(x, y, s, 0, Math.PI * 2);
+                ctx.fill();
+            }
+        }
+
+        function drawFogPreview(ctx, c, f) {
+            for (let i = 0; i < 5; i++) {
+                const x = c.width / 2 + Math.sin(f * 0.01 + i * 2) * 100;
+                const y = c.height / 2 + Math.cos(f * 0.015 + i * 1.5) * 50;
+                const r = 60 + Math.sin(f * 0.02 + i) * 20;
+                const grad = ctx.createRadialGradient(x, y, 0, x, y, r);
+                grad.addColorStop(0, 'rgba(220, 38, 38, 0.1)');
+                grad.addColorStop(1, 'transparent');
+                ctx.fillStyle = grad;
+                ctx.fillRect(0, 0, c.width, c.height);
+            }
+        }
+
+        function drawGridPreview(ctx, c, f) {
+            ctx.strokeStyle = 'rgba(34, 197, 94, 0.15)';
+            ctx.lineWidth = 1;
+            const size = 25;
+            const offset = (f * 0.5) % size;
+            for (let x = -size + offset; x < c.width + size; x += size) {
+                ctx.beginPath();
+                ctx.moveTo(x, 0);
+                ctx.lineTo(x, c.height);
+                ctx.stroke();
+            }
+            for (let y = -size + offset; y < c.height + size; y += size) {
+                ctx.beginPath();
+                ctx.moveTo(0, y);
+                ctx.lineTo(c.width, y);
+                ctx.stroke();
+            }
+        }
+
+        function drawParticlesPreview(ctx, c, f) {
+            for (let i = 0; i < 30; i++) {
+                const x = (i * 67 + Math.sin(f * 0.02 + i) * 30) % c.width;
+                const y = (i * 43 + Math.cos(f * 0.025 + i) * 20) % c.height;
+                ctx.fillStyle = `rgba(6, 182, 212, ${0.2 + Math.sin(f * 0.04 + i) * 0.15})`;
+                ctx.beginPath();
+                ctx.arc(x, y, 2, 0, Math.PI * 2);
+                ctx.fill();
+            }
+        }
+
+        function drawCrosshairPreview(ctx, c, f) {
+            const cx = c.width / 2 + Math.sin(f * 0.03) * 40;
+            const cy = c.height / 2 + Math.cos(f * 0.02) * 20;
+            ctx.strokeStyle = 'rgba(249, 115, 22, 0.4)';
+            ctx.lineWidth = 1;
+            ctx.beginPath();
+            ctx.moveTo(cx - 15, cy);
+            ctx.lineTo(cx + 15, cy);
+            ctx.moveTo(cx, cy - 15);
+            ctx.lineTo(cx, cy + 15);
+            ctx.stroke();
+            ctx.beginPath();
+            ctx.arc(cx, cy, 10, 0, Math.PI * 2);
+            ctx.stroke();
+        }
+
+        function drawBlocksPreview(ctx, c, f) {
+            const size = 20;
+            ctx.strokeStyle = 'rgba(132, 204, 22, 0.2)';
+            ctx.lineWidth = 1;
+            for (let x = 0; x < c.width; x += size) {
+                for (let y = 0; y < c.height; y += size) {
+                    if (Math.sin(x * 0.2 + y * 0.3 + f * 0.01) > 0.3) {
+                        ctx.fillStyle = `rgba(132, 204, 22, ${0.05 + Math.sin(f * 0.02 + x + y) * 0.05})`;
+                        ctx.fillRect(x, y, size - 1, size - 1);
+                        ctx.strokeRect(x, y, size - 1, size - 1);
+                    }
+                }
+            }
+        }
+
+        function drawRoadPreview(ctx, c, f) {
+            ctx.strokeStyle = 'rgba(234, 179, 8, 0.3)';
+            ctx.lineWidth = 2;
+            ctx.setLineDash([10, 10]);
+            const offset = (f * 2) % 20;
+            ctx.lineDashOffset = -offset;
+            ctx.beginPath();
+            ctx.moveTo(c.width / 2, 0);
+            ctx.lineTo(c.width / 2, c.height);
+            ctx.stroke();
+            ctx.setLineDash([]);
+            ctx.strokeStyle = 'rgba(234, 179, 8, 0.15)';
+            ctx.beginPath();
+            ctx.moveTo(c.width * 0.2, 0);
+            ctx.lineTo(c.width * 0.2, c.height);
+            ctx.moveTo(c.width * 0.8, 0);
+            ctx.lineTo(c.width * 0.8, c.height);
+            ctx.stroke();
+        }
+
+        function drawConnectPreview(ctx, c, f) {
+            const cols = 7;
+            const rows = 6;
+            const r = 8;
+            const gapX = c.width / (cols + 1);
+            const gapY = c.height / (rows + 1);
+            for (let col = 0; col < cols; col++) {
+                for (let row = 0; row < rows; row++) {
+                    const x = gapX * (col + 1);
+                    const y = gapY * (row + 1);
+                    ctx.strokeStyle = 'rgba(59, 130, 246, 0.2)';
+                    ctx.lineWidth = 1;
+                    ctx.beginPath();
+                    ctx.arc(x, y, r, 0, Math.PI * 2);
+                    ctx.stroke();
+                    if (Math.sin(col * 2 + row * 3 + f * 0.03) > 0.5) {
+                        ctx.fillStyle = col % 2 === 0 ? 'rgba(239, 68, 68, 0.3)' : 'rgba(234, 179, 8, 0.3)';
+                        ctx.beginPath();
+                        ctx.arc(x, y, r - 1, 0, Math.PI * 2);
+                        ctx.fill();
+                    }
+                }
+            }
+        }
+
+        function drawRPSPreview(ctx, c, f) {
+            const symbols = ['\u270A', '\u270B', '\u270C'];
+            ctx.font = '24px sans-serif';
+            ctx.textAlign = 'center';
+            ctx.textBaseline = 'middle';
+            const idx = Math.floor(f / 40) % 3;
+            ctx.fillStyle = 'rgba(255, 165, 0, 0.3)';
+            ctx.fillText(symbols[idx], c.width * 0.3, c.height / 2);
+            ctx.fillText(symbols[(idx + 1) % 3], c.width * 0.7, c.height / 2);
+        }
+
+        function drawHockeyPreview(ctx, c, f) {
+            ctx.strokeStyle = 'rgba(0, 212, 255, 0.2)';
+            ctx.lineWidth = 1;
+            ctx.beginPath();
+            ctx.moveTo(c.width / 2, 0);
+            ctx.lineTo(c.width / 2, c.height);
+            ctx.stroke();
+            ctx.beginPath();
+            ctx.arc(c.width / 2, c.height / 2, 30, 0, Math.PI * 2);
+            ctx.stroke();
+            const px = c.width / 2 + Math.sin(f * 0.05) * 80;
+            const py = c.height / 2 + Math.cos(f * 0.07) * 40;
+            ctx.fillStyle = 'rgba(0, 212, 255, 0.5)';
+            ctx.beginPath();
+            ctx.arc(px, py, 5, 0, Math.PI * 2);
+            ctx.fill();
+        }
+
+        function drawBumpPreview(ctx, c, f) {
+            for (let i = 0; i < 4; i++) {
+                const x = c.width / 2 + Math.sin(f * 0.03 + i * 1.5) * 60;
+                const y = c.height / 2 + Math.cos(f * 0.04 + i * 2) * 30;
+                ctx.fillStyle = `rgba(255, 105, 180, ${0.2 + i * 0.05})`;
+                ctx.beginPath();
+                ctx.arc(x, y, 10, 0, Math.PI * 2);
+                ctx.fill();
+            }
+        }
+
+        function drawShadowPreview(ctx, c, f) {
+            const cx = c.width / 2;
+            const cy = c.height / 2;
+            const grad = ctx.createRadialGradient(
+                cx + Math.sin(f * 0.02) * 40, cy, 20,
+                cx, cy, 120
+            );
+            grad.addColorStop(0, 'rgba(139, 92, 246, 0.15)');
+            grad.addColorStop(1, 'transparent');
+            ctx.fillStyle = grad;
+            ctx.fillRect(0, 0, c.width, c.height);
+        }
+
+        function drawTerrorPreview(ctx, c, f) {
+            const flicker = Math.sin(f * 0.1) > 0.8 ? 0.3 : 0.05;
+            ctx.fillStyle = `rgba(239, 68, 68, ${flicker})`;
+            ctx.fillRect(0, 0, c.width, c.height);
+        }
+
+        function drawNetworkPreview(ctx, c, f) {
+            const nodes = [];
+            for (let i = 0; i < 8; i++) {
+                nodes.push({
+                    x: (i * 97 + Math.sin(f * 0.02 + i) * 20) % c.width,
+                    y: (i * 53 + Math.cos(f * 0.025 + i) * 15) % c.height
+                });
+            }
+            ctx.strokeStyle = 'rgba(20, 184, 166, 0.15)';
+            ctx.lineWidth = 1;
+            for (let i = 0; i < nodes.length; i++) {
+                for (let j = i + 1; j < nodes.length; j++) {
+                    const dx = nodes[i].x - nodes[j].x;
+                    const dy = nodes[i].y - nodes[j].y;
+                    if (Math.sqrt(dx * dx + dy * dy) < 150) {
+                        ctx.beginPath();
+                        ctx.moveTo(nodes[i].x, nodes[i].y);
+                        ctx.lineTo(nodes[j].x, nodes[j].y);
+                        ctx.stroke();
+                    }
+                }
+            }
+            nodes.forEach(n => {
+                ctx.fillStyle = 'rgba(20, 184, 166, 0.4)';
+                ctx.beginPath();
+                ctx.arc(n.x, n.y, 3, 0, Math.PI * 2);
+                ctx.fill();
+            });
+        }
+
+        // Matrix rain background
+        const matrixCanvas = document.getElementById('matrix-canvas');
+        const matrixCtx = matrixCanvas.getContext('2d');
+        matrixCanvas.width = window.innerWidth;
+        matrixCanvas.height = window.innerHeight;
+
+        const chars = '01';
+        const fontSize = 14;
+        const columns = matrixCanvas.width / fontSize;
+        const drops = Array(Math.floor(columns)).fill(1);
+
+        function drawMatrix() {
+            matrixCtx.fillStyle = 'rgba(5, 8, 16, 0.05)';
+            matrixCtx.fillRect(0, 0, matrixCanvas.width, matrixCanvas.height);
+            matrixCtx.fillStyle = '#00ff88';
+            matrixCtx.font = fontSize + 'px monospace';
+
+            for (let i = 0; i < drops.length; i++) {
+                const char = chars[Math.floor(Math.random() * chars.length)];
+                matrixCtx.fillText(char, i * fontSize, drops[i] * fontSize);
+
+                if (drops[i] * fontSize > matrixCanvas.height && Math.random() > 0.975) {
+                    drops[i] = 0;
+                }
+                drops[i]++;
+            }
+        }
+
+        setInterval(drawMatrix, 50);
+
+        window.addEventListener('resize', () => {
+            matrixCanvas.width = window.innerWidth;
+            matrixCanvas.height = window.innerHeight;
+        });
+    </script>
+</body>
+</html>
