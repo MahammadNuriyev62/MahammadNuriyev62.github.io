@@ -444,9 +444,9 @@ class Game {
     }
 
     // Player civ
-    this.civs.push(this.createCiv(playerCivDef,startPositions[0],true));
+    this.createCiv(playerCivDef,startPositions[0],true);
     for(let i=0;i<config.aiCount;i++){
-      this.civs.push(this.createCiv(aiCivDefs[i],startPositions[i+1],false));
+      this.createCiv(aiCivDefs[i],startPositions[i+1],false);
     }
 
     // Center camera on player start
@@ -488,19 +488,23 @@ class Game {
     };
     if(civDef.startGold)civ.gold+=civDef.startGold;
 
-    // Create starting city
-    const city=this.createCity(civ.id,startPos.q,startPos.r,civDef.name+' Capital');
+    // Push civ BEFORE spawning units/cities so spawnUnit can find it
+    this.civs.push(civ);
 
-    // Create starting warrior
-    this.spawnUnit(civ.id,'warrior',startPos.q,startPos.r);
-
-    // Set initial relations
+    // Set initial relations with existing civs
     for(let i=0;i<this.civs.length;i++){
       if(i!==civ.id){
         civ.relations[i]='peace';
         if(this.civs[i])this.civs[i].relations[civ.id]='peace';
       }
     }
+
+    // Create starting city
+    this.createCity(civ.id,startPos.q,startPos.r,civDef.name+' Capital');
+
+    // Create starting warrior
+    this.spawnUnit(civ.id,'warrior',startPos.q,startPos.r);
+
     return civ;
   }
 
